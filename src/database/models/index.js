@@ -1,14 +1,12 @@
-const { Post, PostSchema } = require("./post.js");
-
+const { Resident, ResidentSchema } = require("./Resident.js");
 
 function setUpModels(sequelize) {
   // Inicialización
-  Post.init(PostSchema, Post.config(sequelize));
-
+  Resident.init(ResidentSchema, Resident.config(sequelize));
 
   // Relaciones
-  Post.associate(sequelize.models);
-
+  Resident.associate(sequelize.models);
 }
 
 module.exports = setUpModels;
+
