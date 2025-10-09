@@ -21,7 +21,7 @@ app.put("/posts", (req, res) => {
 })
 
 app.delete("/posts", (req, res) => {
-    res.send("delete post");
+    res.send(`delete post${PORT}`);
 })
 
 app.listen(PORT, () => {
