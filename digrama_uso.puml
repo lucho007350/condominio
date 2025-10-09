@@ -1,0 +1,24 @@
+@startuml
+title Arquitectura del Sistema de Gestión de Conjunto Residencial
+
+actor "Usuario Administrador" as Admin
+actor "Residente" as Residente
+
+rectangle "Frontend (Vue.js)" as Frontend {
+    Admin --> Frontend : Interacción vía navegador
+    Residente --> Frontend : Interacción vía navegador
+}
+
+rectangle "Backend (Laravel - PHP)" as Backend {
+    Frontend --> Backend : Solicitudes HTTP/HTTPS (API REST)
+}
+
+database "Base de Datos (MySQL)" as DB {
+    Backend --> DB : CRUD de datos
+}
+
+rectangle "Servicios Externos" as Servicios {
+    Backend --> Servicios : Pasarela de pago, Notificaciones por email/SMS
+}
+
+@enduml

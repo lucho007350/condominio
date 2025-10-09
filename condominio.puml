@@ -1,0 +1,159 @@
+
+
+
+
+@startuml
+' =========================
+' Definición de Clases
+' =========================
+
+class Residente {
+    -int idResidente
+    -string nombre
+    -string apellido
+    -string tipoResidente
+    -string documento
+    -string telefono
+    -string correo
+    -string estado
+    +get()
+    +set()
+    +constructor()
+}
+
+class UnidadHabitacional {
+    -int idUnidad
+    -string tipoUnidad
+    -string numero
+    -string estado
+    -float area
+    -float valorCuota
+    +get()
+    +set()
+    +constructor()
+}
+
+class Empleado {
+    -int idEmpleado
+    -string nombre
+    -string apellido
+    -string cargo
+    -string documento
+    -string telefono
+
+    '-float salario '
+
+    -Date fechaContratacion
+    +get()
+    +set()
+    +constructor()
+}
+
+class Pago {
+    -int idPago
+    -Date fechaPago
+    -float monto
+    -string metodoPago
+    -string estadoPago
+    +get()
+    +set()
+    +constructor()
+}
+
+class Factura {
+    -int idFactura
+    -Date fechaEmision
+    -float monto
+    -Date fechaVencimiento
+    -string estadoFactura
+    +get()
+    +set()
+    +constructor()
+}
+
+class Comunicacion {
+    -int idComunicado
+    -string titulo
+    -string contenido
+    -Date fechaPublicacion
+    -string tipo
+    +get()
+    +set()
+    +constructor()
+}
+
+class Documentos {
+    -int idDocumentos
+    -string nombre
+    -string tipo
+    -Date fechaCreacion
+    +get()
+    +set()
+    +constructor()
+}
+
+' tablsblas de exel
+
+class Ingreso {
+    -int idIngreso
+    -Date fecha
+    -float monto
+    -string concepto
+    +get()
+    +set()
+    +constructor()
+}
+
+class Egreso {
+    -int idEgreso
+    -Date fecha
+    -float monto
+    -string concepto
+    +get()
+    +set()
+    +constructor()
+}
+
+' tablsblas de exel
+
+' =========================
+' Tablas intermedias
+' =========================
+
+class ResidenteComunicacion {
+    -int id
+    -Date fechaEnvio
+    +get()
+    +set()
+    +constructor()
+}
+
+class ResidentePago {
+    -int id
+    -float montoPagado
+    -Date fechaPago
+    +get()
+    +set()
+    +constructor()
+}
+
+' =========================
+' Relaciones
+' =========================
+
+Residente "1" -- "1" UnidadHabitacional : vive_en
+UnidadHabitacional "1" -- "*" Factura : genera
+Factura "1" -- "*" Pago : registra
+UnidadHabitacional "0..1" -- "*" Documentos : tiene
+Empleado "1" -- "*" Documentos : genera
+Comunicacion "1" -- "*" Documentos : adjunta
+Ingreso "*" -- "0..1" Pago : proviene_de
+Egreso "*" -- "0..1" Empleado : relacionado_a
+
+' Muchos a muchos con tablas intermedias
+Residente "1" -- "*" ResidenteComunicacion
+Comunicacion "1" -- "*" ResidenteComunicacion
+
+Residente "1" -- "*" ResidentePago
+Pago "1" -- "*" ResidentePago
+@enduml
