@@ -1,29 +1,71 @@
-const express = require("express");
+require('dotenv').config(); // Cargar variables de entorno
+const express = require('express');
+const jwt = require('jsonwebtoken'); // Para trabajar con JWT
+const setUpRoutes = require('./router'); // Archivo que contiene las rutas de residentes y unidad habitacional
+
 const app = express();
-const PORT = 3001;
+const PORT = process.env.PORT || 3001;
+const secret = process.env.SECRET; // Clave secreta definida en el archivo .env
 
-app.use(express.json());
+app.use(express.json()); // Parsear JSON del cuerpo de las peticiones
 
-app.get("/", (req, res) => {
-  res.send("index of post");
-})
+// ==========================
+// 🔹 RUTAS DE AUTENTICACIÓN
+// ==========================
+app.post("/token", (req, res) => {
+    // Usuario de ejemplo (en producción vendría de la base de datos)
+    const { id: sub, name } = { id: "andreshenao", name: "Andres Henao" };
 
-app.get("/posts", (req, res) => {
-    res.send("ruta get");
-})
+    const token = jwt.sign(
+        {
+            name,
+            exp: Date.now() + 120 * 1000 // Token válido por 2 minutos
+        },
+        secret
+    );
 
-app.post("/posts", (req, res) => {
-    res.send("Update post");
-})
+    res.send({ token });
+});
 
-app.put("/posts", (req, res) => {
-    res.send("update post");
-})
+// ==========================
+// 🔹 RUTA PÚBLICA
+// ==========================
+app.get("/public", (req, res) => {
+    res.send("Esta ruta es pública, no necesita token");
+});
 
-app.delete("/posts", (req, res) => {
-    res.send(`delete post${PORT}`);
-})
+// ==========================
+// 🔹 RUTA PRIVADA
+// ==========================
+app.get("/private", (req, res) => {
+    try {
+        const authHeader = req.headers.authorization;
+        if (!authHeader) throw new Error("No se proporcionó token");
 
+        const token = authHeader.split(" ")[1]; // formato: Bearer <token>
+        const payload = jwt.verify(token, secret);
+
+        if (payload.exp < Date.now()) {
+            return res.status(401).send({ error: "El token ha expirado" });
+        }
+
+        res.send("Esta ruta es privada");
+    } catch (error) {
+        res.status(401).send({ error: error.message });
+    }
+});
+
+// ==========================
+// 🔹 RUTAS PRINCIPALES
+// ==========================
+// Aquí se cargan las rutas modulares de:
+// - Residentes
+// - Unidades habitacionales
+setUpRoutes(app);
+
+// ==========================
+// 🔹 INICIO DEL SERVIDOR
+// ==========================
 app.listen(PORT, () => {
-  console.log(`corriendo en el puerto ${PORT}`);
+    console.log(`🚀 Servidor corriendo en http://localhost:${PORT}`);
 });
