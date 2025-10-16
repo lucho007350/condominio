@@ -1,31 +1,33 @@
 const joi = require("joi");
 
-// Campos individuales
-const idUnidad = joi.number().integer();
+const idUnidadHabitacional = joi.number().integer();
+const tipoUnidad = joi.string().min(2).max(50);
 const numero = joi.string().min(1).max(10);
-const tipoUnidad = joi.string().valid("Apartamento", "Casa");
+const estado = joi.string().valid("Disponible", "Ocupada", "Mantenimiento"); // 👈 CORREGIDO
 const area = joi.number().positive();
-const estado = joi.string().valid("Ocupado", "Desocupado");
+const valorCuota = joi.number().positive();
 
-// Crear unidad habitacional
+// Crear unidad
 const createUnidadHabitacionalSchema = joi.object({
-  numero: numero.required(),
   tipoUnidad: tipoUnidad.required(),
-  area: area.required(),
+  numero: numero.required(),
   estado: estado.required(),
+  area: area.required(),
+  valorCuota: valorCuota.required(),
 });
 
-// Actualizar unidad habitacional
+// Actualizar unidad
 const updateUnidadHabitacionalSchema = joi.object({
-  numero,
   tipoUnidad,
-  area,
+  numero,
   estado,
+  area,
+  valorCuota,
 });
 
-// Obtener o eliminar por ID
+// Obtener por ID
 const getUnidadHabitacionalSchema = joi.object({
-  id: joi.number().integer().required(), // debe coincidir con el nombre del parámetro en la URL
+  id: idUnidadHabitacional.required(),
 });
 
 module.exports = {

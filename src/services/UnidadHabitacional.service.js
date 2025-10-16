@@ -17,13 +17,21 @@ class UnidadHabitacionalService {
     }
 
     // 🔹 Crear una nueva unidad habitacional
-    async create(numero, tipoUnidad, area, estado) {
-        const id = crypto.randomUUID(); // Genera un ID único (si lo usas)
-        const unidad = new UnidadHabitacional(id, numero, tipoUnidad, area, estado); // Crea un nuevo objeto
+    async create(tipoUnidad, numero, estado, area, valorCuota) {
+    const id = crypto.randomUUID(); // Si lo usas
+    const unidad = new UnidadHabitacional(
+        id,
+        tipoUnidad,
+        numero,
+        estado,
+        area,
+        valorCuota
+    );
 
-        const createdUnidad = await this.#repository.create(unidad); // Lo guarda en la base de datos
-        return createdUnidad.getValues(); // Devuelve los valores del objeto creado
-    }
+    const createdUnidad = await this.#repository.create(unidad);
+    return createdUnidad.getValues();
+}
+
 
     // 🔹 Obtener una unidad por su ID
     async getById(id) {

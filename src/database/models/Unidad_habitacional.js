@@ -18,10 +18,11 @@ const UnidadHabitacionalSchema = {
     unique: true
   },
   estado: {
-    type: DataTypes.ENUM('Disponible', 'Ocupada', 'Mantenimiento'),
-    allowNull: false,
-    defaultValue: 'Disponible'
-  },
+  type: DataTypes.ENUM('Disponible', 'Ocupado', 'Desocupado', 'Mantenimiento'),
+  allowNull: false,
+  defaultValue: 'Disponible'
+ },
+
   area: {
     type: DataTypes.FLOAT,
     allowNull: false
