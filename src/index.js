@@ -1,3 +1,4 @@
+
 require('dotenv').config(); // Cargar variables de entorno
 const express = require('express');
 const jwt = require('jsonwebtoken'); // Para trabajar con JWT
@@ -14,7 +15,7 @@ app.use(express.json()); // Parsear JSON del cuerpo de las peticiones
 // ==========================
 app.post("/token", (req, res) => {
     // Usuario de ejemplo (en producción vendría de la base de datos)
-    const { id: sub, name } = { id: "andreshenao", name: "Andres Henao" };
+    const { id: sub, name } = { id: "luisfelipe", name: "Luis Felipe" };
 
     const token = jwt.sign(
         {
@@ -69,3 +70,8 @@ setUpRoutes(app);
 app.listen(PORT, () => {
     console.log(`🚀 Servidor corriendo en http://localhost:${PORT}`);
 });
+
+
+
+
+

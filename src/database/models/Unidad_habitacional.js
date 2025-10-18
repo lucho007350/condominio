@@ -1,6 +1,6 @@
 const { Model, DataTypes } = require('sequelize');
 
-const UnidadHabitacionalTable = "unidad_habitacional";
+const UnidadHabitacionalTable = "unidades_habitacionales";
 
 const UnidadHabitacionalSchema = {
   idUnidad: {

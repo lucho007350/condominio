@@ -43,21 +43,22 @@ class UnidadHabitacionalService {
     }
 
     // 🔹 Actualizar una unidad existente
-    async update(id, numero, tipoUnidad, area, estado) {
-        const unidad = await this.#repository.getById(id);
-        if (!unidad) {
-            return null; // No existe la unidad
-        }
 
-        // Actualizamos sus propiedades
-        unidad.setNumero(numero);
-        unidad.setTipoUnidad(tipoUnidad);
-        unidad.setArea(area);
-        unidad.setEstado(estado);
+async update(id, tipoUnidad, numero, estado, area, valorCuota) {
+  const unidad = await this.#repository.getById(id);
+  if (!unidad) return null; // No existe la unidad
 
-        const updatedUnidad = await this.#repository.update(unidad);
-        return updatedUnidad.getValues();
-    }
+  // Actualizamos sus propiedades
+  unidad.setTipoUnidad(tipoUnidad);
+  unidad.setNumero(numero);
+  unidad.setEstado(estado);
+  unidad.setArea(area);
+  unidad.setValorCuota(valorCuota);
+
+  const updatedUnidad = await this.#repository.update(unidad);
+  return updatedUnidad.getValues();
+}
+
 
     // 🔹 Eliminar una unidad
     async delete(id) {
