@@ -3,7 +3,7 @@ const joi = require("joi");
 const idUnidadHabitacional = joi.number().integer();
 const tipoUnidad = joi.string().min(2).max(50);
 const numero = joi.string().min(1).max(10);
-const estado = joi.string().valid("Disponible", "Ocupada", "Mantenimiento"); // 👈 CORREGIDO
+const estado = joi.string().valid("Disponible", "Ocupado", "Mantenimiento"); // 👈 CORREGIDO
 const area = joi.number().positive();
 const valorCuota = joi.number().positive();
 
