@@ -1,14 +1,11 @@
-const { Post, PostSchema } = require("./post.js");
-
+const { UnidadHabitacional, UnidadHabitacionalSchema } = require("./Unidad_habitacional");
 
 function setUpModels(sequelize) {
-  // Inicialización
-  Post.init(PostSchema, Post.config(sequelize));
+  // Inicializacion
+  UnidadHabitacional.init(UnidadHabitacionalSchema, UnidadHabitacional.config(sequelize));
 
-
-  // Relaciones
-  Post.associate(sequelize.models);
-
+  //relaciones
+  UnidadHabitacional.associate(sequelize.models);
 }
 
 module.exports = setUpModels;
