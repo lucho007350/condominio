@@ -10,3 +10,16 @@ function setUpModels(sequelize) {
 
 module.exports = setUpModels;
 
+const { Comunicacion, ComunicacionSchema } = require("./Comunicacion.js");
+
+function setUpModels(sequelize) {
+  // Inicialización del modelo
+  Comunicacion.init(ComunicacionSchema, Comunicacion.config(sequelize));
+
+  // Relaciones (si las hubiera en el futuro)
+  Comunicacion.associate(sequelize.models);
+}
+
+module.exports = setUpModels;
+
+
