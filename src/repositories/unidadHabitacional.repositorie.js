@@ -104,8 +104,3 @@ class UnidadHabitacionalRepository {
 }
 
 module.exports = UnidadHabitacionalRepository;
-
-
-
-
-
