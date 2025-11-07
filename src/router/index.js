@@ -3,6 +3,7 @@ module.exports = setupRoutes;
 const { Router } = require('express');
 const unidadesHabitacionalesRouter = require('./unidadHabitacional.router.js');
 const residentsRouter = require('./residents.router.js');
+const ComunicacionRouter = require('./comunicacion.router.js');
 
 const router = Router();
 
@@ -13,6 +14,7 @@ function setupRoutes(app) {
   // Montamos las rutas específicas
   router.use('/unidades', unidadesHabitacionalesRouter);
   router.use('/residentes', residentsRouter);
+  router.use('/comunicaciones', ComunicacionRouter);
 }
 
 module.exports = setupRoutes;
