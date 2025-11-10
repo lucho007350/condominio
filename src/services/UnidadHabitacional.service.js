@@ -17,20 +17,44 @@ class UnidadHabitacionalService {
     }
 
     // 🔹 Crear una nueva unidad habitacional
-    async create(tipoUnidad, numero, estado, area, valorCuota) {
-    const id = crypto.randomUUID(); // Si lo usas
+async create(tipoUnidad, numero, estado, area, valorCuota) {
+    // 1️⃣ Verificar si ya existe una unidad con ese número
+    const unidades = await this.#repository.get();
+    const existe = unidades.find(u => u.getNumero() === numero);
+  
+    if (existe) {
+      throw new Error(`Ya existe una unidad habitacional con el número ${numero}`);
+    }
+  
+    // 2️⃣ Crear normalmente
     const unidad = new UnidadHabitacional(
-        id,
-        tipoUnidad,
-        numero,
-        estado,
-        area,
-        valorCuota
+      null, // el id se genera al insertar en la BD
+      tipoUnidad,
+      numero,
+      estado,
+      area,
+      valorCuota
     );
-
+  
     const createdUnidad = await this.#repository.create(unidad);
     return createdUnidad.getValues();
-}
+  }
+  
+    // 🔹 Crear una nueva unidad habitacional
+//     async create(tipoUnidad, numero, estado, area, valorCuota) {
+//     const id = crypto.randomUUID(); // Si lo usas
+//     const unidad = new UnidadHabitacional(
+//         id,
+//         tipoUnidad,
+//         numero,
+//         estado,
+//         area,
+//         valorCuota
+//     );
+
+//     const createdUnidad = await this.#repository.create(unidad);
+//     return createdUnidad.getValues();
+// }
 
 
     // 🔹 Obtener una unidad por su ID
