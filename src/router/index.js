@@ -4,7 +4,7 @@ const { Router } = require('express');
 const unidadesHabitacionalesRouter = require('./unidadHabitacional.router.js');
 const residentsRouter = require('./residents.router.js');
 const ComunicacionRouter = require('./comunicacion.router.js');
-const facturasRouter = require('./facturas.router.js');
+
 const pagosRouter = require('./pago.router.js');
 
 
@@ -18,7 +18,7 @@ function setupRoutes(app) {
   router.use('/unidades', unidadesHabitacionalesRouter);
   router.use('/residentes', residentsRouter);
   router.use('/comunicaciones', ComunicacionRouter);
-  router.use('/facturas', facturasRouter);
+
     router.use('/pagos', pagosRouter);
  
 }
