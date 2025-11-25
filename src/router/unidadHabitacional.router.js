@@ -39,6 +39,9 @@ router.post(
       res.status(201).json(unidad);
     } catch (error) {
       console.error(error);
+      if (error.message.includes("Ya existe una unidad habitacional")) {
+        return res.status(400).json({ message: error.message });
+      }
       res.status(500).json({ message: "Error al crear la unidad habitacional" });
     }
   }
