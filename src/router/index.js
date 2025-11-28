@@ -7,6 +7,7 @@ const ComunicacionRouter = require('./comunicacion.router.js');
 const residenteComunicacionRouter = require('./residenteComunicacion.router.js');
 const facturaRouter = require("./factura.router");
 const documentosRouter = require("./documento.router.js");
+const ingresoRouter = require("./ingreso.router.js");
 
 const router = Router();
 
@@ -21,6 +22,7 @@ function setupRoutes(app) {
   router.use('/residentesComunicaciones', residenteComunicacionRouter);
   router.use("/facturas", facturaRouter);
    router.use("/documentos", documentosRouter);
+  router.use("/ingresos", ingresoRouter);
   
 }
 
