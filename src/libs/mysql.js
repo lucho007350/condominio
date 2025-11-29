@@ -1,19 +1,21 @@
-const mysql = require ("mysql2/promise");
+const mysql = require("mysql2/promise");
 
-let connection;
+let connectionPromise;
 
 const getConnection = async () => {
-    if(!connection){
-        connection = await mysql.createConnection({
-            host: "localhost",
-            user: "root",
-            password: "",
-            database: "condominio"
-        });
-        console.log("Conectado a la base de datos Exitosamente")
-    }
+  if (!connectionPromise) {
+    connectionPromise = mysql.createConnection({
+      host: "localhost",
+      user: "root",
+      password: "",
+      database: "condominio",
+    }).then((conn) => {
+      console.log("Conectado a la base de datos Exitosamente");
+      return conn;
+    });
+  }
 
-    return connection;
-}
+  return connectionPromise;
+};
 
 module.exports = getConnection; // exportamos la función getConnection para que pueda ser utilizada en otros archivos
