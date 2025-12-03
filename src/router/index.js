@@ -11,6 +11,7 @@ const documentosRouter = require("./documento.router.js");
 const ingresoRouter = require("./ingreso.router.js");
 const empleadosRouter = require("./empleado.router.js");
 const egresoRouter = require("./egreso.router.js");
+const residentepagoRouter = require("./residentepago.router.js");
 
 
 const router = Router();
@@ -30,6 +31,7 @@ function setupRoutes(app) {
   router.use("/ingresos", ingresoRouter);
   router.use("/empleados", empleadosRouter);
   router.use("/egresos", egresoRouter);
+  router.use("/residentepagos", residentepagoRouter);
 }
 
 module.exports = setupRoutes;
