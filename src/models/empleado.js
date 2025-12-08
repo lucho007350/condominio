@@ -6,6 +6,7 @@ class Empleado {
     #documento = null;
     #telefono = null;
     #fechaContratacion = null;
+    #salario = null; // ✅ nuevo campo
 
     constructor(
         idEmpleado = null,
@@ -14,7 +15,8 @@ class Empleado {
         cargo = null,
         documento = null,
         telefono = null,
-        fechaContratacion = null
+        fechaContratacion = null,
+        salario = null // ✅ nuevo parámetro
     ) {
         this.#idEmpleado = idEmpleado;
         this.#nombre = nombre;
@@ -23,65 +25,28 @@ class Empleado {
         this.#documento = documento;
         this.#telefono = telefono;
         this.#fechaContratacion = fechaContratacion;
+        this.#salario = salario; // ✅ asignación
     }
 
     // Getters
-    getIdEmpleado() {
-        return this.#idEmpleado;
-    }
-
-    getNombre() {
-        return this.#nombre;
-    }
-
-    getApellido() {
-        return this.#apellido;
-    }
-
-    getCargo() {
-        return this.#cargo;
-    }
-
-    getDocumento() {
-        return this.#documento;
-    }
-
-    getTelefono() {
-        return this.#telefono;
-    }
-
-    getFechaContratacion() {
-        return this.#fechaContratacion;
-    }
+    getIdEmpleado() { return this.#idEmpleado; }
+    getNombre() { return this.#nombre; }
+    getApellido() { return this.#apellido; }
+    getCargo() { return this.#cargo; }
+    getDocumento() { return this.#documento; }
+    getTelefono() { return this.#telefono; }
+    getFechaContratacion() { return this.#fechaContratacion; }
+    getSalario() { return this.#salario; } // ✅ getter
 
     // Setters
-    setIdEmpleado(idEmpleado) {
-        this.#idEmpleado = idEmpleado;
-    }
-
-    setNombre(nombre) {
-        this.#nombre = nombre;
-    }
-
-    setApellido(apellido) {
-        this.#apellido = apellido;
-    }
-
-    setCargo(cargo) {
-        this.#cargo = cargo;
-    }
-
-    setDocumento(documento) {
-        this.#documento = documento;
-    }
-
-    setTelefono(telefono) {
-        this.#telefono = telefono;
-    }
-
-    setFechaContratacion(fechaContratacion) {
-        this.#fechaContratacion = fechaContratacion;
-    }
+    setIdEmpleado(idEmpleado) { this.#idEmpleado = idEmpleado; }
+    setNombre(nombre) { this.#nombre = nombre; }
+    setApellido(apellido) { this.#apellido = apellido; }
+    setCargo(cargo) { this.#cargo = cargo; }
+    setDocumento(documento) { this.#documento = documento; }
+    setTelefono(telefono) { this.#telefono = telefono; }
+    setFechaContratacion(fechaContratacion) { this.#fechaContratacion = fechaContratacion; }
+    setSalario(salario) { this.#salario = salario; } // ✅ setter
 
     // Devuelve todos los valores del empleado como un objeto
     getValues() {
@@ -92,7 +57,8 @@ class Empleado {
             cargo: this.#cargo,
             documento: this.#documento,
             telefono: this.#telefono,
-            fechaContratacion: this.#fechaContratacion
+            fechaContratacion: this.#fechaContratacion,
+            salario: this.#salario // ✅ incluir salario
         };
     }
 }

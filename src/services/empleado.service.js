@@ -15,7 +15,7 @@ class EmpleadoService {
   }
 
   // 🔹 Crear
-  async create(nombre, apellido, cargo, documento, telefono, fechaContratacion) {
+  async create(nombre, apellido, cargo, documento, telefono, fechaContratacion, salario) {
     const empleado = new Empleado(
       null,
       nombre,
@@ -23,8 +23,10 @@ class EmpleadoService {
       cargo,
       documento,
       telefono,
-      fechaContratacion
+      fechaContratacion,
+      salario
     );
+  
 
     const created = await this.#repository.create(empleado);
     return created.getValues();

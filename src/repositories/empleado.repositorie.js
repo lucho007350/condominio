@@ -25,7 +25,8 @@ class EmpleadoRepository {
           e.cargo,
           e.documento,
           e.telefono,
-          e.fechaContratacion
+          e.fechaContratacion,
+          e.salario // ✅ incluir salario
         )
     );
   }
@@ -34,8 +35,8 @@ class EmpleadoRepository {
   async create(empleado) {
     const query = `
       INSERT INTO empleado
-      (nombre, apellido, cargo, documento, telefono, fechaContratacion)
-      VALUES (?, ?, ?, ?, ?, ?)
+      (nombre, apellido, cargo, documento, telefono, fechaContratacion, salario)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
     `;
 
     const values = [
@@ -45,6 +46,7 @@ class EmpleadoRepository {
       empleado.getDocumento(),
       empleado.getTelefono(),
       empleado.getFechaContratacion(),
+      empleado.getSalario() // ✅ incluir salario
     ];
 
     const [result] = await this.#connection.execute(query, values);
@@ -68,7 +70,8 @@ class EmpleadoRepository {
       e.cargo,
       e.documento,
       e.telefono,
-      e.fechaContratacion
+      e.fechaContratacion,
+      e.salario // ✅ incluir salario
     );
   }
 
@@ -77,7 +80,7 @@ class EmpleadoRepository {
     const query = `
       UPDATE empleado
       SET nombre = ?, apellido = ?, cargo = ?, documento = ?, 
-          telefono = ?, fechaContratacion = ?
+          telefono = ?, fechaContratacion = ?, salario = ?
       WHERE idEmpleado = ?
     `;
 
@@ -88,6 +91,7 @@ class EmpleadoRepository {
       empleado.getDocumento(),
       empleado.getTelefono(),
       empleado.getFechaContratacion(),
+      empleado.getSalario(), // ✅ incluir salario
       empleado.getIdEmpleado(),
     ];
 

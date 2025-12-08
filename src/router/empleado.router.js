@@ -24,14 +24,16 @@ router.post(
   validatorHandler(createEmpleadoSchema, "body"),
   async (req, res) => {
     try {
-      const { nombre, apellido, cargo, documento, telefono, fechaContratacion } = req.body;
+      const { nombre, apellido, cargo, documento, telefono, fechaContratacion, salario } = req.body;
+
       const empleado = await empleadoService.create(
         nombre,
         apellido,
         cargo,
         documento,
         telefono,
-        fechaContratacion
+        fechaContratacion,
+        salario
       );
 
       res.status(201).json(empleado);
@@ -71,7 +73,7 @@ router.put(
   async (req, res) => {
     try {
       const { id } = req.params;
-      const { nombre, apellido, cargo, documento, telefono, fechaContratacion } = req.body;
+      const { nombre, apellido, cargo, documento, telefono, fechaContratacion, salario } = req.body;
 
       const empleado = await empleadoService.update(
         id,
@@ -80,7 +82,8 @@ router.put(
         cargo,
         documento,
         telefono,
-        fechaContratacion
+        fechaContratacion,
+        salario
       );
 
       if (!empleado) {
