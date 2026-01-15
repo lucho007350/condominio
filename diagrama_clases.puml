@@ -113,6 +113,22 @@ class Egreso {
     +constructor()
 }
 
+class Usuario {
+    -int idUsuario
+    -string usuario
+    -string contrasena
+
+    +get()
+    +set()
+    +constructor()
+}
+
+
+class Login {
+    +autenticar(usuario, contrasena)
+    +cerrarSesion()
+}
+
 ' =========================
 ' Tablas intermedias
 ' =========================
@@ -157,4 +173,8 @@ Comunicacion "1" -- "*" ResidenteComunicacion
 
 Residente "1" -- "*" ResidentePago
 Pago "1" -- "*" ResidentePago
+
+Usuario "1" -- "1" Residente : pertenece_a
+Login .. Usuario : valida
+
 @enduml

@@ -28,10 +28,10 @@ function setupRoutes(app) {
   router.use("/facturas", facturaRouter);
   router.use('/pagos', pagosRouter);
   router.use("/documentos", documentosRouter);
-  router.use("/ingresos", ingresoRouter);
+  router.use("/ingresos", ingresoRouter);  // falta 
   router.use("/empleados", empleadosRouter);
   router.use("/egresos", egresoRouter);
-  router.use("/residentepagos", residentepagoRouter);
+  router.use("/residentepagos", residentepagoRouter);  // falta 
 }
 
 module.exports = setupRoutes;
