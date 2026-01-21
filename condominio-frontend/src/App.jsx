@@ -4,6 +4,8 @@ import Navbar from './components/Layout/Navbar';
 import Dashboard from './pages/Dashboard';
 import Residents from './pages/Residents';
 import Payments from './pages/Payments';
+import UnidadesHabitacionales from './pages/UnidadesHabitacionales';
+
 
 import { Container } from '@mui/material';
 
@@ -16,6 +18,8 @@ function App() {
           <Route path="/" element={<Dashboard />} />
           <Route path="/residents" element={<Residents />} />
           <Route path="/payments" element={<Payments />} />
+          <Route path="/units" element={<UnidadesHabitacionales />} />
+
           
         </Routes>
       </Container>

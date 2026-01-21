@@ -22,6 +22,7 @@ const Navbar = () => {
     { text: 'Dashboard', icon: <HomeIcon />, path: '/' },
     { text: 'Residentes', icon: <PeopleIcon />, path: '/residents' },
     { text: 'Pagos', icon: <PaymentIcon />, path: '/payments' },
+    { text: 'Unidades', icon: <BuildingIcon />, path: '/units' },
     
   ];
 
