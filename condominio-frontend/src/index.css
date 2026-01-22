@@ -1,39 +1,110 @@
+/* =========================
+   RESET BÁSICO
+========================= */
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
 }
 
+/* =========================
+   VARIABLES GLOBALES
+========================= */
+:root {
+  --green-main: #2e7d32;
+  --green-soft: #43a047;
+  --bg-main: #f4f6f8;
+  --bg-card: #ffffff;
+  --text-main: #1f2937;
+  --text-muted: #6b7280;
+}
+
+/* =========================
+   BODY
+========================= */
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI',
+    'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans',
+    'Droid Sans', 'Helvetica Neue', sans-serif;
+
+  background: linear-gradient(
+    135deg,
+    #e8f5e9 0%,
+    #f4f6f8 60%,
+    #ffffff 100%
+  );
+
+  color: var(--text-main);
+  min-height: 100vh;
+
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: #f8f9fa;
 }
 
-code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+/* =========================
+   TEXTO
+========================= */
+h1, h2, h3, h4, h5 {
+  font-weight: 600;
 }
 
-/* Scrollbar personalizada */
+p {
+  color: var(--text-muted);
+}
+
+/* =========================
+   TARJETAS GENERALES
+========================= */
+.card {
+  background: var(--bg-card);
+  border-radius: 16px;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.08);
+}
+
+/* =========================
+   SCROLLBAR PERSONALIZADA
+========================= */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #f1f1f1;
+  background: #e5e7eb;
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #888;
+  background: linear-gradient(
+    180deg,
+    var(--green-main),
+    var(--green-soft)
+  );
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #555;
+  background: linear-gradient(
+    180deg,
+    #1b5e20,
+    #2e7d32
+  );
+}
+
+/* =========================
+   ANIMACIONES SUAVES
+========================= */
+.fade-in {
+  animation: fadeIn 0.5s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }

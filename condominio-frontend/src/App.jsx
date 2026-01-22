@@ -1,10 +1,14 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Navbar from './components/Layout/Navbar';
+import Footer from './components/footer';
 import Dashboard from './pages/Dashboard';
 import Residents from './pages/Residents';
 import Payments from './pages/Payments';
 import UnidadesHabitacionales from './pages/UnidadesHabitacionales';
+import Empleados from './pages/Empleados';
+
+
 
 
 import { Container } from '@mui/material';
@@ -19,10 +23,13 @@ function App() {
           <Route path="/residents" element={<Residents />} />
           <Route path="/payments" element={<Payments />} />
           <Route path="/units" element={<UnidadesHabitacionales />} />
+          <Route path="/employees" element={<Empleados />} />
+
 
           
         </Routes>
       </Container>
+      <Footer />
     </Router>
   );
 }
