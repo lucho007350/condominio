@@ -7,6 +7,9 @@ import Residents from './pages/Residents';
 import Payments from './pages/Payments';
 import UnidadesHabitacionales from './pages/UnidadesHabitacionales';
 import Empleados from './pages/Empleados';
+import Facturas from './pages/facturas';
+import Comunicacion from './pages/comunicacion';
+
 
 
 
@@ -24,6 +27,8 @@ function App() {
           <Route path="/payments" element={<Payments />} />
           <Route path="/units" element={<UnidadesHabitacionales />} />
           <Route path="/employees" element={<Empleados />} />
+           <Route path="/facturas" element={<Facturas />} /> {/* 🧾 */}
+         <Route path="/comunicacion" element={<Comunicacion />} />
 
 
           

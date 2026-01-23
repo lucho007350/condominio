@@ -5,26 +5,23 @@ import {
   Toolbar,
   Typography,
   Button,
-  Box,
-  IconButton,
   Menu,
   MenuItem,
-  useTheme,
 } from '@mui/material';
 
 import {
-  Menu as MenuIcon,
   Home as HomeIcon,
   People as PeopleIcon,
   Apartment as BuildingIcon,
   Payment as PaymentIcon,
   Badge as EmployeeIcon,
   ExpandMore as ExpandMoreIcon,
+  ReceiptLong as FacturaIcon,
+  Campaign as ComunicadoIcon
 } from '@mui/icons-material';
 
 const Navbar = () => {
   const location = useLocation();
-  const theme = useTheme();
 
   const [anchorPeople, setAnchorPeople] = React.useState(null);
   const [anchorManagement, setAnchorManagement] = React.useState(null);
@@ -32,13 +29,7 @@ const Navbar = () => {
   const isActive = (path) => location.pathname === path;
 
   return (
-    <AppBar
-      position="sticky"
-      elevation={4}
-      sx={{
-        backdropFilter: 'blur(8px)',
-      }}
-    >
+    <AppBar position="sticky" elevation={4} sx={{ backdropFilter: 'blur(8px)' }}>
       <Toolbar>
         {/* Logo */}
         <BuildingIcon sx={{ mr: 2 }} />
@@ -46,7 +37,7 @@ const Navbar = () => {
           Condominio App
         </Typography>
 
-        {/* Dashboard */}
+        {/* Inicio */}
         <Button
           component={Link}
           to="/"
@@ -61,26 +52,39 @@ const Navbar = () => {
           Inicio
         </Button>
 
-        {/* Personas (menú flotante) */}
-<Button
-  color="inherit"
-  startIcon={<PeopleIcon />}
-  endIcon={<ExpandMoreIcon />}
-  onClick={(e) => setAnchorPeople(e.currentTarget)}
-  sx={{ mx: 1, borderRadius: 2 }}
->
-  Administración
-</Button>
+        {/* 🔔 Comunicados (NUEVO) */}
+        <Button
+          component={Link}
+          to="/comunicacion"
+          color="inherit"
+          startIcon={<ComunicadoIcon />}
+          sx={{
+            mx: 1,
+            borderRadius: 2,
+            backgroundColor: isActive('/comunicacion')
+              ? 'rgba(255,255,255,0.15)'
+              : 'transparent',
+          }}
+        >
+          Comunicados
+        </Button>
 
+        {/* Administración */}
+        <Button
+          color="inherit"
+          startIcon={<PeopleIcon />}
+          endIcon={<ExpandMoreIcon />}
+          onClick={(e) => setAnchorPeople(e.currentTarget)}
+          sx={{ mx: 1, borderRadius: 2 }}
+        >
+          Administración
+        </Button>
 
         <Menu
           anchorEl={anchorPeople}
           open={Boolean(anchorPeople)}
           onClose={() => setAnchorPeople(null)}
-          PaperProps={{
-            elevation: 4,
-            sx: { borderRadius: 2, minWidth: 200 },
-          }}
+          PaperProps={{ sx: { borderRadius: 2, minWidth: 200 } }}
         >
           <MenuItem component={Link} to="/residents" onClick={() => setAnchorPeople(null)}>
             <PeopleIcon sx={{ mr: 1 }} /> Residentes
@@ -91,7 +95,7 @@ const Navbar = () => {
           </MenuItem>
         </Menu>
 
-        {/* Gestión (menú flotante) */}
+        {/* Gestión */}
         <Button
           color="inherit"
           startIcon={<BuildingIcon />}
@@ -106,10 +110,7 @@ const Navbar = () => {
           anchorEl={anchorManagement}
           open={Boolean(anchorManagement)}
           onClose={() => setAnchorManagement(null)}
-          PaperProps={{
-            elevation: 4,
-            sx: { borderRadius: 2, minWidth: 220 },
-          }}
+          PaperProps={{ sx: { borderRadius: 2, minWidth: 220 } }}
         >
           <MenuItem component={Link} to="/units" onClick={() => setAnchorManagement(null)}>
             <BuildingIcon sx={{ mr: 1 }} /> Unidades Habitacionales
@@ -117,6 +118,10 @@ const Navbar = () => {
 
           <MenuItem component={Link} to="/payments" onClick={() => setAnchorManagement(null)}>
             <PaymentIcon sx={{ mr: 1 }} /> Pagos
+          </MenuItem>
+
+          <MenuItem component={Link} to="/facturas" onClick={() => setAnchorManagement(null)}>
+            <FacturaIcon sx={{ mr: 1 }} /> Facturas
           </MenuItem>
         </Menu>
       </Toolbar>
