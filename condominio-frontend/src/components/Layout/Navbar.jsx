@@ -1,5 +1,5 @@
-import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import React from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   AppBar,
   Toolbar,
@@ -7,7 +7,7 @@ import {
   Button,
   Menu,
   MenuItem,
-} from '@mui/material';
+} from "@mui/material";
 
 import {
   Home as HomeIcon,
@@ -17,113 +17,168 @@ import {
   Badge as EmployeeIcon,
   ExpandMore as ExpandMoreIcon,
   ReceiptLong as FacturaIcon,
-  Campaign as ComunicadoIcon
-} from '@mui/icons-material';
+  Campaign as ComunicadoIcon,
+  Login as LoginIcon,
+  Logout as LogoutIcon,
+} from "@mui/icons-material";
+
+import { isAuthenticated, logout } from "../../services/auth";
 
 const Navbar = () => {
   const location = useLocation();
+  const navigate = useNavigate();
 
-  const [anchorPeople, setAnchorPeople] = React.useState(null);
-  const [anchorManagement, setAnchorManagement] = React.useState(null);
+  const [anchorAdmin, setAnchorAdmin] = React.useState(null);
+  const [anchorGestion, setAnchorGestion] = React.useState(null);
 
-  const isActive = (path) => location.pathname === path;
+  const authenticated = isAuthenticated();
+
+  const handleLogout = () => {
+    logout();
+    navigate("/login");
+  };
 
   return (
-    <AppBar position="sticky" elevation={4} sx={{ backdropFilter: 'blur(8px)' }}>
+    <AppBar position="static" sx={{ backgroundColor: "#4caf50" }}>
       <Toolbar>
-        {/* Logo */}
-        <BuildingIcon sx={{ mr: 2 }} />
-        <Typography variant="h6" sx={{ flexGrow: 1, fontWeight: 'bold' }}>
+        {/* LOGO / TITULO */}
+        <Typography
+          variant="h6"
+          component={Link}
+          to="/"
+          sx={{
+            flexGrow: 1,
+            textDecoration: "none",
+            color: "white",
+            fontWeight: "bold",
+          }}
+        >
           Condominio App
         </Typography>
 
-        {/* Inicio */}
+        {/* INICIO */}
         <Button
+          color="inherit"
           component={Link}
           to="/"
-          color="inherit"
           startIcon={<HomeIcon />}
           sx={{
-            mx: 1,
-            borderRadius: 2,
-            backgroundColor: isActive('/') ? 'rgba(255,255,255,0.15)' : 'transparent',
+            borderBottom:
+              location.pathname === "/" ? "2px solid white" : "none",
           }}
         >
           Inicio
         </Button>
 
-        {/* 🔔 Comunicados (NUEVO) */}
+        {/* COMUNICADOS */}
         <Button
+          color="inherit"
           component={Link}
           to="/comunicacion"
-          color="inherit"
           startIcon={<ComunicadoIcon />}
           sx={{
-            mx: 1,
-            borderRadius: 2,
-            backgroundColor: isActive('/comunicacion')
-              ? 'rgba(255,255,255,0.15)'
-              : 'transparent',
+            borderBottom:
+              location.pathname === "/comunicacion"
+                ? "2px solid white"
+                : "none",
           }}
         >
           Comunicados
         </Button>
 
-        {/* Administración */}
+        {/* ADMINISTRACIÓN */}
         <Button
           color="inherit"
           startIcon={<PeopleIcon />}
           endIcon={<ExpandMoreIcon />}
-          onClick={(e) => setAnchorPeople(e.currentTarget)}
-          sx={{ mx: 1, borderRadius: 2 }}
+          onClick={(e) => setAnchorAdmin(e.currentTarget)}
         >
           Administración
         </Button>
 
         <Menu
-          anchorEl={anchorPeople}
-          open={Boolean(anchorPeople)}
-          onClose={() => setAnchorPeople(null)}
-          PaperProps={{ sx: { borderRadius: 2, minWidth: 200 } }}
+          anchorEl={anchorAdmin}
+          open={Boolean(anchorAdmin)}
+          onClose={() => setAnchorAdmin(null)}
         >
-          <MenuItem component={Link} to="/residents" onClick={() => setAnchorPeople(null)}>
+          <MenuItem
+            component={Link}
+            to="/residents"
+            onClick={() => setAnchorAdmin(null)}
+          >
             <PeopleIcon sx={{ mr: 1 }} /> Residentes
           </MenuItem>
 
-          <MenuItem component={Link} to="/employees" onClick={() => setAnchorPeople(null)}>
+          <MenuItem
+            component={Link}
+            to="/employees"
+            onClick={() => setAnchorAdmin(null)}
+          >
             <EmployeeIcon sx={{ mr: 1 }} /> Empleados
           </MenuItem>
         </Menu>
 
-        {/* Gestión */}
+        {/* GESTIÓN */}
         <Button
           color="inherit"
           startIcon={<BuildingIcon />}
           endIcon={<ExpandMoreIcon />}
-          onClick={(e) => setAnchorManagement(e.currentTarget)}
-          sx={{ mx: 1, borderRadius: 2 }}
+          onClick={(e) => setAnchorGestion(e.currentTarget)}
         >
           Gestión
         </Button>
 
         <Menu
-          anchorEl={anchorManagement}
-          open={Boolean(anchorManagement)}
-          onClose={() => setAnchorManagement(null)}
-          PaperProps={{ sx: { borderRadius: 2, minWidth: 220 } }}
+          anchorEl={anchorGestion}
+          open={Boolean(anchorGestion)}
+          onClose={() => setAnchorGestion(null)}
         >
-          <MenuItem component={Link} to="/units" onClick={() => setAnchorManagement(null)}>
-            <BuildingIcon sx={{ mr: 1 }} /> Unidades Habitacionales
+          <MenuItem
+            component={Link}
+            to="/units"
+            onClick={() => setAnchorGestion(null)}
+          >
+            <BuildingIcon sx={{ mr: 1 }} /> Unidades
           </MenuItem>
 
-          <MenuItem component={Link} to="/payments" onClick={() => setAnchorManagement(null)}>
-            <PaymentIcon sx={{ mr: 1 }} /> Pagos
-          </MenuItem>
-
-          <MenuItem component={Link} to="/facturas" onClick={() => setAnchorManagement(null)}>
+          <MenuItem
+            component={Link}
+            to="/facturas"
+            onClick={() => setAnchorGestion(null)}
+          >
             <FacturaIcon sx={{ mr: 1 }} /> Facturas
           </MenuItem>
+
+          <MenuItem
+            component={Link}
+            to="/payments"
+            onClick={() => setAnchorGestion(null)}
+          >
+            <PaymentIcon sx={{ mr: 1 }} /> Pagos
+          </MenuItem>
         </Menu>
+
+        {/* LOGIN / LOGOUT */}
+        {!authenticated ? (
+          <Button
+            color="inherit"
+            component={Link}
+            to="/login"
+            startIcon={<LoginIcon />}
+            sx={{ ml: 2 }}
+          >
+            Login
+          </Button>
+        ) : (
+          <Button
+            color="inherit"
+            onClick={handleLogout}
+            startIcon={<LogoutIcon />}
+            sx={{ ml: 2 }}
+          >
+            Salir
+          </Button>
+        )}
       </Toolbar>
     </AppBar>
   );
