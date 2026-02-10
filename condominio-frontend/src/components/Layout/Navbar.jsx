@@ -39,7 +39,7 @@ const Navbar = () => {
   };
 
   return (
-    <AppBar position="static" sx={{ backgroundColor: "#4caf50" }}>
+    <AppBar position="static" sx={{ backgroundColor: "#1e3a5f", color: "white" }}>
       <Toolbar>
         {/* LOGO / TITULO */}
         <Typography
@@ -64,7 +64,7 @@ const Navbar = () => {
           startIcon={<HomeIcon />}
           sx={{
             borderBottom:
-              location.pathname === "/" ? "2px solid white" : "none",
+              location.pathname === "/" ? "2px solid #1e3a5f" : "none", 
           }}
         >
           Inicio
@@ -79,7 +79,7 @@ const Navbar = () => {
           sx={{
             borderBottom:
               location.pathname === "/comunicacion"
-                ? "2px solid white"
+                ? "2px solid #1e3a5f"
                 : "none",
           }}
         >
@@ -92,6 +92,7 @@ const Navbar = () => {
           startIcon={<PeopleIcon />}
           endIcon={<ExpandMoreIcon />}
           onClick={(e) => setAnchorAdmin(e.currentTarget)}
+          
         >
           Administración
         </Button>
@@ -100,13 +101,21 @@ const Navbar = () => {
           anchorEl={anchorAdmin}
           open={Boolean(anchorAdmin)}
           onClose={() => setAnchorAdmin(null)}
+          PaperProps={{
+            sx: {
+              backgroundColor: "#1e3a5f",
+              color: "white",
+              borderRadius: 2,
+              mt: 1,
+            },
+          }}
         >
           <MenuItem
             component={Link}
             to="/residents"
             onClick={() => setAnchorAdmin(null)}
           >
-            <PeopleIcon sx={{ mr: 1 }} /> Residentes
+            <PeopleIcon sx={{ mr: 1 }}  /> Residentes
           </MenuItem>
 
           <MenuItem
@@ -132,6 +141,14 @@ const Navbar = () => {
           anchorEl={anchorGestion}
           open={Boolean(anchorGestion)}
           onClose={() => setAnchorGestion(null)}
+          PaperProps={{
+            sx: {
+              backgroundColor: "#1e3a5f",
+              color: "white",
+              borderRadius: 2,
+              mt: 1,
+            },
+          }}
         >
           <MenuItem
             component={Link}
