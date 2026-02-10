@@ -1,5 +1,5 @@
 import React from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import {
   AppBar,
   Toolbar,
@@ -18,30 +18,18 @@ import {
   ExpandMore as ExpandMoreIcon,
   ReceiptLong as FacturaIcon,
   Campaign as ComunicadoIcon,
-  Login as LoginIcon,
-  Logout as LogoutIcon,
 } from "@mui/icons-material";
-
-import { isAuthenticated, logout } from "../../services/auth";
 
 const Navbar = () => {
   const location = useLocation();
-  const navigate = useNavigate();
 
   const [anchorAdmin, setAnchorAdmin] = React.useState(null);
   const [anchorGestion, setAnchorGestion] = React.useState(null);
 
-  const authenticated = isAuthenticated();
-
-  const handleLogout = () => {
-    logout();
-    navigate("/login");
-  };
-
   return (
     <AppBar position="static" sx={{ backgroundColor: "#1e3a5f", color: "white" }}>
       <Toolbar>
-        {/* LOGO / TITULO */}
+        {/* LOGO / TÍTULO */}
         <Typography
           variant="h6"
           component={Link}
@@ -58,13 +46,14 @@ const Navbar = () => {
 
         {/* INICIO */}
         <Button
-          color="inherit"
           component={Link}
           to="/"
+          color="inherit"
           startIcon={<HomeIcon />}
           sx={{
+            mx: 1,
             borderBottom:
-              location.pathname === "/" ? "2px solid #1e3a5f" : "none", 
+              location.pathname === "/" ? "2px solid #ffffff" : "none",
           }}
         >
           Inicio
@@ -72,14 +61,15 @@ const Navbar = () => {
 
         {/* COMUNICADOS */}
         <Button
-          color="inherit"
           component={Link}
           to="/comunicacion"
+          color="inherit"
           startIcon={<ComunicadoIcon />}
           sx={{
+            mx: 1,
             borderBottom:
               location.pathname === "/comunicacion"
-                ? "2px solid #1e3a5f"
+                ? "2px solid #ffffff"
                 : "none",
           }}
         >
@@ -92,7 +82,7 @@ const Navbar = () => {
           startIcon={<PeopleIcon />}
           endIcon={<ExpandMoreIcon />}
           onClick={(e) => setAnchorAdmin(e.currentTarget)}
-          
+          sx={{ mx: 1 }}
         >
           Administración
         </Button>
@@ -115,7 +105,7 @@ const Navbar = () => {
             to="/residents"
             onClick={() => setAnchorAdmin(null)}
           >
-            <PeopleIcon sx={{ mr: 1 }}  /> Residentes
+            <PeopleIcon sx={{ mr: 1 }} /> Residentes
           </MenuItem>
 
           <MenuItem
@@ -133,6 +123,7 @@ const Navbar = () => {
           startIcon={<BuildingIcon />}
           endIcon={<ExpandMoreIcon />}
           onClick={(e) => setAnchorGestion(e.currentTarget)}
+          sx={{ mx: 1 }}
         >
           Gestión
         </Button>
@@ -174,28 +165,6 @@ const Navbar = () => {
             <PaymentIcon sx={{ mr: 1 }} /> Pagos
           </MenuItem>
         </Menu>
-
-        {/* LOGIN / LOGOUT */}
-        {!authenticated ? (
-          <Button
-            color="inherit"
-            component={Link}
-            to="/login"
-            startIcon={<LoginIcon />}
-            sx={{ ml: 2 }}
-          >
-            Login
-          </Button>
-        ) : (
-          <Button
-            color="inherit"
-            onClick={handleLogout}
-            startIcon={<LogoutIcon />}
-            sx={{ ml: 2 }}
-          >
-            Salir
-          </Button>
-        )}
       </Toolbar>
     </AppBar>
   );
