@@ -9,18 +9,18 @@ const Footer = () => {
         mt: 'auto',
         py: 2,
         px: 3,
-        backgroundColor: '#f5f5f5',
+        backgroundColor: '#1e3a5f',
         borderTop: '1px solid #e0e0e0',
         textAlign: 'center',
       }}
     >
       <Divider sx={{ mb: 1 }} />
 
-      <Typography variant="body2" color="text.secondary">
+      <Typography variant="body2" color="white">
         © {new Date().getFullYear()} Condominio App · Todos los derechos reservados
       </Typography>
 
-      <Typography variant="caption" color="text.secondary">
+      <Typography variant="caption" color="white">
         Sistema de gestión administrativa de condominios
       </Typography>
     </Box>

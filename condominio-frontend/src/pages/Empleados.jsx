@@ -204,8 +204,8 @@ const Empleados = () => {
           </Grid>
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleCloseDialog}>Cancelar</Button>
-          <Button variant="contained">
+          <Button onClick={handleCloseDialog} sx={{ color: 'white', backgroundColor: '#1e3a5f' }}>Cancelar</Button>
+          <Button variant="contained" sx={{ color: 'white', backgroundColor: '#1e3a5f' }}>
             {selectedEmpleado ? 'Actualizar' : 'Guardar'}
           </Button>
         </DialogActions>

@@ -129,6 +129,7 @@ const Dashboard = () => {
           variant="contained"
           startIcon={<RefreshIcon />}
           onClick={fetchDashboardData}
+          sx={{ color: 'white', backgroundColor: '#1e3a5f' }}
         >
           Actualizar
         </Button>
@@ -141,7 +142,7 @@ const Dashboard = () => {
             title="Residentes"
             value={stats.totalResidents}
             icon={<PeopleIcon />}
-            color="#4CAF50"
+            color="#1e3a5f"
             subtitle="Total registrados"
           />
         </Grid>

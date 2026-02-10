@@ -29,11 +29,11 @@ const Navbar = () => {
   const isActive = (path) => location.pathname === path;
 
   return (
-    <AppBar position="sticky" elevation={4} sx={{ backdropFilter: 'blur(8px)' }}>
+    <AppBar position="sticky" elevation={4} sx={{ backdropFilter: 'blur(8px)', backgroundColor: '#1e3a5f', color: 'white', }}>
       <Toolbar>
         {/* Logo */}
         <BuildingIcon sx={{ mr: 2 }} />
-        <Typography variant="h6" sx={{ flexGrow: 1, fontWeight: 'bold' }}>
+        <Typography variant="h6" sx={{ flexGrow: 1, fontWeight: 'bold', }}>
           Condominio App
         </Typography>
 
@@ -41,12 +41,13 @@ const Navbar = () => {
         <Button
           component={Link}
           to="/"
-          color="inherit"
+          color="#1e3a5f"
           startIcon={<HomeIcon />}
           sx={{
             mx: 1,
             borderRadius: 2,
-            backgroundColor: isActive('/') ? 'rgba(255,255,255,0.15)' : 'transparent',
+            color: 'white',
+            backgroundColor: isActive('/') ? '#1e3a5f' : 'transparent',
           }}
         >
           Inicio
@@ -61,8 +62,9 @@ const Navbar = () => {
           sx={{
             mx: 1,
             borderRadius: 2,
+            color: 'white',
             backgroundColor: isActive('/comunicacion')
-              ? 'rgba(255,255,255,0.15)'
+              ? '#1e3a5f'
               : 'transparent',
           }}
         >
@@ -75,7 +77,8 @@ const Navbar = () => {
           startIcon={<PeopleIcon />}
           endIcon={<ExpandMoreIcon />}
           onClick={(e) => setAnchorPeople(e.currentTarget)}
-          sx={{ mx: 1, borderRadius: 2 }}
+          sx={{ mx: 1, borderRadius: 2
+           }}
         >
           Administración
         </Button>
@@ -84,7 +87,7 @@ const Navbar = () => {
           anchorEl={anchorPeople}
           open={Boolean(anchorPeople)}
           onClose={() => setAnchorPeople(null)}
-          PaperProps={{ sx: { borderRadius: 2, minWidth: 200 } }}
+          PaperProps={{ sx: { borderRadius: 2, minWidth: 200,color: 'white',backgroundColor: '#1e3a5f' } }}
         >
           <MenuItem component={Link} to="/residents" onClick={() => setAnchorPeople(null)}>
             <PeopleIcon sx={{ mr: 1 }} /> Residentes
@@ -110,7 +113,7 @@ const Navbar = () => {
           anchorEl={anchorManagement}
           open={Boolean(anchorManagement)}
           onClose={() => setAnchorManagement(null)}
-          PaperProps={{ sx: { borderRadius: 2, minWidth: 220 } }}
+          PaperProps={{ sx: { borderRadius: 2, minWidth: 220,color: 'white',backgroundColor: '#1e3a5f' } }}
         >
           <MenuItem component={Link} to="/units" onClick={() => setAnchorManagement(null)}>
             <BuildingIcon sx={{ mr: 1 }} /> Unidades Habitacionales

@@ -28,14 +28,14 @@ const Residents = () => {
       {/* Header */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
         <Box>
-          <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold', mb: 1 }}>
+          <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold', mb: 1, }}>
             👥 Gestión de Residentes
           </Typography>
           <Typography variant="body1" color="textSecondary">
             Administra la información de los residentes del condominio
           </Typography>
         </Box>
-        <Button variant="contained" startIcon={<AddIcon />}>
+        <Button variant="contained" startIcon={<AddIcon />} sx={{ color: 'white', backgroundColor: '#1e3a5f' }}>
           Nuevo Residente
         </Button>
       </Box>

@@ -117,7 +117,7 @@ const UnidadesHabitacionales = () => {
             Administración de unidades del condominio
           </Typography>
         </Box>
-        <Button variant="contained" startIcon={<AddIcon />} onClick={() => setOpenDialog(true)}>
+        <Button variant="contained" startIcon={<AddIcon />} onClick={() => setOpenDialog(true)} sx={{ color: 'white', backgroundColor: '#1e3a5f' }}>
           Nueva Unidad
         </Button>
       </Box>

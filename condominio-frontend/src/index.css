@@ -11,12 +11,12 @@
    VARIABLES GLOBALES
 ========================= */
 :root {
-  --green-main: #2e7d32;
-  --green-soft: #43a047;
+  --green-main: #1e3a5f;
+  --green-soft: #1e3a5f;
   --bg-main: #f4f6f8;
   --bg-card: #ffffff;
-  --text-main: #1f2937;
-  --text-muted: #6b7280;
+  --text-main: #123d79;
+  --text-muted: #173f8f;
 }
 
 /* =========================
@@ -86,8 +86,8 @@ p {
 ::-webkit-scrollbar-thumb:hover {
   background: linear-gradient(
     180deg,
-    #1b5e20,
-    #2e7d32
+    #163b70,
+    #1a2a86
   );
 }
 

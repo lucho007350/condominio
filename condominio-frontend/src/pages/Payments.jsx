@@ -293,6 +293,7 @@ const Payments = () => {
             variant="contained"
             startIcon={<AddIcon />}
             onClick={() => handleOpenDialog()}
+            sx={{ color: 'white', backgroundColor: '#1e3a5f' }}
           >
             Registrar Pago
           </Button>
@@ -382,6 +383,7 @@ const Payments = () => {
                   fullWidth
                   variant="outlined"
                   startIcon={<DownloadIcon />}
+                  sx={{ color: 'white', backgroundColor: '#1e3a5f' }}
                 >
                   Exportar
                 </Button>
@@ -389,6 +391,7 @@ const Payments = () => {
                   fullWidth
                   variant="outlined"
                   startIcon={<ReceiptIcon />}
+                  sx={{ color: 'white', backgroundColor: '#1e3a5f' }}
                 >
                   Reporte
                 </Button>
