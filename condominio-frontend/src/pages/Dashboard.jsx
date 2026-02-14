@@ -7,6 +7,9 @@ import { People as PeopleIcon, AttachMoney as MoneyIcon, RequestQuote as Request
   TrendingUp as TrendingIcon, Refresh as RefreshIcon, Add as AddIcon, CheckCircle as CheckIcon,
   Warning as WarningIcon,} from '@mui/icons-material';
 
+// Importar la API de residentes
+import { residentAPI } from '../services/api.jsx';
+
 const Dashboard = () => { 
   const [stats, setStats] = useState({
     totalResidents: 0,
@@ -17,11 +20,9 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true); //mostrar cargando si es true y si es false mostrar contenido
   const [recentActivity, setRecentActivity] = useState([]);
 
-  useEffect(() => {
-    fetchDashboardData(); //llama a la funcion para obtener datos al cargar el componente
-  }, []);
-
   const fetchDashboardData = () => {
+
+    
     
     setTimeout(() => {
       setStats({
@@ -42,6 +43,19 @@ const Dashboard = () => {
       setLoading(false);
     }, 1000);
   };
+
+  useEffect(() => {
+    fetchDashboardData(); //llama a la funcion para obtener datos al cargar el componente
+    
+    // Petición al endpoint get all de residentes
+    residentAPI.unidades()// cambio con el parsero
+      .then(response => {
+        console.log('Residentes obtenidos:', response.data);
+      })
+      .catch(error => {
+        console.error('Error al obtener residentes:', error);
+      });
+  }, []);
 
   const StatCard = ({ title, value, icon, color, subtitle }) => (
     <Card sx={{ height: '100%', boxShadow: 3 }}>
@@ -325,5 +339,8 @@ const Dashboard = () => {
     </Box>
   );
 };
+
+
+
 
 export default Dashboard;

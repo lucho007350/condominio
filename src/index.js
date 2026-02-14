@@ -11,6 +11,21 @@ const secret = process.env.SECRET; // Clave secreta definida en el archivo .env
 app.use(express.json()); // Parsear JSON del cuerpo de las peticiones
 
 // ==========================
+// 🔹 CONFIGURACIÓN CORS (Sin restricciones)
+// ==========================
+app.use((req, res, next) => {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+    
+    if (req.method === 'OPTIONS') {
+        res.sendStatus(200);
+    } else {
+        next();
+    }
+}); ////// cambios con el parsero
+
+// ==========================
 // 🔹 RUTAS DE AUTENTICACIÓN
 // ==========================
 app.post("/token", (req, res) => {

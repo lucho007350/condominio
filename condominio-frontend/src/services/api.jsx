@@ -1,11 +1,13 @@
 import axios from 'axios';
 
 // Configuración para tu backend local
-const API_BASE_URL = 'http://localhost:3000/api';
+const API_BASE_URL = 'http://localhost:3001/api';
 
 const api = axios.create({
+  
   baseURL: API_BASE_URL,
   headers: {
+    'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1lIjoiTHVpcyBGZWxpcGUiLCJleHAiOjE3NzExMDI1ODQ2NjAsImlhdCI6MTc3MTEwMjQ2NH0.pT2d9Y-uYBr7Do2NijQ20mebT4Tz0Xt1FIgJPwScOVo',
     'Content-Type': 'application/json',
   },
 });
@@ -17,6 +19,7 @@ export const residentAPI = {
   create: (data) => api.post('/users', data),
   update: (id, data) => api.put(`/users/${id}`, data),
   delete: (id) => api.delete(`/users/${id}`),
+  unidades: () => api.get('/unidades'),// cambio con el parsero
 };
 
 export const paymentAPI = {
