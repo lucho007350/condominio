@@ -4,12 +4,12 @@ title Arquitectura del Sistema de Gestión de Conjunto Residencial
 actor "Usuario Administrador" as Admin
 actor "Residente" as Residente
 
-rectangle "Frontend (Vue.js)" as Frontend {
-    Admin --> Frontend : Interacción vía navegador
-    Residente --> Frontend : Interacción vía navegador
+rectangle "Frontend (React)" as Frontend {
+    Admin --> Frontend : Interacción Web
+    Residente --> Frontend : Interacción Web
 }
 
-rectangle "Backend (Laravel - PHP)" as Backend {
+rectangle "Backend (Node.js - Express)" as Backend {
     Frontend --> Backend : Solicitudes HTTP/HTTPS (API REST)
 }
 
@@ -18,7 +18,8 @@ database "Base de Datos (MySQL)" as DB {
 }
 
 rectangle "Servicios Externos" as Servicios {
-    Backend --> Servicios : Pasarela de pago, Notificaciones por email/SMS
+    Backend --> Servicios : Pasarela de pago
+    Backend --> Servicios : Notificaciones 
 }
 
 @enduml
