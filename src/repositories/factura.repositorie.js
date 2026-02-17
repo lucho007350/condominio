@@ -8,7 +8,6 @@ class FacturaRepository {
     this.#connection = null;
   }
 
-  // Inicializa la conexión solo si no existe
   async initConnection() {
     if (!this.#connection) {
       this.#connection = await connection();
@@ -19,7 +18,7 @@ class FacturaRepository {
     await this.initConnection();
 
     const query = `
-      INSERT INTO factura 
+      INSERT INTO facturas
       (fechaEmision, monto, fechaVencimiento, estadoFactura, idUnidad)
       VALUES (?, ?, ?, ?, ?)
     `;
@@ -45,7 +44,7 @@ class FacturaRepository {
 
     const query = `
       SELECT f.*, u.numero AS numeroUnidad, u.tipoUnidad
-      FROM factura f
+      FROM facturas f
       LEFT JOIN unidades_habitacionales u 
         ON f.idUnidad = u.idUnidad
     `;
@@ -58,7 +57,7 @@ class FacturaRepository {
     await this.initConnection();
 
     const [rows] = await this.#connection.execute(
-      "SELECT * FROM factura WHERE idFactura = ?",
+      "SELECT * FROM facturas WHERE idFactura = ?",
       [id]
     );
 
@@ -69,7 +68,7 @@ class FacturaRepository {
     await this.initConnection();
 
     const query = `
-      UPDATE factura
+      UPDATE facturas
       SET fechaEmision = ?, 
           monto = ?, 
           fechaVencimiento = ?, 
@@ -100,7 +99,7 @@ class FacturaRepository {
 
     const query = `
       SELECT *
-      FROM factura
+      FROM facturas
       WHERE idUnidad = ?
     `;
 
@@ -111,7 +110,7 @@ class FacturaRepository {
   async delete(idFactura) {
     await this.initConnection();
 
-    const query = "DELETE FROM factura WHERE idFactura = ?";
+    const query = "DELETE FROM facturas WHERE idFactura = ?";
     await this.#connection.execute(query, [idFactura]);
 
     return { message: "Factura eliminada" };
@@ -119,4 +118,3 @@ class FacturaRepository {
 }
 
 module.exports = FacturaRepository;
- // corregido
