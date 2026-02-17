@@ -7,7 +7,7 @@ const api = axios.create({
   
   baseURL: API_BASE_URL,
   headers: {
-    'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1lIjoiTHVpcyBGZWxpcGUiLCJleHAiOjE3NzEzNTI3ODgxOTQsImlhdCI6MTc3MTM1MjY2OH0.-txALjcpjU3pDwT70Lsy0IVBFElIWS3L_lhHmfdhoXI',
+    'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1lIjoiTHVpcyBGZWxpcGUiLCJleHAiOjE3NzEzNTc3ODk1ODcsImlhdCI6MTc3MTM1NzY2OX0.TyuPalbjnXsNX5EGRAYymfEsFp-B_vXa6ALJ0e6W7lE',
     'Content-Type': 'application/json',
   },
 });
@@ -27,6 +27,17 @@ export const paymentAPI = {
   create: (data) => api.post('/payments', data),
   update: (id, data) => api.put(`/payments/${id}`, data),
   delete: (id) => api.delete(`/payments/${id}`),
+};
+
+// Comunicaciones del condominio
+export const communicationAPI = {
+  getAll: () => api.get('/comunicaciones'),
+  getById: (id) => api.get(`/comunicaciones/${id}`),
+  create: (data) => api.post('/comunicaciones', data),
+  update: (id, data) => api.put(`/comunicaciones/${id}`, data),
+  delete: (id) => api.delete(`/comunicaciones/${id}`),
+  communication: () => api.get('/comunicaciones'),
+
 };
 
 export const requestAPI = {

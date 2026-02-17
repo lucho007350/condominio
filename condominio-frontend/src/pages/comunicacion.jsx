@@ -17,6 +17,8 @@ import {
   CalendarMonth as FechaIcon
 } from '@mui/icons-material';
 
+import { communicationAPI } from '../services/api.jsx';
+
 const Comunicacion = () => {
   const [comunicados, setComunicados] = useState([]);
 
@@ -45,7 +47,18 @@ const Comunicacion = () => {
   ];
 
   useEffect(() => {
-    setComunicados(mockComunicados);
+    // Cargar comunicados desde la API
+    communicationAPI
+      .getAll()
+      .then((response) => {
+        // Ajusta esta parte si tu backend devuelve los campos con otros nombres
+        setComunicados(response.data);
+      })
+      .catch((error) => {
+        console.error('Error al obtener comunicaciones:', error);
+        // En caso de error, mostramos los datos de ejemplo
+        setComunicados(mockComunicados);
+      });
   }, []);
 
   const tipoConfig = (tipo) => {

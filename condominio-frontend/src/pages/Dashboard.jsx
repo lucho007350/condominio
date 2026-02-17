@@ -7,8 +7,8 @@ import { People as PeopleIcon, AttachMoney as MoneyIcon, RequestQuote as Request
   TrendingUp as TrendingIcon, Refresh as RefreshIcon, Add as AddIcon, CheckCircle as CheckIcon,
   Warning as WarningIcon,} from '@mui/icons-material';
 
-// Importar la API de residentes
-import { residentAPI } from '../services/api.jsx';
+// Importar las APIs de residentes y comunicaciones
+import { residentAPI, communicationAPI } from '../services/api.jsx';
 
 const Dashboard = () => { 
   const [stats, setStats] = useState({
@@ -50,10 +50,19 @@ const Dashboard = () => {
     // Petición al endpoint get all de residentes
     residentAPI.unidades()// cambio con el parsero
       .then(response => {
-        console.log('Residentes obtenidos:', response.data);
+        console.log('Unidades obtenidos:', response.data);
       })
       .catch(error => {
         console.error('Error al obtener residentes:', error);
+      });
+
+    // Petición al endpoint get all de comunicados
+    communicationAPI.getAll()
+      .then(response => {
+        console.log('Comunicados obtenidos:', response.data);
+      })
+      .catch(error => {
+        console.error('Error al obtener comunicados:', error);
       });
   }, []);
 
