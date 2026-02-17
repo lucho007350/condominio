@@ -7,7 +7,7 @@ const api = axios.create({
   
   baseURL: API_BASE_URL,
   headers: {
-    'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1lIjoiTHVpcyBGZWxpcGUiLCJleHAiOjE3NzEzNTc3ODk1ODcsImlhdCI6MTc3MTM1NzY2OX0.TyuPalbjnXsNX5EGRAYymfEsFp-B_vXa6ALJ0e6W7lE',
+    'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1lIjoiTHVpcyBGZWxpcGUiLCJleHAiOjE3NzEzNTkxMDU4MDQsImlhdCI6MTc3MTM1ODk4NX0.6RA6T8xMmwEeom1Hyo8IGRjyurlEPepdfyJwI2DiJKY',
     'Content-Type': 'application/json',
   },
 });
@@ -39,6 +39,15 @@ export const communicationAPI = {
   communication: () => api.get('/comunicaciones'),
 
 };
+
+export const empleadosAPI = {
+  getAll: () => api.get('/empleados'),
+  getById: (id) => api.get(`/empleados/${id}`),
+  create: (data) => api.post('/empleados', data),
+  update: (id, data) => api.put(`/empleados/${id}`, data),
+  delete: (id) => api.delete(`/empleados/${id}`),
+  empleados: () => api.get('/empleados'),
+}
 
 export const requestAPI = {
   getAll: () => api.get('/requests'),
