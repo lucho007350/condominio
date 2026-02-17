@@ -7,7 +7,7 @@ const api = axios.create({
   
   baseURL: API_BASE_URL,
   headers: {
-    'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1lIjoiTHVpcyBGZWxpcGUiLCJleHAiOjE3NzEzNTkxMDU4MDQsImlhdCI6MTc3MTM1ODk4NX0.6RA6T8xMmwEeom1Hyo8IGRjyurlEPepdfyJwI2DiJKY',
+    'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1lIjoiTHVpcyBGZWxpcGUiLCJleHAiOjE3NzEzNjQwMjIwNzYsImlhdCI6MTc3MTM2MzkwMn0.Ue9CQf_xsqwrK7rohVlPdEREA1S_VHHdf8fTE39Tcco',
     'Content-Type': 'application/json',
   },
 });
@@ -47,7 +47,16 @@ export const empleadosAPI = {
   update: (id, data) => api.put(`/empleados/${id}`, data),
   delete: (id) => api.delete(`/empleados/${id}`),
   empleados: () => api.get('/empleados'),
-}
+};
+
+export const facturasAPI = {
+  getAll: () => api.get('/facturas'),
+  getById: (id) => api.get(`/facturas/${id}`),
+  create: (data) => api.post('/facturas', data),
+  update: (id, data) => api.put(`/facturas/${id}`, data),
+  delete: (id) => api.delete(`/facturas/${id}`),
+  facturas: () => api.get('/facturas'),
+};
 
 export const requestAPI = {
   getAll: () => api.get('/requests'),

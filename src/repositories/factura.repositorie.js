@@ -5,16 +5,22 @@ class FacturaRepository {
   #connection;
 
   constructor() {
-    this.initConnection();
+    this.#connection = null;
   }
 
+  // Inicializa la conexión solo si no existe
   async initConnection() {
-    this.#connection = await connection();
+    if (!this.#connection) {
+      this.#connection = await connection();
+    }
   }
 
   async create(data) {
+    await this.initConnection();
+
     const query = `
-      INSERT INTO facturas (fechaEmision, monto, fechaVencimiento, estadoFactura, idUnidad)
+      INSERT INTO factura 
+      (fechaEmision, monto, fechaVencimiento, estadoFactura, idUnidad)
       VALUES (?, ?, ?, ?, ?)
     `;
 
@@ -35,10 +41,13 @@ class FacturaRepository {
   }
 
   async get() {
+    await this.initConnection();
+
     const query = `
       SELECT f.*, u.numero AS numeroUnidad, u.tipoUnidad
-      FROM facturas f
-      INNER JOIN unidades_habitacionales u ON f.idUnidad = u.idUnidad
+      FROM factura f
+      LEFT JOIN unidades_habitacionales u 
+        ON f.idUnidad = u.idUnidad
     `;
 
     const [rows] = await this.#connection.execute(query);
@@ -46,21 +55,29 @@ class FacturaRepository {
   }
 
   async getById(id) {
+    await this.initConnection();
+
     const [rows] = await this.#connection.execute(
-      "SELECT * FROM facturas WHERE idFactura = ?",
+      "SELECT * FROM factura WHERE idFactura = ?",
       [id]
     );
-    return rows[0]; // devuelve un solo objeto
+
+    return rows[0];
   }
-  
 
   async update(idFactura, data) {
+    await this.initConnection();
+
     const query = `
-      UPDATE facturas
-      SET fechaEmision = ?, monto = ?, fechaVencimiento = ?, estadoFactura = ?, idUnidad = ?
+      UPDATE factura
+      SET fechaEmision = ?, 
+          monto = ?, 
+          fechaVencimiento = ?, 
+          estadoFactura = ?, 
+          idUnidad = ?
       WHERE idFactura = ?
     `;
-  
+
     const values = [
       data.fechaEmision,
       data.monto,
@@ -69,20 +86,21 @@ class FacturaRepository {
       data.idUnidad,
       idFactura
     ];
-  
+
     await this.#connection.execute(query, values);
-  
+
     return {
       idFactura,
       ...data
     };
   }
-  
 
   async getByUnidad(idUnidad) {
+    await this.initConnection();
+
     const query = `
       SELECT *
-      FROM facturas
+      FROM factura
       WHERE idUnidad = ?
     `;
 
@@ -91,8 +109,11 @@ class FacturaRepository {
   }
 
   async delete(idFactura) {
-    const query = "DELETE FROM facturas WHERE idFactura = ?";
+    await this.initConnection();
+
+    const query = "DELETE FROM factura WHERE idFactura = ?";
     await this.#connection.execute(query, [idFactura]);
+
     return { message: "Factura eliminada" };
   }
 }
