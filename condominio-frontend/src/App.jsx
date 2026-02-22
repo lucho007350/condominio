@@ -12,6 +12,8 @@ import UnidadesHabitacionales from "./pages/UnidadesHabitacionales";
 import Empleados from "./pages/Empleados";
 import Facturas from "./pages/facturas";
 import Comunicacion from "./pages/comunicacion";
+import Ingresos from "./pages/Ingresos";
+import Egresos from "./pages/Egresos";
 
 function App() {
   return (
@@ -28,6 +30,8 @@ function App() {
           <Route path="/employees" element={<Empleados />} />
           <Route path="/facturas" element={<Facturas />} />
           <Route path="/comunicacion" element={<Comunicacion />} />
+          <Route path="/ingresos" element={<Ingresos />} />
+          <Route path="/egresos" element={<Egresos />} />
         </Routes>
       </Container>
 

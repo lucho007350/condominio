@@ -7,7 +7,7 @@ const api = axios.create({
   
   baseURL: API_BASE_URL,
   headers: {
-    'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1lIjoiTHVpcyBGZWxpcGUiLCJleHAiOjE3NzEzNjYwNDc2MDcsImlhdCI6MTc3MTM2NTkyN30.0ABojiOucL3MEdZA6xZf4208DnxGDpN7B1jWnv3G_ig',
+    'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1lIjoiTHVpcyBGZWxpcGUiLCJleHAiOjE3NzE3OTUwNTAxNzQsImlhdCI6MTc3MTc5NDkzMH0.31bM0cp9RRCg-kPvJb5dMffh6cQLwN4FFaQc2-HzYjw',
     'Content-Type': 'application/json',
   },
 });
@@ -23,10 +23,12 @@ export const residentAPI = {
 };
 
 export const paymentAPI = {
-  getAll: () => api.get('/payments'),
-  create: (data) => api.post('/payments', data),
-  update: (id, data) => api.put(`/payments/${id}`, data),
-  delete: (id) => api.delete(`/payments/${id}`),
+  getAll: () => api.get('/pagos'),
+  getById: (id) => api.get(`/pagos/${id}`),
+  create: (data) => api.post('/pagos', data),
+  update: (id, data) => api.put(`/pagos/${id}`, data),
+  delete: (id) => api.delete(`/pagos/${id}`),
+  pagos: () => api.get('/pagos'),
 };
 
 // Comunicaciones del condominio
@@ -58,11 +60,39 @@ export const facturasAPI = {
   facturas: () => api.get('/facturas'),
 };
 
+export const ingresosAPI = {
+  getAll: () => api.get('/ingresos'),
+  getById: (id) => api.get(`/ingresos/${id}`),
+  create: (data) => api.post('/ingresos', data),
+  update: (id, data) => api.put(`/ingresos/${id}`, data),
+  delete: (id) => api.delete(`/ingresos/${id}`),
+  ingresos: () => api.get('/ingresos'),
+};
+
 export const requestAPI = {
   getAll: () => api.get('/requests'),
   create: (data) => api.post('/requests', data),
   updateStatus: (id, status) => api.put(`/requests/${id}/status`, { status }),
   delete: (id) => api.delete(`/requests/${id}`),
 };
+
+export const egresosAPI = {
+  getAll: () => api.get('/egresos'),
+  getById: (id) => api.get(`/egresos/${id}`),
+  create: (data) => api.post('/egresos', data),
+  update: (id, data) => api.put(`/egresos/${id}`, data),
+  delete: (id) => api.delete(`/egresos/${id}`),
+  egresos: () => api.get('/egresos'),
+};
+
+export const residentesAPI = {
+  getAll: () => api.get('/residentes'),
+  getById: (id) => api.get(`/residentes/${id}`),
+  create: (data) => api.post('/residentes', data),
+  update: (id, data) => api.put(`/residentes/${id}`, data),
+  delete: (id) => api.delete(`/residentes/${id}`),
+  residentes: () => api.get('/residentes'),
+};
+
 
 export default api;

@@ -8,14 +8,14 @@ import { People as PeopleIcon, AttachMoney as MoneyIcon, RequestQuote as Request
   Warning as WarningIcon,} from '@mui/icons-material';
 
 // Importar las APIs de residentes y comunicaciones
-import { residentAPI, communicationAPI, empleadosAPI, facturasAPI } from '../services/api.jsx';
+import { residentAPI, communicationAPI, empleadosAPI, facturasAPI, ingresosAPI, egresosAPI, paymentAPI, residentesAPI } from '../services/api.jsx';
 
 const Dashboard = () => { 
   const [stats, setStats] = useState({
     totalResidents: 0,
     totalPayments: 0,
     pendingRequests: 0,
-    collectionRate: 0,
+    totalIngresos: 0,
   });
   const [loading, setLoading] = useState(true); //mostrar cargando si es true y si es false mostrar contenido
   const [recentActivity, setRecentActivity] = useState([]);
@@ -79,6 +79,38 @@ const Dashboard = () => {
         })
         .catch(error => {
           console.error('Error al obtener facturas:', error);
+        });
+
+        ingresosAPI.getAll()
+        .then(response => {
+          console.log('Ingresos obtenidos:', response.data);
+        })
+        .catch(error => {
+          console.error('Error al obtener ingresos:', error);
+        });
+
+        egresosAPI.getAll()
+        .then(response => {
+          console.log('Egresos obtenidos:', response.data);
+        })
+        .catch(error => {
+          console.error('Error al obtener egresos:', error);
+        });
+
+          paymentAPI.getAll()
+        .then(response => {
+          console.log('Pagos obtenidos:', response.data);
+        })
+        .catch(error => {
+          console.error('Error al obtener pagos:', error);
+        });
+
+        residentesAPI.getAll()
+        .then(response => {
+          console.log('Residentes obtenidos:', response.data);
+        })
+        .catch(error => {
+          console.error('Error al obtener residentes:', error);
         });
   }, []);
 

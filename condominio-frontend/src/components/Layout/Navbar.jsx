@@ -1,5 +1,7 @@
 import React from "react";
+import { AttachMoney as IngresoIcon } from "@mui/icons-material";
 import { Link, useLocation } from "react-router-dom";
+import { MoneyOff as EgresoIcon } from "@mui/icons-material";
 import {
   AppBar,
   Toolbar,
@@ -25,6 +27,16 @@ const Navbar = () => {
 
   const [anchorAdmin, setAnchorAdmin] = React.useState(null);
   const [anchorGestion, setAnchorGestion] = React.useState(null);
+
+  React.useEffect(() => {
+  setAnchorAdmin(null);
+  setAnchorGestion(null);
+}, [location.pathname]);
+
+  React.useEffect(() => {
+  setAnchorAdmin(null);
+  setAnchorGestion(null);
+}, [location.pathname]);
 
   return (
     <AppBar position="static" sx={{ backgroundColor: "#1e3a5f", color: "white" }}>
@@ -164,6 +176,35 @@ const Navbar = () => {
           >
             <PaymentIcon sx={{ mr: 1 }} /> Pagos
           </MenuItem>
+
+          <MenuItem
+             component={Link}
+           to="/ingresos"
+           onClick={() => setAnchorGestion(null)}
+           sx={{
+              backgroundColor:
+              location.pathname === "/ingresos"
+              ? "rgba(255,255,255,0.15)"
+              : "transparent",
+              
+  }}
+>
+  <IngresoIcon sx={{ mr: 1 }} /> Ingresos
+</MenuItem>
+
+<MenuItem
+  component={Link}
+  to="/egresos"
+  onClick={() => setAnchorGestion(null)}
+  sx={{
+    backgroundColor:
+      location.pathname === "/egresos"
+        ? "rgba(255,255,255,0.15)"
+        : "transparent",
+  }}
+>
+  <EgresoIcon sx={{ mr: 1 }} /> Egresos
+</MenuItem>
         </Menu>
       </Toolbar>
     </AppBar>
