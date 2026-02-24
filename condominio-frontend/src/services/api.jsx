@@ -7,7 +7,7 @@ const api = axios.create({
   
   baseURL: API_BASE_URL,
   headers: {
-    'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1lIjoiTHVpcyBGZWxpcGUiLCJleHAiOjE3NzE3OTUwNTAxNzQsImlhdCI6MTc3MTc5NDkzMH0.31bM0cp9RRCg-kPvJb5dMffh6cQLwN4FFaQc2-HzYjw',
+    'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1lIjoiTHVpcyBGZWxpcGUiLCJleHAiOjE3NzE5NjU5NjgzNzIsImlhdCI6MTc3MTk2NTg0OH0.bXtdYx123MkZN5IffmrBhY_2qUSM4XEdsDAaynkYbx0',
     'Content-Type': 'application/json',
   },
 });
@@ -39,7 +39,6 @@ export const communicationAPI = {
   update: (id, data) => api.put(`/comunicaciones/${id}`, data),
   delete: (id) => api.delete(`/comunicaciones/${id}`),
   communication: () => api.get('/comunicaciones'),
-
 };
 
 export const empleadosAPI = {
@@ -86,6 +85,15 @@ export const egresosAPI = {
 };
 
 export const residentesAPI = {
+  getAll: () => api.get('/residentes'),
+  getById: (id) => api.get(`/residentes/${id}`),
+  create: (data) => api.post('/residentes', data),
+  update: (id, data) => api.put(`/residentes/${id}`, data),
+  delete: (id) => api.delete(`/residentes/${id}`),
+  residentes: () => api.get('/residentes'),
+};
+
+export const documentosAPI = {
   getAll: () => api.get('/residentes'),
   getById: (id) => api.get(`/residentes/${id}`),
   create: (data) => api.post('/residentes', data),

@@ -8,7 +8,7 @@ import { People as PeopleIcon, AttachMoney as MoneyIcon, RequestQuote as Request
   Warning as WarningIcon,} from '@mui/icons-material';
 
 // Importar las APIs de residentes y comunicaciones
-import { residentAPI, communicationAPI, empleadosAPI, facturasAPI, ingresosAPI, egresosAPI, paymentAPI, residentesAPI } from '../services/api.jsx';
+import { residentAPI, communicationAPI, empleadosAPI, facturasAPI, ingresosAPI, egresosAPI, paymentAPI, residentesAPI, documentosAPI } from '../services/api.jsx';
 
 const Dashboard = () => { 
   const [stats, setStats] = useState({
@@ -111,6 +111,14 @@ const Dashboard = () => {
         })
         .catch(error => {
           console.error('Error al obtener residentes:', error);
+        });
+
+        documentosAPI.getAll()
+        .then(response => {
+          console.log('Documentos obtenidos:', response.data);
+        })
+        .catch(error => {
+          console.error('Error al obtener documentos:', error);
         });
   }, []);
 
