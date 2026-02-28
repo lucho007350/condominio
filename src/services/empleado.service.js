@@ -40,7 +40,7 @@ class EmpleadoService {
   }
 
   // 🔹 Actualizar
-  async update(id, nombre, apellido, cargo, documento, telefono, fechaContratacion) {
+  async update(id, nombre, apellido, cargo, documento, telefono, fechaContratacion, salario) {
     const empleado = await this.#repository.getById(id);
     if (!empleado) return null;
 
@@ -50,6 +50,7 @@ class EmpleadoService {
     empleado.setDocumento(documento);
     empleado.setTelefono(telefono);
     empleado.setFechaContratacion(fechaContratacion);
+    if (salario !== undefined && salario !== null) empleado.setSalario(salario);
 
     const updated = await this.#repository.update(empleado);
     return updated.getValues();

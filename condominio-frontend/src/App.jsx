@@ -1,6 +1,6 @@
 import React from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import { Container } from "@mui/material";
+import { Box, Container } from "@mui/material";
 
 import Navbar from "./components/Layout/Navbar";
 import Footer from "./components/footer";
@@ -18,25 +18,40 @@ import Egresos from "./pages/Egresos";
 function App() {
   return (
     <Router>
-      {/* Navbar siempre visible */}
-      <Navbar />
+      <Box
+        sx={{
+          display: 'flex',
+          flexDirection: 'column',
+          minHeight: '100vh',
+        }}
+      >
+        <Navbar />
 
-      <Container maxWidth="xl" sx={{ mt: 4, mb: 4 }}>
-        <Routes>
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/residents" element={<Residents />} />
-          <Route path="/payments" element={<Payments />} />
-          <Route path="/units" element={<UnidadesHabitacionales />} />
-          <Route path="/employees" element={<Empleados />} />
-          <Route path="/facturas" element={<Facturas />} />
-          <Route path="/comunicacion" element={<Comunicacion />} />
-          <Route path="/ingresos" element={<Ingresos />} />
-          <Route path="/egresos" element={<Egresos />} />
-        </Routes>
-      </Container>
+        <Container
+          maxWidth="xl"
+          component="main"
+          sx={{
+            flex: 1,
+            mt: 4,
+            mb: 4,
+            pb: 10,
+          }}
+        >
+          <Routes>
+            <Route path="/" element={<Dashboard />} />
+            <Route path="/residents" element={<Residents />} />
+            <Route path="/payments" element={<Payments />} />
+            <Route path="/units" element={<UnidadesHabitacionales />} />
+            <Route path="/employees" element={<Empleados />} />
+            <Route path="/facturas" element={<Facturas />} />
+            <Route path="/comunicacion" element={<Comunicacion />} />
+            <Route path="/ingresos" element={<Ingresos />} />
+            <Route path="/egresos" element={<Egresos />} />
+          </Routes>
+        </Container>
 
-      {/* Footer siempre visible */}
-      <Footer />
+        <Footer />
+      </Box>
     </Router>
   );
 }
