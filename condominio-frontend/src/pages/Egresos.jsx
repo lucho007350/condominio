@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Box,
   Typography,
@@ -17,65 +17,172 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  LinearProgress,
 } from "@mui/material";
 
 import {
   Add as AddIcon,
+  Edit as EditIcon,
   Delete as DeleteIcon,
   Search as SearchIcon,
 } from "@mui/icons-material";
 
+import { egresosAPI } from "../services/api";
+
 const Egresos = () => {
   const [busqueda, setBusqueda] = useState("");
   const [open, setOpen] = useState(false);
-
-  const [egresos, setEgresos] = useState([
-    {
-      idEgreso: 1,
-      fecha: "2026-02-20",
-      concepto: "Pago salario conserje",
-      monto: 500,
-      empleado: "Juan Pérez",
-      estado: "Pagado",
-    },
-  ]);
-
-  const [nuevoEgreso, setNuevoEgreso] = useState({
+  const [egresos, setEgresos] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [editingEgreso, setEditingEgreso] = useState(null);
+  const [formValues, setFormValues] = useState({
     fecha: "",
     concepto: "",
     monto: "",
-    empleado: "",
-    estado: "Pendiente",
+    idEmpleado: "",
   });
 
-  const handleGuardar = () => {
-    const nuevo = {
-      ...nuevoEgreso,
-      idEgreso: egresos.length + 1,
-    };
+  const loadEgresos = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await egresosAPI.getAll();
+      const data = Array.isArray(response.data)
+        ? response.data
+        : response.data?.egresos || [];
 
-    setEgresos([...egresos, nuevo]);
-    setOpen(false);
+      const normalizados = data.map((e) => ({
+        ...e,
+        idEgreso: e.idEgreso || e.id || e.id_egreso,
+        // No hay columna "estado" en BD, mostramos todos como "Pagado"
+        estado: "Pagado",
+        empleado: e.idEmpleado, // por ahora mostramos idEmpleado como "empleado"
+      }));
 
-    setNuevoEgreso({
-      fecha: "",
-      concepto: "",
-      monto: "",
-      empleado: "",
-      estado: "Pendiente",
-    });
+      setEgresos(normalizados);
+    } catch (err) {
+      const backendErrors = err?.response?.data?.error;
+      const backendMessage = Array.isArray(backendErrors)
+        ? backendErrors.join(" ")
+        : err?.response?.data?.message || "Error al cargar los egresos.";
+      setError(backendMessage);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleEliminar = (id) => {
-    setEgresos(egresos.filter((e) => e.idEgreso !== id));
+  useEffect(() => {
+    loadEgresos();
+  }, []);
+
+  const handleOpen = (egreso = null) => {
+    if (egreso) {
+      setEditingEgreso(egreso);
+      setFormValues({
+        fecha: egreso.fecha || "",
+        concepto: egreso.concepto || "",
+        monto: egreso.monto ?? "",
+        idEmpleado: egreso.idEmpleado ?? "",
+      });
+    } else {
+      setEditingEgreso(null);
+      setFormValues({
+        fecha: "",
+        concepto: "",
+        monto: "",
+        idEmpleado: "",
+      });
+    }
+    setOpen(true);
+  };
+
+  const handleClose = () => {
+    setOpen(false);
+    setEditingEgreso(null);
+  };
+
+  const handleChangeForm = (field) => (event) => {
+    setFormValues((prev) => ({
+      ...prev,
+      [field]: event.target.value,
+    }));
+  };
+
+  const handleGuardar = async () => {
+    const payload = {
+      fecha: formValues.fecha || new Date().toISOString().split("T")[0],
+      concepto: formValues.concepto,
+      monto: Number(formValues.monto),
+      idEmpleado: Number(formValues.idEmpleado),
+    };
+
+    try {
+      setLoading(true);
+      setError(null);
+
+      if (editingEgreso) {
+        const id =
+          editingEgreso.idEgreso ||
+          editingEgreso.id ||
+          editingEgreso.id_egreso;
+        await egresosAPI.update(id, payload);
+      } else {
+        await egresosAPI.create(payload);
+      }
+
+      await loadEgresos();
+      handleClose();
+    } catch (err) {
+      const backendErrors = err?.response?.data?.error;
+      const backendMessage = Array.isArray(backendErrors)
+        ? backendErrors.join(" ")
+        : err?.response?.data?.message || "Error al guardar el egreso.";
+      setError(backendMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleEliminar = async (idEgreso) => {
+    const confirmar = window.confirm(
+      "¿Estás seguro de eliminar este egreso?"
+    );
+    if (!confirmar) return;
+
+    try {
+      setLoading(true);
+      setError(null);
+      const id = idEgreso;
+      await egresosAPI.delete(id);
+      setEgresos((prev) =>
+        prev.filter(
+          (e) => (e.idEgreso || e.id || e.id_egreso) !== id
+        )
+      );
+    } catch (err) {
+      const backendErrors = err?.response?.data?.error;
+      const backendMessage = Array.isArray(backendErrors)
+        ? backendErrors.join(" ")
+        : err?.response?.data?.message || "Error al eliminar el egreso.";
+      setError(backendMessage);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const egresosFiltrados = egresos.filter((e) =>
-    e.concepto.toLowerCase().includes(busqueda.toLowerCase())
+    (e.concepto || "").toLowerCase().includes(busqueda.toLowerCase())
   );
 
   return (
     <Box p={4}>
+      {loading && <LinearProgress sx={{ mb: 2 }} />}
+      {error && (
+        <Typography color="error" sx={{ mb: 2 }}>
+          {error}
+        </Typography>
+      )}
       {/* TÍTULO */}
       <Box display="flex" justifyContent="space-between" mb={3}>
         <Box>
@@ -91,7 +198,7 @@ const Egresos = () => {
           variant="contained"
           startIcon={<AddIcon />}
           sx={{ backgroundColor: "#1e3a5f" }}
-          onClick={() => setOpen(true)}
+          onClick={() => handleOpen()}
         >
           Nuevo Egreso
         </Button>
@@ -143,6 +250,13 @@ const Egresos = () => {
                 </TableCell>
                 <TableCell>
                   <IconButton
+                    color="primary"
+                    onClick={() => handleOpen(egreso)}
+                    sx={{ mr: 1 }}
+                  >
+                    <EditIcon />
+                  </IconButton>
+                  <IconButton
                     color="error"
                     onClick={() => handleEliminar(egreso.idEgreso)}
                   >
@@ -156,8 +270,10 @@ const Egresos = () => {
       </TableContainer>
 
       {/* MODAL */}
-      <Dialog open={open} onClose={() => setOpen(false)}>
-        <DialogTitle>Nuevo Egreso</DialogTitle>
+      <Dialog open={open} onClose={handleClose}>
+        <DialogTitle>
+          {editingEgreso ? "Editar Egreso" : "Nuevo Egreso"}
+        </DialogTitle>
         <DialogContent>
           <TextField
             fullWidth
@@ -165,27 +281,28 @@ const Egresos = () => {
             label="Fecha"
             type="date"
             InputLabelProps={{ shrink: true }}
-            value={nuevoEgreso.fecha}
+            value={formValues.fecha}
             onChange={(e) =>
-              setNuevoEgreso({ ...nuevoEgreso, fecha: e.target.value })
+              handleChangeForm("fecha")(e)
             }
           />
           <TextField
             fullWidth
             margin="dense"
             label="Concepto"
-            value={nuevoEgreso.concepto}
+            value={formValues.concepto}
             onChange={(e) =>
-              setNuevoEgreso({ ...nuevoEgreso, concepto: e.target.value })
+              handleChangeForm("concepto")(e)
             }
           />
           <TextField
             fullWidth
             margin="dense"
-            label="Empleado"
-            value={nuevoEgreso.empleado}
+            label="ID Empleado"
+            type="number"
+            value={formValues.idEmpleado}
             onChange={(e) =>
-              setNuevoEgreso({ ...nuevoEgreso, empleado: e.target.value })
+              handleChangeForm("idEmpleado")(e)
             }
           />
           <TextField
@@ -193,16 +310,16 @@ const Egresos = () => {
             margin="dense"
             label="Monto"
             type="number"
-            value={nuevoEgreso.monto}
+            value={formValues.monto}
             onChange={(e) =>
-              setNuevoEgreso({ ...nuevoEgreso, monto: e.target.value })
+              handleChangeForm("monto")(e)
             }
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setOpen(false)}>Cancelar</Button>
+          <Button onClick={handleClose}>Cancelar</Button>
           <Button variant="contained" onClick={handleGuardar}>
-            Guardar
+            {editingEgreso ? "Guardar cambios" : "Guardar"}
           </Button>
         </DialogActions>
       </Dialog>
