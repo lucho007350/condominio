@@ -7,7 +7,8 @@ import {
   CardContent,
   Chip,
   Avatar,
-  Divider
+  Divider,
+  LinearProgress
 } from '@mui/material';
 
 import {
@@ -17,64 +18,58 @@ import {
   CalendarMonth as FechaIcon
 } from '@mui/icons-material';
 
-import { communicationAPI } from '../services/api.jsx';
+import { communicationAPI } from '../services/api';
 
 const Comunicacion = () => {
   const [comunicados, setComunicados] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const mockComunicados = [
-    {
-      idComunicado: 1,
-      titulo: 'Corte de agua programado',
-      contenido: 'El día viernes habrá suspensión del servicio de agua desde las 8:00 AM hasta las 2:00 PM.',
-      fechaPublicacion: '2025-01-15',
-      tipo: 'Urgente'
-    },
-    {
-      idComunicado: 2,
-      titulo: 'Reunión general de copropietarios',
-      contenido: 'Se convoca a reunión general el próximo sábado en el salón comunal a las 6:00 PM.',
-      fechaPublicacion: '2025-01-10',
-      tipo: 'Evento'
-    },
-    {
-      idComunicado: 3,
-      titulo: 'Horario de administración',
-      contenido: 'La oficina de administración atenderá de lunes a viernes de 8:00 AM a 5:00 PM.',
-      fechaPublicacion: '2025-01-05',
-      tipo: 'General'
-    }
-  ];
-
-  useEffect(() => {
-    // Cargar comunicados desde la API
-    communicationAPI
-      .getAll()
-      .then((response) => {
-        // Ajusta esta parte si tu backend devuelve los campos con otros nombres
-        setComunicados(response.data);
-      })
-      .catch((error) => {
-        console.error('Error al obtener comunicaciones:', error);
-        // En caso de error, mostramos los datos de ejemplo
-        setComunicados(mockComunicados);
-      });
-  }, []);
-
-  const tipoConfig = (tipo) => {
-    switch (tipo) {
-      case 'Urgente':
-        return { color: 'error', icon: <UrgenteIcon /> };
-      case 'Evento':
-        return { color: 'primary', icon: <EventoIcon /> };
-      default:
-        return { color: 'default', icon: <GeneralIcon /> };
+  const loadComunicados = async () => {
+    try {
+      setLoading(true);
+      const response = await communicationAPI.getAll();
+      let data = response.data;
+      if (Array.isArray(data)) {
+        setComunicados(data);
+      } else if (Array.isArray(data?.comunicaciones)) {
+        setComunicados(data.comunicaciones);
+      } else if (Array.isArray(data?.data)) {
+        setComunicados(data.data);
+      } else {
+        setComunicados([]);
+      }
+    } catch (error) {
+      console.error('Error al obtener comunicaciones:', error);
+      setComunicados([]);
+    } finally {
+      setLoading(false);
     }
   };
 
+  useEffect(() => {
+    loadComunicados();
+  }, []);
+
+  const tipoConfig = (tipo) => {
+    const t = (tipo || '').toLowerCase();
+    if (t === 'urgente' || t === 'emergencia') return { color: 'error', icon: <UrgenteIcon /> };
+    if (t === 'evento') return { color: 'primary', icon: <EventoIcon /> };
+    if (t === 'reglamento') return { color: 'info', icon: <GeneralIcon /> };
+    if (t === 'aviso') return { color: 'warning', icon: <GeneralIcon /> };
+    return { color: 'default', icon: <GeneralIcon /> };
+  };
+
+  const formatFecha = (fecha) => {
+    if (!fecha) return '—';
+    const d = new Date(fecha);
+    if (isNaN(d.getTime())) return fecha;
+    return d.toLocaleDateString('es-CO', { year: 'numeric', month: 'short', day: 'numeric' });
+  };
+
+  if (loading) return <LinearProgress />;
+
   return (
     <Box sx={{ p: 3 }}>
-      {/* Header */}
       <Typography variant="h4" fontWeight="bold">
         📢 Comunicados del Condominio
       </Typography>
@@ -82,13 +77,13 @@ const Comunicacion = () => {
         Información importante para residentes y copropietarios
       </Typography>
 
-      {/* Feed */}
       <Grid container spacing={3}>
         {comunicados.map((c) => {
           const config = tipoConfig(c.tipo);
+          const key = c.idComunicado ?? c.id ?? c.titulo;
 
           return (
-            <Grid item xs={12} md={6} key={c.idComunicado}>
+            <Grid item xs={12} md={6} key={key}>
               <Card
                 sx={{
                   borderRadius: 4,
@@ -98,7 +93,6 @@ const Comunicacion = () => {
                 }}
               >
                 <CardContent>
-                  {/* Header */}
                   <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
                     <Avatar sx={{ bgcolor: `${config.color}.main`, mr: 2 }}>
                       {config.icon}
@@ -111,13 +105,13 @@ const Comunicacion = () => {
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                         <FechaIcon fontSize="small" />
                         <Typography variant="caption">
-                          {c.fechaPublicacion}
+                          {formatFecha(c.fechaPublicacion)}
                         </Typography>
                       </Box>
                     </Box>
 
                     <Chip
-                      label={c.tipo}
+                      label={c.tipo || 'Otro'}
                       color={config.color}
                       size="small"
                     />
@@ -125,7 +119,6 @@ const Comunicacion = () => {
 
                   <Divider sx={{ mb: 2 }} />
 
-                  {/* Contenido */}
                   <Typography variant="body1" sx={{ lineHeight: 1.6 }}>
                     {c.contenido}
                   </Typography>
@@ -135,6 +128,12 @@ const Comunicacion = () => {
           );
         })}
       </Grid>
+
+      {comunicados.length === 0 && !loading && (
+        <Typography color="text.secondary" sx={{ py: 6, textAlign: 'center' }}>
+          No hay comunicados registrados
+        </Typography>
+      )}
     </Box>
   );
 };

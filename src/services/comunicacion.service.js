@@ -1,6 +1,6 @@
-const crypto = require('crypto'); // Para generar un ID único (opcional)
-const ComunicacionRepository = require('../repositories/Comunicacion.repositorie.js'); // Repositorio de comunicaciones
-const Comunicacion = require('../models/Comunications.js'); // Modelo de comunicación
+const crypto = require('crypto');
+const ComunicacionRepository = require('../repositories/Comunicacion.repositorie.js');
+const Comunicacion = require('../models/Comunications.js');
 
 class ComunicacionService {
 
@@ -18,11 +18,13 @@ class ComunicacionService {
 
     // 🔹 Crear una nueva comunicación
     async create(titulo, contenido, fechaPublicacion, tipo) {
-        const id = crypto.randomUUID(); // Genera un ID único
-        const comunicacion = new Comunicacion(id, titulo, contenido, fechaPublicacion, tipo); // Crea una nueva instancia
+        // El validador Joi ya garantiza que 'tipo' es uno de:
+        // 'Aviso', 'Evento', 'Reglamento', 'Emergencia', 'Otro'
+        const id = crypto.randomUUID();
+        const comunicacion = new Comunicacion(id, titulo, contenido, fechaPublicacion, tipo);
 
-        const createdComunicacion = await this.#repository.create(comunicacion); // Guarda en la base de datos
-        return createdComunicacion.getValues(); // Devuelve los valores del registro creado
+        const createdComunicacion = await this.#repository.create(comunicacion);
+        return createdComunicacion.getValues();
     }
 
     // 🔹 Obtener una comunicación por su ID
@@ -45,7 +47,10 @@ class ComunicacionService {
         comunicacion.setTitulo(titulo);
         comunicacion.setContenido(contenido);
         comunicacion.setFechaPublicacion(fechaPublicacion);
-        comunicacion.setTipo(tipo);
+        // 'tipo' ya viene validado por Joi como uno de los valores permitidos
+        if (tipo !== undefined) {
+            comunicacion.setTipo(tipo);
+        }
 
         const updatedComunicacion = await this.#repository.update(comunicacion);
         return updatedComunicacion.getValues();

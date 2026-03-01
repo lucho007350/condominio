@@ -16,6 +16,49 @@ class ComunicacionRepository {
         this.#connection = await connection();
     }
 
+    /**
+     * Obtiene los valores permitidos del ENUM de la columna tipo desde la base de datos.
+     * Si falta 'Reglamento', intenta añadirlo al ENUM para que se pueda guardar.
+     */
+    async getTipoEnumValues() {
+        if (!this.#connection) await this.getConnection();
+        const [rows] = await this.#connection.execute(
+            `SELECT COLUMN_TYPE FROM INFORMATION_SCHEMA.COLUMNS 
+             WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'comunicaciones' AND COLUMN_NAME = 'tipo'`
+        );
+        if (!rows.length) return ['otro'];
+        const columnType = rows[0].COLUMN_TYPE || '';
+        const match = columnType.match(/^enum\((.*)\)$/i);
+        if (!match) return ['otro'];
+        let valores = match[1].split(',').map(s => s.replace(/^'|'$/g, '').trim());
+
+        const tieneReglamento = valores.some(v => v.toLowerCase() === 'reglamento');
+        if (!tieneReglamento && valores.length > 0) {
+            const primeraMayuscula = valores[0] && valores[0][0] === valores[0][0].toUpperCase();
+            const reglamento = primeraMayuscula ? 'Reglamento' : 'reglamento';
+            const orden = ['aviso', 'evento', 'reglamento', 'emergencia', 'otro'];
+            const nuevosValores = [];
+            for (const nombre of orden) {
+                const existente = valores.find(v => v.toLowerCase() === nombre);
+                if (existente) nuevosValores.push(existente);
+                else if (nombre === 'reglamento') nuevosValores.push(reglamento);
+            }
+            valores.forEach(v => {
+                if (!nuevosValores.find(n => n.toLowerCase() === v.toLowerCase())) nuevosValores.push(v);
+            });
+            const enumStr = nuevosValores.map(v => `'${v}'`).join(',');
+            try {
+                await this.#connection.execute(
+                    `ALTER TABLE comunicaciones MODIFY COLUMN tipo ENUM(${enumStr}) NOT NULL DEFAULT 'Otro'`
+                );
+                valores = nuevosValores;
+            } catch (e) {
+                console.warn('No se pudo añadir Reglamento al ENUM de comunicaciones.tipo:', e.message);
+            }
+        }
+        return valores;
+    }
+
     // 🔹 Obtener todas las comunicaciones (usando Sequelize)
     async get() {
         const [rows] = await this.#connection.execute("SELECT * FROM comunicaciones");
