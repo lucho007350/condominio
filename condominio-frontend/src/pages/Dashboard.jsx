@@ -8,7 +8,7 @@ import { People as PeopleIcon, AttachMoney as MoneyIcon, RequestQuote as Request
   Warning as WarningIcon,} from '@mui/icons-material';
 
 // Importar las APIs de residentes y comunicaciones
-import { residentAPI, communicationAPI, empleadosAPI, facturasAPI, ingresosAPI, egresosAPI, paymentAPI, residentesAPI, documentosAPI } from '../services/api.jsx';
+import { residentAPI, communicationAPI, empleadosAPI, facturasAPI, ingresosAPI, egresosAPI, paymentAPI, residentesAPI, documentosAPI, unidadesAPI } from '../services/api.jsx';
 
 const Dashboard = () => { 
   const [stats, setStats] = useState({
@@ -47,15 +47,6 @@ const Dashboard = () => {
   useEffect(() => {
     fetchDashboardData(); //llama a la funcion para obtener datos al cargar el componente
     
-    // Petición al endpoint get all de residentes
-    residentAPI.unidades()// cambio con el parsero
-      .then(response => {
-        console.log('Unidades obtenidos:', response.data);
-      })
-      .catch(error => {
-        console.error('Error al obtener residentes:', error);
-      });
-
     // Petición al endpoint get all de comunicados
     communicationAPI.getAll()
       .then(response => {
@@ -119,6 +110,14 @@ const Dashboard = () => {
         })
         .catch(error => {
           console.error('Error al obtener documentos:', error);
+        });
+
+        unidadesAPI.getAll()
+        .then(response => {
+          console.log('Unidades obtenidas:', response.data);
+        })
+        .catch(error => {
+          console.error('Error al obtener unidades:', error);
         });
   }, []);
 

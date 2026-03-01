@@ -7,7 +7,7 @@ const api = axios.create({
   
   baseURL: API_BASE_URL,
   headers: {
-    'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1lIjoiTHVpcyBGZWxpcGUiLCJleHAiOjE3NzI0MDU4MjQzNTUsImlhdCI6MTc3MjQwNDAyNH0.7GKa45KtLH3cqA4l1zY5R8tsvaDUixK-py0KbZ1U8mw',
+    'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1lIjoiTHVpcyBGZWxpcGUiLCJleHAiOjE3NzI0MDc3NTQ3MDMsImlhdCI6MTc3MjQwNTk1NH0.821cNZrJoIhRAs9hY0oQjgaYAm_1gcW5_iNfgkJwnlg',
     'Content-Type': 'application/json',
   },
 });
@@ -19,7 +19,7 @@ export const residentAPI = {
   create: (data) => api.post('/users', data),
   update: (id, data) => api.put(`/users/${id}`, data),
   delete: (id) => api.delete(`/users/${id}`),
-  unidades: () => api.get('/unidades'),// cambio con el parsero
+ 
 };
 
 export const paymentAPI = {
@@ -100,6 +100,15 @@ export const documentosAPI = {
   update: (id, data) => api.put(`/residentes/${id}`, data),
   delete: (id) => api.delete(`/residentes/${id}`),
   residentes: () => api.get('/residentes'),
+};
+
+export const unidadesAPI = {
+  getAll: () => api.get('/unidades'),
+  getById: (id) => api.get(`/unidades/${id}`),
+  create: (data) => api.post('/unidades', data),
+  update: (id, data) => api.put(`/unidades/${id}`, data),
+  delete: (id) => api.delete(`/unidades/${id}`),
+  unidades: () => api.get('/unidades'),
 };
 
 

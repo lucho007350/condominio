@@ -19,6 +19,8 @@ import {
   AttachMoney as MoneyIcon,
 } from "@mui/icons-material";
 
+import { unidadesAPI } from "../services/api";
+
 const UnidadesHabitacionales = () => {
   const [units, setUnits] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -28,20 +30,54 @@ const UnidadesHabitacionales = () => {
   const [filterStatus, setFilterStatus] = useState("all");
   const [openDialog, setOpenDialog] = useState(false);
   const [selectedUnit, setSelectedUnit] = useState(null);
+  const [error, setError] = useState(null);
+  const [formValues, setFormValues] = useState({
+    tipoUnidad: "",
+    numero: "",
+    estado: "Disponible",
+    area: "",
+    valorCuota: "",
+  });
 
-  // Mock data
-  const mockUnits = [
-    { id: 1, type: "Apartamento", number: "A-101", area: 85, fee: 160, status: "available" },
-    { id: 2, type: "Apartamento", number: "A-202", area: 90, fee: 180, status: "occupied" },
-    { id: 3, type: "Penthouse", number: "PH-1", area: 150, fee: 320, status: "available" },
-    { id: 4, type: "Apartamento", number: "B-303", area: 78, fee: 150, status: "occupied" },
-  ];
+  const loadUnits = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await unidadesAPI.getAll();
+      const data = Array.isArray(response.data)
+        ? response.data
+        : response.data?.unidades || [];
+
+      const normalizadas = data.map((u) => ({
+        ...u,
+        id: u.idUnidad || u.id || u.id_unidad,
+        type: u.tipoUnidad,
+        number: u.numero,
+        area: u.area,
+        fee: u.valorCuota,
+        // Mapeo de estado backend -> frontend
+        status:
+          u.estado === "Disponible"
+            ? "available"
+            : u.estado === "Ocupado"
+            ? "occupied"
+            : "maintenance",
+      }));
+
+      setUnits(normalizadas);
+    } catch (err) {
+      const backendErrors = err?.response?.data?.error;
+      const backendMessage = Array.isArray(backendErrors)
+        ? backendErrors.join(" ")
+        : err?.response?.data?.message || "Error al cargar las unidades.";
+      setError(backendMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    setTimeout(() => {
-      setUnits(mockUnits);
-      setLoading(false);
-    }, 800);
+    loadUnits();
   }, []);
 
   // Stats
@@ -107,6 +143,11 @@ const UnidadesHabitacionales = () => {
 
   return (
     <Box>
+      {error && (
+        <Typography color="error" sx={{ mb: 2 }}>
+          {error}
+        </Typography>
+      )}
       {/* Header */}
       <Box display="flex" justifyContent="space-between" mb={4}>
         <Box>
@@ -117,7 +158,17 @@ const UnidadesHabitacionales = () => {
             Administración de unidades del condominio
           </Typography>
         </Box>
-        <Button variant="contained" startIcon={<AddIcon />} onClick={() => setOpenDialog(true)} sx={{ color: 'white', backgroundColor: '#1e3a5f' }}>
+        <Button variant="contained" startIcon={<AddIcon />} onClick={() => {
+          setSelectedUnit(null);
+          setFormValues({
+            tipoUnidad: "",
+            numero: "",
+            estado: "Disponible",
+            area: "",
+            valorCuota: "",
+          });
+          setOpenDialog(true);
+        }} sx={{ color: 'white', backgroundColor: '#1e3a5f' }}>
           Nueva Unidad
         </Button>
       </Box>
@@ -203,13 +254,47 @@ const UnidadesHabitacionales = () => {
                       <Tooltip title="Editar">
                         <IconButton size="small" onClick={() => {
                           setSelectedUnit(unit);
+                          setFormValues({
+                            tipoUnidad: unit.type,
+                            numero: unit.number,
+                            estado:
+                              unit.status === "available"
+                                ? "Disponible"
+                                : unit.status === "occupied"
+                                ? "Ocupado"
+                                : "Mantenimiento",
+                            area: unit.area,
+                            valorCuota: unit.fee,
+                          });
                           setOpenDialog(true);
                         }}>
                           <EditIcon />
                         </IconButton>
                       </Tooltip>
                       <Tooltip title="Eliminar">
-                        <IconButton size="small" color="error">
+                        <IconButton
+                          size="small"
+                          color="error"
+                          onClick={async () => {
+                            const confirmar = window.confirm("¿Eliminar esta unidad?");
+                            if (!confirmar) return;
+                            try {
+                              setLoading(true);
+                              setError(null);
+                              const id = unit.idUnidad || unit.id;
+                              await unidadesAPI.delete(id);
+                              await loadUnits();
+                            } catch (err) {
+                              const backendErrors = err?.response?.data?.error;
+                              const backendMessage = Array.isArray(backendErrors)
+                                ? backendErrors.join(" ")
+                                : err?.response?.data?.message || "Error al eliminar la unidad.";
+                              setError(backendMessage);
+                            } finally {
+                              setLoading(false);
+                            }
+                          }}
+                        >
                           <DeleteIcon />
                         </IconButton>
                       </Tooltip>
@@ -242,22 +327,94 @@ const UnidadesHabitacionales = () => {
         <DialogContent>
           <Grid container spacing={2} mt={1}>
             <Grid item xs={12}>
-              <TextField fullWidth label="Número" defaultValue={selectedUnit?.number || ""} />
+              <TextField
+                fullWidth
+                label="Número"
+                value={formValues.numero}
+                onChange={(e) => setFormValues((prev) => ({ ...prev, numero: e.target.value }))}
+              />
             </Grid>
             <Grid item xs={12}>
-              <TextField fullWidth label="Tipo" defaultValue={selectedUnit?.type || ""} />
+              <TextField
+                fullWidth
+                label="Tipo"
+                value={formValues.tipoUnidad}
+                onChange={(e) => setFormValues((prev) => ({ ...prev, tipoUnidad: e.target.value }))}
+              />
             </Grid>
             <Grid item xs={12} md={6}>
-              <TextField fullWidth label="Área (m²)" type="number" defaultValue={selectedUnit?.area || ""} />
+              <TextField
+                fullWidth
+                label="Área (m²)"
+                type="number"
+                value={formValues.area}
+                onChange={(e) => setFormValues((prev) => ({ ...prev, area: e.target.value }))}
+              />
             </Grid>
             <Grid item xs={12} md={6}>
-              <TextField fullWidth label="Cuota" type="number" defaultValue={selectedUnit?.fee || ""} />
+              <TextField
+                fullWidth
+                label="Cuota"
+                type="number"
+                value={formValues.valorCuota}
+                onChange={(e) => setFormValues((prev) => ({ ...prev, valorCuota: e.target.value }))}
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <FormControl fullWidth>
+                <InputLabel>Estado</InputLabel>
+                <Select
+                  label="Estado"
+                  value={formValues.estado}
+                  onChange={(e) =>
+                    setFormValues((prev) => ({ ...prev, estado: e.target.value }))
+                  }
+                >
+                  <MenuItem value="Disponible">Disponible</MenuItem>
+                  <MenuItem value="Ocupado">Ocupado</MenuItem>
+                  <MenuItem value="Mantenimiento">Mantenimiento</MenuItem>
+                </Select>
+              </FormControl>
             </Grid>
           </Grid>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setOpenDialog(false)}>Cancelar</Button>
-          <Button variant="contained">Guardar</Button>
+          <Button
+            variant="contained"
+            onClick={async () => {
+              const payload = {
+                tipoUnidad: formValues.tipoUnidad,
+                numero: formValues.numero,
+                estado: formValues.estado,
+                area: Number(formValues.area),
+                valorCuota: Number(formValues.valorCuota),
+              };
+
+              try {
+                setLoading(true);
+                setError(null);
+                if (selectedUnit) {
+                  const id = selectedUnit.idUnidad || selectedUnit.id;
+                  await unidadesAPI.update(id, payload);
+                } else {
+                  await unidadesAPI.create(payload);
+                }
+                await loadUnits();
+                setOpenDialog(false);
+              } catch (err) {
+                const backendErrors = err?.response?.data?.error;
+                const backendMessage = Array.isArray(backendErrors)
+                  ? backendErrors.join(" ")
+                  : err?.response?.data?.message || "Error al guardar la unidad.";
+                setError(backendMessage);
+              } finally {
+                setLoading(false);
+              }
+            }}
+          >
+            Guardar
+          </Button>
         </DialogActions>
       </Dialog>
     </Box>
