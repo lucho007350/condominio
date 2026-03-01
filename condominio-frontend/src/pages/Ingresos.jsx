@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Box,
   Typography,
@@ -17,6 +17,7 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  LinearProgress,
 } from "@mui/material";
 
 import {
@@ -26,53 +27,164 @@ import {
   Search as SearchIcon,
 } from "@mui/icons-material";
 
+import { ingresosAPI } from "../services/api";
+
 const Ingresos = () => {
   const [busqueda, setBusqueda] = useState("");
   const [open, setOpen] = useState(false);
-
-  const [ingresos, setIngresos] = useState([
-    {
-      idIngreso: 1,
-      fecha: "2026-02-20",
-      concepto: "Pago mantenimiento",
-      monto: 150,
-      estado: "Pagado",
-    },
-  ]);
-
-  const [nuevoIngreso, setNuevoIngreso] = useState({
+  const [ingresos, setIngresos] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [editingIngreso, setEditingIngreso] = useState(null);
+  const [formValues, setFormValues] = useState({
     fecha: "",
     concepto: "",
     monto: "",
-    estado: "Pendiente",
+    idPago: "",
   });
 
-  const handleGuardar = () => {
-    const nuevo = {
-      ...nuevoIngreso,
-      idIngreso: ingresos.length + 1,
-    };
+  const loadIngresos = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await ingresosAPI.getAll();
+      const data = Array.isArray(response.data)
+        ? response.data
+        : response.data?.ingresos || [];
 
-    setIngresos([...ingresos, nuevo]);
-    setOpen(false);
-    setNuevoIngreso({
-      fecha: "",
-      concepto: "",
-      monto: "",
-      estado: "Pendiente",
-    });
+      const normalizados = data.map((i) => ({
+        ...i,
+        idIngreso: i.idIngreso || i.id || i.id_ingreso,
+        // La tabla de ingresos en BD no tiene columna "estado",
+        // así que mostramos todos como "Pagado" por ser ingresos ya recibidos.
+        estado: "Pagado",
+      }));
+
+      setIngresos(normalizados);
+    } catch (err) {
+      const backendErrors = err?.response?.data?.error;
+      const backendMessage = Array.isArray(backendErrors)
+        ? backendErrors.join(" ")
+        : err?.response?.data?.message || "Error al cargar los ingresos.";
+      setError(backendMessage);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleEliminar = (id) => {
-    setIngresos(ingresos.filter((i) => i.idIngreso !== id));
+  useEffect(() => {
+    loadIngresos();
+  }, []);
+
+  const handleOpen = (ingreso = null) => {
+    if (ingreso) {
+      setEditingIngreso(ingreso);
+      setFormValues({
+        fecha: ingreso.fecha || "",
+        concepto: ingreso.concepto || "",
+        monto: ingreso.monto ?? "",
+        idPago: ingreso.idPago ?? "",
+      });
+    } else {
+      setEditingIngreso(null);
+      setFormValues({
+        fecha: "",
+        concepto: "",
+        monto: "",
+        idPago: "",
+      });
+    }
+    setOpen(true);
+  };
+
+  const handleClose = () => {
+    setOpen(false);
+    setEditingIngreso(null);
+  };
+
+  const handleChangeForm = (field) => (event) => {
+    setFormValues((prev) => ({
+      ...prev,
+      [field]: event.target.value,
+    }));
+  };
+
+  const handleGuardar = async () => {
+    const payload = {
+      fecha: formValues.fecha || new Date().toISOString().split("T")[0],
+      concepto: formValues.concepto,
+      monto: Number(formValues.monto),
+      idPago: Number(formValues.idPago),
+    };
+
+    try {
+      setLoading(true);
+      setError(null);
+
+      if (editingIngreso) {
+        const id =
+          editingIngreso.idIngreso ||
+          editingIngreso.id ||
+          editingIngreso.id_ingreso;
+        await ingresosAPI.update(id, payload);
+      } else {
+        await ingresosAPI.create(payload);
+      }
+
+      await loadIngresos();
+      handleClose();
+    } catch (err) {
+      const backendErrors = err?.response?.data?.error;
+      const backendMessage = Array.isArray(backendErrors)
+        ? backendErrors.join(" ")
+        : err?.response?.data?.message || "Error al guardar el ingreso.";
+      setError(backendMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleEliminar = async (idIngreso) => {
+    const confirmar = window.confirm(
+      "¿Estás seguro de eliminar este ingreso?"
+    );
+    if (!confirmar) return;
+
+    try {
+      setLoading(true);
+      setError(null);
+      const id = idIngreso;
+      await ingresosAPI.delete(id);
+      setIngresos((prev) =>
+        prev.filter(
+          (i) => (i.idIngreso || i.id || i.id_ingreso) !== id
+        )
+      );
+    } catch (err) {
+      const backendErrors = err?.response?.data?.error;
+      const backendMessage = Array.isArray(backendErrors)
+        ? backendErrors.join(" ")
+        : err?.response?.data?.message || "Error al eliminar el ingreso.";
+      setError(backendMessage);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const ingresosFiltrados = ingresos.filter((i) =>
-    i.concepto.toLowerCase().includes(busqueda.toLowerCase())
+    (i.concepto || "")
+      .toLowerCase()
+      .includes(busqueda.toLowerCase())
   );
 
   return (
     <Box p={4}>
+      {loading && <LinearProgress sx={{ mb: 2 }} />}
+      {error && (
+        <Typography color="error" sx={{ mb: 2 }}>
+          {error}
+        </Typography>
+      )}
       {/* TÍTULO */}
       <Box display="flex" justifyContent="space-between" mb={3}>
         <Box>
@@ -88,7 +200,7 @@ const Ingresos = () => {
           variant="contained"
           startIcon={<AddIcon />}
           sx={{ backgroundColor: "#1e3a5f" }}
-          onClick={() => setOpen(true)}
+          onClick={() => handleOpen()}
         >
           Nuevo Ingreso
         </Button>
@@ -137,7 +249,17 @@ const Ingresos = () => {
                   />
                 </TableCell>
                 <TableCell>
-                  <IconButton color="error" onClick={() => handleEliminar(ingreso.idIngreso)}>
+                  <IconButton
+                    color="primary"
+                    onClick={() => handleOpen(ingreso)}
+                    sx={{ mr: 1 }}
+                  >
+                    <EditIcon />
+                  </IconButton>
+                  <IconButton
+                    color="error"
+                    onClick={() => handleEliminar(ingreso.idIngreso)}
+                  >
                     <DeleteIcon />
                   </IconButton>
                 </TableCell>
@@ -148,8 +270,10 @@ const Ingresos = () => {
       </TableContainer>
 
       {/* MODAL */}
-      <Dialog open={open} onClose={() => setOpen(false)}>
-        <DialogTitle>Nuevo Ingreso</DialogTitle>
+      <Dialog open={open} onClose={handleClose}>
+        <DialogTitle>
+          {editingIngreso ? "Editar Ingreso" : "Nuevo Ingreso"}
+        </DialogTitle>
         <DialogContent>
           <TextField
             fullWidth
@@ -157,18 +281,18 @@ const Ingresos = () => {
             label="Fecha"
             type="date"
             InputLabelProps={{ shrink: true }}
-            value={nuevoIngreso.fecha}
+            value={formValues.fecha}
             onChange={(e) =>
-              setNuevoIngreso({ ...nuevoIngreso, fecha: e.target.value })
+              handleChangeForm("fecha")(e)
             }
           />
           <TextField
             fullWidth
             margin="dense"
             label="Concepto"
-            value={nuevoIngreso.concepto}
+            value={formValues.concepto}
             onChange={(e) =>
-              setNuevoIngreso({ ...nuevoIngreso, concepto: e.target.value })
+              handleChangeForm("concepto")(e)
             }
           />
           <TextField
@@ -176,16 +300,27 @@ const Ingresos = () => {
             margin="dense"
             label="Monto"
             type="number"
-            value={nuevoIngreso.monto}
+            value={formValues.monto}
             onChange={(e) =>
-              setNuevoIngreso({ ...nuevoIngreso, monto: e.target.value })
+              handleChangeForm("monto")(e)
             }
+          />
+          <TextField
+            fullWidth
+            margin="dense"
+            label="ID Pago"
+            type="number"
+            value={formValues.idPago}
+            onChange={(e) =>
+              handleChangeForm("idPago")(e)
+            }
+            helperText="ID del pago asociado (obligatorio)"
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setOpen(false)}>Cancelar</Button>
+          <Button onClick={handleClose}>Cancelar</Button>
           <Button variant="contained" onClick={handleGuardar}>
-            Guardar
+            {editingIngreso ? "Guardar cambios" : "Guardar"}
           </Button>
         </DialogActions>
       </Dialog>

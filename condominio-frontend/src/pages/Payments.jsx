@@ -1,25 +1,64 @@
 import React, { useState, useEffect } from 'react';
-import {Box, Typography, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-TablePagination, Button, IconButton, Chip, TextField, InputAdornment, Dialog, DialogTitle, DialogContent,
-DialogActions, Grid, MenuItem, Select, FormControl, InputLabel, Card, CardContent, LinearProgress,
-Tooltip, Alert,} from '@mui/material';
+import {
+  Box,
+  Typography,
+  Paper,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  TablePagination,
+  Button,
+  IconButton,
+  Chip,
+  TextField,
+  InputAdornment,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Grid,
+  MenuItem,
+  Select,
+  FormControl,
+  InputLabel,
+  Card,
+  CardContent,
+  LinearProgress,
+  Tooltip,
+  Alert,
+} from '@mui/material';
 
-import {Search as SearchIcon, FilterList as FilterIcon, Download as DownloadIcon, Add as AddIcon,
-Edit as EditIcon, Delete as DeleteIcon, CheckCircle as CheckIcon, Pending as PendingIcon, 
-Warning as WarningIcon, AttachMoney as MoneyIcon, CalendarMonth as CalendarIcon, Person as PersonIcon, 
-Receipt as ReceiptIcon,} from '@mui/icons-material';
-
+import {
+  Search as SearchIcon,
+  FilterList as FilterIcon,
+  Download as DownloadIcon,
+  Add as AddIcon,
+  Edit as EditIcon,
+  Delete as DeleteIcon,
+  CheckCircle as CheckIcon,
+  Pending as PendingIcon,
+  Warning as WarningIcon,
+  AttachMoney as MoneyIcon,
+  CalendarMonth as CalendarIcon,
+  Person as PersonIcon,
+  Receipt as ReceiptIcon,
+} from '@mui/icons-material';
 
 import { DatePicker } from '@mui/x-date-pickers/DatePicker'; //para seleccionar fechas
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider'; //para localizacion de fechas
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns'; //adaptador de fechas
 import { format } from 'date-fns'; //funcion para formatear fechas
 import { es } from 'date-fns/locale'; //localizacion en español
+import { paymentAPI } from '../services/api';
 
 const Payments = () => {
   // Estados
-  const [payments, setPayments] = useState([]);  
+  const [payments, setPayments] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [page, setPage] = useState(0); //Página actual (0 = primera)
   const [rowsPerPage, setRowsPerPage] = useState(10); //Filas por página
   const [searchTerm, setSearchTerm] = useState(''); //Término de búsqueda
@@ -33,134 +72,33 @@ const Payments = () => {
     collectionRate: 0,
   });
 
-  // Datos
-  const mockPayments = [
-    {
-      id: 1,
-      resident: 'Juan Pérez',
-      apartment: '101',
-      amount: 1500,
-      dueDate: '2024-01-15',
-      paymentDate: '2024-01-10',
-      status: 'paid',
-      method: 'Transferencia',
-      receipt: 'RC-001',
-      notes: 'Pago completo',
-    },
-    {
-      id: 2,
-      resident: 'María García',
-      apartment: '202',
-      amount: 1500,
-      dueDate: '2024-01-15',
-      paymentDate: null,
-      status: 'pending',
-      method: '',
-      receipt: '',
-      notes: '',
-    },
-    {
-      id: 3,
-      resident: 'Carlos López',
-      apartment: '303',
-      amount: 1500,
-      dueDate: '2024-01-15',
-      paymentDate: '2024-01-12',
-      status: 'paid',
-      method: 'Efectivo',
-      receipt: 'RC-002',
-      notes: '',
-    },
-    {
-      id: 4,
-      resident: 'Ana Martínez',
-      apartment: '404',
-      amount: 1500,
-      dueDate: '2024-01-15',
-      paymentDate: null,
-      status: 'overdue',
-      method: '',
-      receipt: '',
-      notes: 'Recordar llamar',
-    },
-    {
-      id: 5,
-      resident: 'Pedro Rodríguez',
-      apartment: '505',
-      amount: 1500,
-      dueDate: '2024-02-15',
-      paymentDate: null,
-      status: 'pending',
-      method: '',
-      receipt: '',
-      notes: '',
-    },
-    {
-      id: 6,
-      resident: 'Laura Sánchez',
-      apartment: '606',
-      amount: 1500,
-      dueDate: '2024-01-15',
-      paymentDate: '2024-01-14',
-      status: 'paid',
-      method: 'Tarjeta',
-      receipt: 'RC-003',
-      notes: 'Pago online',
-    },
-    {
-      id: 7,
-      resident: 'Miguel Torres',
-      apartment: '707',
-      amount: 1500,
-      dueDate: '2023-12-15',
-      paymentDate: null,
-      status: 'overdue',
-      method: '',
-      receipt: '',
-      notes: 'Moroso',
-    },
-    {
-      id: 8,
-      resident: 'Sofía Ramírez',
-      apartment: '808',
-      amount: 1500,
-      dueDate: '2024-01-15',
-      paymentDate: '2024-01-08',
-      status: 'paid',
-      method: 'Transferencia',
-      receipt: 'RC-004',
-      notes: '',
-    },
-  ];
+  const [formValues, setFormValues] = useState({
+    fechaPago: '',
+    monto: '',
+    metodoPago: '',
+    estadoPago: 'Pendiente',
+    idFactura: '',
+  });
 
-  useEffect(() => {
-    fetchPayments(); //trae los pagos
-    calculateStats(); //calcula las estadísticas
-  }, []); // Ejecutar al cargar el componente
+  const calculateStats = (list) => {
+    const base = list || payments;
 
-  const fetchPayments = () => {  // Simular llamada a API
-    setTimeout(() => {
-      setPayments(mockPayments);
-      setLoading(false);
-    }, 1000);
-  };
+    const totalCollected = base
+      .filter((p) => p.status === 'paid')
+      .reduce((sum, p) => sum + (p.amount || 0), 0);
 
-  const calculateStats = () => {
-    const totalCollected = mockPayments // obtener solo los pagos realizados
-      .filter(p => p.status === 'paid')
-      .reduce((sum, p) => sum + p.amount, 0); // reducirlos a un unico valor
-    
-    const pendingAmount = mockPayments
-      .filter(p => p.status === 'pending')
-      .reduce((sum, p) => sum + p.amount, 0);
+    const pendingAmount = base
+      .filter((p) => p.status === 'pending')
+      .reduce((sum, p) => sum + (p.amount || 0), 0);
 
-    //vencidos
-    const overduePayments = mockPayments.filter(p => p.status === 'overdue').length;
-    
-    const totalExpected = mockPayments.length * 1500;
-    const collectionRate = totalExpected > 0 ? Math.round((totalCollected / totalExpected) * 100) : 0;
+    const overduePayments = base.filter((p) => p.status === 'overdue').length;
+    const totalExpected = base.length > 0 ? base.length * 1 : 0;
+    const collectionRate =
+      totalExpected > 0
+        ? Math.round((totalCollected / totalExpected) * 100)
+        : 0;
 
-    setStats({ 
+    setStats({
       totalCollected,
       pendingAmount,
       overduePayments,
@@ -168,12 +106,56 @@ const Payments = () => {
     });
   };
 
+  const loadPayments = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await paymentAPI.getAll();
+      const data = Array.isArray(response.data)
+        ? response.data
+        : response.data?.pagos || [];
+
+      const normalizados = data.map((p) => {
+        const estado = p.estadoPago || p.estado || 'Pendiente';
+        const status =
+          estado === 'Procesado'
+            ? 'paid'
+            : estado === 'Pendiente'
+            ? 'pending'
+            : 'overdue';
+
+        return {
+          ...p,
+          id: p.idPago || p.id,
+          amount: p.monto,
+          status,
+          dueDate: p.fechaPago,
+          paymentDate: p.fechaPago,
+          method: p.metodoPago,
+        };
+      });
+
+      setPayments(normalizados);
+      calculateStats(normalizados);
+    } catch (err) {
+      const backendMessage =
+        err?.response?.data?.message || 'Error al cargar los pagos.';
+      setError(backendMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadPayments(); // trae los pagos reales
+  }, []); // Ejecutar al cargar el componente
+
   // Filtrar pagos
   const filteredPayments = payments.filter(payment => {
     const matchesSearch = 
-      payment.resident.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      payment.apartment.includes(searchTerm) ||
-      payment.receipt.toLowerCase().includes(searchTerm.toLowerCase());
+      (payment.resident || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      String(payment.apartment || '').includes(searchTerm) ||
+      (payment.receipt || '').toLowerCase().includes(searchTerm.toLowerCase());
     
     const matchesStatus = 
       filterStatus === 'all' || 
@@ -220,13 +202,104 @@ const Payments = () => {
 
   // Manejar apertura/cierre de diálogo formulario
   const handleOpenDialog = (payment = null) => { // si payment es null, es para registrar nuevo pago
-    setSelectedPayment(payment)//si es null, no hay pago seleccionado
+    if (payment) {
+      setSelectedPayment(payment);
+      setFormValues({
+        fechaPago: payment.fechaPago || payment.dueDate || '',
+        monto: payment.monto ?? payment.amount ?? '',
+        metodoPago: payment.metodoPago || payment.method || '',
+        estadoPago: payment.estadoPago || (payment.status === 'paid'
+          ? 'Procesado'
+          : payment.status === 'pending'
+          ? 'Pendiente'
+          : 'Rechazado'),
+        idFactura: payment.idFactura ?? '',
+      });
+    } else {
+      setSelectedPayment(null);
+      setFormValues({
+        fechaPago: '',
+        monto: '',
+        metodoPago: '',
+        estadoPago: 'Pendiente',
+        idFactura: '',
+      });
+    }
     setOpenDialog(true);//abrir diálogo
   };
 
   const handleCloseDialog = () => { //cerrar diálogo
     setOpenDialog(false);//
     setSelectedPayment(null);//limpiar pago seleccionado
+  };
+
+  const handleChangeForm = (field) => (event) => {
+    setFormValues((prev) => ({
+      ...prev,
+      [field]: event.target.value,
+    }));
+  };
+
+  const handleChangeFechaPago = (value) => {
+    if (!value) {
+      setFormValues((prev) => ({ ...prev, fechaPago: '' }));
+      return;
+    }
+    const iso = value.toISOString().split('T')[0];
+    setFormValues((prev) => ({ ...prev, fechaPago: iso }));
+  };
+
+  const handleSavePayment = async () => {
+    const payload = {
+      fechaPago: formValues.fechaPago,
+      monto: Number(formValues.monto),
+      metodoPago: formValues.metodoPago,
+      estadoPago: formValues.estadoPago,
+      idFactura: Number(formValues.idFactura),
+    };
+
+    try {
+      setLoading(true);
+      setError(null);
+      if (selectedPayment) {
+        const id = selectedPayment.idPago || selectedPayment.id;
+        await paymentAPI.update(id, payload);
+      } else {
+        await paymentAPI.create(payload);
+      }
+
+      await loadPayments();
+      handleCloseDialog();
+    } catch (err) {
+      const backendMessage =
+        err?.response?.data?.message || 'Error al guardar el pago.';
+      setError(backendMessage);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeletePayment = async (payment) => {
+    const confirmar = window.confirm('¿Estás seguro de eliminar este pago?');
+    if (!confirmar) return;
+
+    try {
+      setLoading(true);
+      setError(null);
+      const id = payment.idPago || payment.id;
+      await paymentAPI.delete(id);
+      const updated = payments.filter(
+        (p) => (p.idPago || p.id) !== id,
+      );
+      setPayments(updated);
+      calculateStats(updated);
+    } catch (err) {
+      const backendMessage =
+        err?.response?.data?.message || 'Error al eliminar el pago.';
+      setError(backendMessage);
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Componente de estadísticas
@@ -279,6 +352,11 @@ const Payments = () => {
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={es}>
       <Box>
+        {error && (
+          <Typography color="error" sx={{ mb: 2 }}>
+            {error}
+          </Typography>
+        )}
         {/* Header */}
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
           <Box>
@@ -480,7 +558,11 @@ const Payments = () => {
                             </IconButton>
                           </Tooltip>
                           <Tooltip title="Eliminar">
-                            <IconButton size="small" color="error">
+                                <IconButton
+                                  size="small"
+                                  color="error"
+                                  onClick={() => handleDeletePayment(payment)}
+                                >
                               <DeleteIcon fontSize="small" />
                             </IconButton>
                           </Tooltip>
@@ -575,7 +657,7 @@ const Payments = () => {
                       >
                         <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                           <Typography variant="subtitle2">
-                            {payment.resident} - Apt. {payment.apartment}
+                            {payment.resident || 'Sin residente'} - Factura {payment.idFactura ?? '-'}
                           </Typography>
                           <Typography variant="subtitle2" sx={{ fontWeight: 'bold', color: '#d32f2f' }}>
                             ${payment.amount.toLocaleString()}
@@ -607,30 +689,10 @@ const Payments = () => {
               <Grid item xs={12} md={6}>
                 <TextField
                   fullWidth
-                  label="Residente"
-                  defaultValue={selectedPayment?.resident || ''}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <PersonIcon />
-                      </InputAdornment>
-                    ),
-                  }}
-                />
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <TextField
-                  fullWidth
-                  label="Apartamento"
-                  defaultValue={selectedPayment?.apartment || ''}
-                />
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <TextField
-                  fullWidth
                   label="Monto"
                   type="number"
-                  defaultValue={selectedPayment?.amount || 1500}
+                  value={formValues.monto}
+                  onChange={handleChangeForm('monto')}
                   InputProps={{
                     startAdornment: (
                       <InputAdornment position="start">
@@ -642,8 +704,9 @@ const Payments = () => {
               </Grid>
               <Grid item xs={12} md={6}>
                 <DatePicker
-                  label="Fecha de Vencimiento"
-                  defaultValue={selectedPayment?.dueDate ? new Date(selectedPayment.dueDate) : new Date()}
+                  label="Fecha de Pago"
+                  value={formValues.fechaPago ? new Date(formValues.fechaPago) : null}
+                  onChange={handleChangeFechaPago}
                   slotProps={{ textField: { fullWidth: true } }}
                 />
               </Grid>
@@ -652,11 +715,12 @@ const Payments = () => {
                   <InputLabel>Estado</InputLabel>
                   <Select
                     label="Estado"
-                    defaultValue={selectedPayment?.status || 'pending'}
+                    value={formValues.estadoPago}
+                    onChange={handleChangeForm('estadoPago')}
                   >
-                    <MenuItem value="pending">Pendiente</MenuItem>
-                    <MenuItem value="paid">Pagado</MenuItem>
-                    <MenuItem value="overdue">Vencido</MenuItem>
+                    <MenuItem value="Pendiente">Pendiente</MenuItem>
+                    <MenuItem value="Procesado">Procesado</MenuItem>
+                    <MenuItem value="Rechazado">Rechazado</MenuItem>
                   </Select>
                 </FormControl>
               </Grid>
@@ -665,36 +729,29 @@ const Payments = () => {
                   <InputLabel>Método de Pago</InputLabel>
                   <Select
                     label="Método de Pago"
-                    defaultValue={selectedPayment?.method || ''}
+                    value={formValues.metodoPago}
+                    onChange={handleChangeForm('metodoPago')}
                   >
                     <MenuItem value="Efectivo">Efectivo</MenuItem>
                     <MenuItem value="Transferencia">Transferencia</MenuItem>
                     <MenuItem value="Tarjeta">Tarjeta</MenuItem>
-                    <MenuItem value="Cheque">Cheque</MenuItem>
                   </Select>
                 </FormControl>
               </Grid>
               <Grid item xs={12}>
                 <TextField
                   fullWidth
-                  label="Número de Recibo"
-                  defaultValue={selectedPayment?.receipt || ''}
-                />
-              </Grid>
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  label="Notas"
-                  multiline
-                  rows={3}
-                  defaultValue={selectedPayment?.notes || ''}
+                  label="ID Factura"
+                  type="number"
+                  value={formValues.idFactura}
+                  onChange={handleChangeForm('idFactura')}
                 />
               </Grid>
             </Grid>
           </DialogContent>
           <DialogActions>
             <Button onClick={handleCloseDialog}>Cancelar</Button>
-            <Button variant="contained" onClick={handleCloseDialog}>
+            <Button variant="contained" onClick={handleSavePayment}>
               {selectedPayment ? 'Actualizar' : 'Registrar'}
             </Button>
           </DialogActions>
