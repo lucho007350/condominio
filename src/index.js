@@ -35,7 +35,8 @@ app.post("/token", (req, res) => {
     const token = jwt.sign(
         {
             name,
-            exp: Date.now() + 120 * 1000 // Token válido por 2 minutos
+            // Token válido por 30 minutos (en milisegundos)
+            exp: Date.now() + 30 * 60 * 1000
         },
         secret
     );
