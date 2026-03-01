@@ -17,6 +17,7 @@ import {
   Block as OccupiedIcon,
   SquareFoot as AreaIcon,
   AttachMoney as MoneyIcon,
+  Build as MaintenanceIcon,
 } from "@mui/icons-material";
 
 import { unidadesAPI } from "../services/api";
@@ -48,21 +49,24 @@ const UnidadesHabitacionales = () => {
         ? response.data
         : response.data?.unidades || [];
 
-      const normalizadas = data.map((u) => ({
-        ...u,
-        id: u.idUnidad || u.id || u.id_unidad,
-        type: u.tipoUnidad,
-        number: u.numero,
-        area: u.area,
-        fee: u.valorCuota,
-        // Mapeo de estado backend -> frontend
-        status:
-          u.estado === "Disponible"
-            ? "available"
-            : u.estado === "Ocupado"
-            ? "occupied"
-            : "maintenance",
-      }));
+      const normalizadas = data.map((u) => {
+        const rawEstado = (u.estado || "").toString().toLowerCase();
+        let status;
+        if (rawEstado === "disponible") status = "available";
+        else if (rawEstado === "ocupado" || rawEstado === "ocupada") status = "occupied";
+        else if (rawEstado === "mantenimiento" || rawEstado === "en mantenimiento") status = "maintenance";
+        else status = "maintenance";
+
+        return {
+          ...u,
+          id: u.idUnidad || u.id || u.id_unidad,
+          type: u.tipoUnidad,
+          number: u.numero,
+          area: u.area,
+          fee: u.valorCuota,
+          status,
+        };
+      });
 
       setUnits(normalizadas);
     } catch (err) {
@@ -84,15 +88,20 @@ const UnidadesHabitacionales = () => {
   const totalUnits = units.length;
   const availableUnits = units.filter(u => u.status === "available").length;
   const occupiedUnits = units.filter(u => u.status === "occupied").length;
+  const maintenanceUnits = units.filter(u => u.status === "maintenance").length;
   const avgFee =
     units.length > 0
       ? Math.round(units.reduce((sum, u) => sum + u.fee, 0) / units.length)
       : 0;
 
   const filteredUnits = units.filter(u => {
+    const searchTerm = search.toLowerCase();
+    const numStr = (u.number ?? "").toString().toLowerCase();
+    const typeStr = (u.type ?? "").toString().toLowerCase();
+
     const matchesSearch =
-      u.number.toLowerCase().includes(search.toLowerCase()) ||
-      u.type.toLowerCase().includes(search.toLowerCase());
+      numStr.includes(searchTerm) ||
+      typeStr.includes(searchTerm);
 
     const matchesStatus =
       filterStatus === "all" || u.status === filterStatus;
@@ -100,15 +109,38 @@ const UnidadesHabitacionales = () => {
     return matchesSearch && matchesStatus;
   });
 
-  const getStatusChip = (status) => (
-    <Chip
-      icon={status === "available" ? <AvailableIcon /> : <OccupiedIcon />}
-      label={status === "available" ? "Disponible" : "Ocupado"}
-      color={status === "available" ? "success" : "warning"}
-      size="small"
-      variant="outlined"
-    />
-  );
+  const getStatusChip = (status) => {
+    if (status === "available") {
+      return (
+        <Chip
+          icon={<AvailableIcon />}
+          label="Disponible"
+          color="success"
+          size="small"
+          variant="outlined"
+        />
+      );
+    }
+    if (status === "occupied") {
+      return (
+        <Chip
+          icon={<OccupiedIcon />}
+          label="Ocupado"
+          color="warning"
+          size="small"
+          variant="outlined"
+        />
+      );
+    }
+    return (
+      <Chip
+        label="Mantenimiento"
+        color="default"
+        size="small"
+        variant="outlined"
+      />
+    );
+  };
 
   const StatCard = ({ title, value, icon, color }) => (
     <Card sx={{ boxShadow: 2 }}>
@@ -185,6 +217,9 @@ const UnidadesHabitacionales = () => {
           <StatCard title="Ocupadas" value={occupiedUnits} icon={<OccupiedIcon />} color="#FF9800" />
         </Grid>
         <Grid item xs={12} md={3}>
+          <StatCard title="En mantenimiento" value={maintenanceUnits} icon={<MaintenanceIcon />} color="#9E9E9E" />
+        </Grid>
+        <Grid item xs={12} md={3}>
           <StatCard title="Cuota Promedio" value={`$${avgFee}`} icon={<MoneyIcon />} color="#9C27B0" />
         </Grid>
       </Grid>
@@ -218,6 +253,7 @@ const UnidadesHabitacionales = () => {
                 <MenuItem value="all">Todos</MenuItem>
                 <MenuItem value="available">Disponible</MenuItem>
                 <MenuItem value="occupied">Ocupado</MenuItem>
+                <MenuItem value="maintenance">Mantenimiento</MenuItem>
               </Select>
             </FormControl>
           </Grid>
