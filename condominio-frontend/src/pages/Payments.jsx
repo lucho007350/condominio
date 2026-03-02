@@ -52,7 +52,7 @@ import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns'; //adaptador de fechas
 import { format } from 'date-fns'; //funcion para formatear fechas
 import { es } from 'date-fns/locale'; //localizacion en español
-import { paymentAPI } from '../services/api';
+import { paymentAPI, facturasAPI } from '../services/api';
 
 const Payments = () => {
   // Estados
@@ -110,12 +110,29 @@ const Payments = () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await paymentAPI.getAll();
-      const data = Array.isArray(response.data)
-        ? response.data
-        : response.data?.pagos || [];
 
-      const normalizados = data.map((p) => {
+      const [pagosRes, facturasRes] = await Promise.all([
+        paymentAPI.getAll(),
+        facturasAPI.getAll(),
+      ]);
+
+      const pagosData = Array.isArray(pagosRes.data)
+        ? pagosRes.data
+        : pagosRes.data?.pagos || [];
+
+      const facturasData = Array.isArray(facturasRes.data)
+        ? facturasRes.data
+        : facturasRes.data?.facturas || facturasRes.data || [];
+
+      const unidadPorFactura = {};
+      facturasData.forEach((f) => {
+        const numeroUnidad = f.numeroUnidad ?? f.numero ?? null;
+        if (f.idFactura && numeroUnidad != null) {
+          unidadPorFactura[f.idFactura] = numeroUnidad;
+        }
+      });
+
+      const normalizados = pagosData.map((p) => {
         const estado = p.estadoPago || p.estado || 'Pendiente';
         const status =
           estado === 'Procesado'
@@ -123,6 +140,9 @@ const Payments = () => {
             : estado === 'Pendiente'
             ? 'pending'
             : 'overdue';
+
+        const apartmentNumber =
+          unidadPorFactura[p.idFactura] ?? unidadPorFactura[p.idFactura ?? p.id] ?? null;
 
         return {
           ...p,
@@ -132,6 +152,7 @@ const Payments = () => {
           dueDate: p.fechaPago,
           paymentDate: p.fechaPago,
           method: p.metodoPago,
+          apartment: apartmentNumber,
         };
       });
 
@@ -152,10 +173,11 @@ const Payments = () => {
 
   // Filtrar pagos
   const filteredPayments = payments.filter(payment => {
+    const term = searchTerm.toLowerCase();
     const matchesSearch = 
-      (payment.resident || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-      String(payment.apartment || '').includes(searchTerm) ||
-      (payment.receipt || '').toLowerCase().includes(searchTerm.toLowerCase());
+      String(payment.apartment || '').toLowerCase().includes(term) ||
+      (payment.receipt || '').toLowerCase().includes(term) ||
+      String(payment.idFactura || '').includes(searchTerm);
     
     const matchesStatus = 
       filterStatus === 'all' || 
@@ -423,7 +445,7 @@ const Payments = () => {
             <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
-                placeholder="Buscar por residente, apartamento o recibo..."
+                placeholder="Buscar por apartamento (unidad), factura o recibo..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 InputProps={{
@@ -484,7 +506,6 @@ const Payments = () => {
             <Table>
               <TableHead>
                 <TableRow>
-                  <TableCell>Residente</TableCell>
                   <TableCell>Apartamento</TableCell>
                   <TableCell>Monto</TableCell>
                   <TableCell>Fecha Vencimiento</TableCell>
@@ -501,13 +522,10 @@ const Payments = () => {
                   .map((payment) => (
                     <TableRow key={payment.id} hover>
                       <TableCell>
-                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                          <PersonIcon sx={{ mr: 1, color: 'text.secondary' }} />
-                          {payment.resident}
-                        </Box>
-                      </TableCell>
-                      <TableCell>
-                        <Chip label={payment.apartment} size="small" />
+                        <Chip
+                          label={payment.apartment != null ? `Unidad ${payment.apartment}` : 'Sin unidad'}
+                          size="small"
+                        />
                       </TableCell>
                       <TableCell>
                         <Typography sx={{ fontWeight: 'bold' }}>

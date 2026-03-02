@@ -7,7 +7,7 @@ const api = axios.create({
   
   baseURL: API_BASE_URL,
   headers: {
-    'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1lIjoiTHVpcyBGZWxpcGUiLCJleHAiOjE3NzI0MDk2NDQ4NDcsImlhdCI6MTc3MjQwNzg0NH0.PADBA17VHGQmki5qnw8VG_IqpIAZz-mIPaRws3iDa6o',
+    'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1lIjoiTHVpcyBGZWxpcGUiLCJleHAiOjE3NzI0MTE1NzExOTksImlhdCI6MTc3MjQwOTc3MX0.xHxFJZ8NCkexYiz__3AiOGMdqevQ0ZILLn0K5hZpL6s',
     'Content-Type': 'application/json',
   },
 });
