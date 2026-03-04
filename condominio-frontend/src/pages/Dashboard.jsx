@@ -47,6 +47,8 @@ import {
   Build as BuildIcon,
   Event as EventIcon,
 } from '@mui/icons-material';
+// Importar las APIs de residentes y comunicaciones
+import { residentAPI, communicationAPI, empleadosAPI, facturasAPI, ingresosAPI, egresosAPI, paymentAPI, residentesAPI, documentosAPI, unidadesAPI } from '../services/api.jsx';
 
 // Colores personalizados
 const colors = {
@@ -332,6 +334,81 @@ const Dashboard = () => {
 
   useEffect(() => {
     fetchDashboardData();
+
+
+    communicationAPI.getAll()
+      .then(response => {
+        console.log('Comunicados obtenidos:', response.data);
+      })
+      .catch(error => {
+        console.error('Error al obtener comunicados:', error);
+      });
+
+      empleadosAPI.getAll()
+        .then(response => {
+          console.log('Empleados obtenidos:', response.data);
+        })
+        .catch(error => {
+          console.error('Error al obtener empleados:', error);
+        });
+
+        facturasAPI.getAll()
+        .then(response => {
+          console.log('Facturas obtenidas:', response.data);
+        })
+        .catch(error => {
+          console.error('Error al obtener facturas:', error);
+        });
+
+        ingresosAPI.getAll()
+        .then(response => {
+          console.log('Ingresos obtenidos:', response.data);
+        })
+        .catch(error => {
+          console.error('Error al obtener ingresos:', error);
+        });
+
+        egresosAPI.getAll()
+        .then(response => {
+          console.log('Egresos obtenidos:', response.data);
+        })
+        .catch(error => {
+          console.error('Error al obtener egresos:', error);
+        });
+
+          paymentAPI.getAll()
+        .then(response => {
+          console.log('Pagos obtenidos:', response.data);
+        })
+        .catch(error => {
+          console.error('Error al obtener pagos:', error);
+        });
+
+        residentesAPI.getAll()
+        .then(response => {
+          console.log('Residentes obtenidos:', response.data);
+        })
+        .catch(error => {
+          console.error('Error al obtener residentes:', error);
+        });
+
+        documentosAPI.getAll()
+        .then(response => {
+          console.log('Documentos obtenidos:', response.data);
+        })
+        .catch(error => {
+          console.error('Error al obtener documentos:', error);
+        });
+
+        unidadesAPI.getAll()
+        .then(response => {
+          console.log('Unidades obtenidas:', response.data);
+        })
+        .catch(error => {
+          console.error('Error al obtener unidades:', error);
+        });
+
+
   }, []);
 
   const fetchDashboardData = () => {

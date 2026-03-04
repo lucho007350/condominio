@@ -50,6 +50,7 @@ import {
   NotificationsActive as NotificationsIcon,
   CheckCircle as CheckCircleIcon,
 } from '@mui/icons-material';
+import { communicationAPI } from '../services/api.jsx';
 
 // Colores personalizados
 const colors = {
@@ -70,7 +71,7 @@ const colors = {
 };
 
 // Componentes estilizados
-const GlassCard = styled(Card)(({ theme }) => ({
+const GlassCard = styled(Card)(() => ({
   background: `linear-gradient(135deg, ${alpha(colors.surface, 0.95)} 0%, ${alpha(colors.surface, 0.98)} 100%)`,
   backdropFilter: 'blur(10px)',
   border: `1px solid ${alpha(colors.border, 0.5)}`,
@@ -99,10 +100,47 @@ const GradientButton = styled(Button)(({ bgcolor = colors.primary }) => ({
   },
 }));
 
+const mapBackendTipoToUi = (tipo) => {
+  switch (tipo) {
+    case 'Emergencia':
+      return 'Urgente';
+    case 'Evento':
+      return 'Evento';
+    case 'Aviso':
+    case 'Reglamento':
+    case 'Otro':
+    default:
+      return 'General';
+  }
+};
+
+const mapUiTipoToBackend = (tipo) => {
+  switch (tipo) {
+    case 'Urgente':
+      return 'Emergencia';
+    case 'Evento':
+      return 'Evento';
+    case 'General':
+    default:
+      return 'Aviso';
+  }
+};
+
+const normalizeComunicado = (c) => ({
+  idComunicado: c?.idComunicado ?? c?.id ?? c?.IdComunicado,
+  titulo: c?.titulo ?? '',
+  contenido: c?.contenido ?? '',
+  fechaPublicacion: c?.fechaPublicacion ?? new Date().toISOString(),
+  tipo: mapBackendTipoToUi(c?.tipo),
+  destinatarios: 'todos',
+  autor: 'Administración',
+  leido: false,
+});
+
 const Comunicacion = () => {
-  const [user, setUser] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [comunicados, setComunicados] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [openDialog, setOpenDialog] = useState(false);
   const [tabValue, setTabValue] = useState(0);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
@@ -115,90 +153,39 @@ const Comunicacion = () => {
     destinatarios: 'todos',
   });
 
-  // Mock de comunicados
-  const mockComunicados = [
-    {
-      idComunicado: 1,
-      titulo: 'Corte de agua programado',
-      contenido: 'El día viernes habrá suspensión del servicio de agua desde las 8:00 AM hasta las 2:00 PM.',
-      fechaPublicacion: '2025-01-15',
-      tipo: 'Urgente',
-      destinatarios: 'todos',
-      autor: 'Administración',
-      leido: false,
-    },
-    {
-      idComunicado: 2,
-      titulo: 'Reunión general de copropietarios',
-      contenido: 'Se convoca a reunión general el próximo sábado en el salón comunal a las 6:00 PM.',
-      fechaPublicacion: '2025-01-10',
-      tipo: 'Evento',
-      destinatarios: 'todos',
-      autor: 'Administración',
-      leido: true,
-    },
-    {
-      idComunicado: 3,
-      titulo: 'Horario de administración',
-      contenido: 'La oficina de administración atenderá de lunes a viernes de 8:00 AM a 5:00 PM.',
-      fechaPublicacion: '2025-01-05',
-      tipo: 'General',
-      destinatarios: 'todos',
-      autor: 'Administración',
-      leido: false,
-    },
-    {
-      idComunicado: 4,
-      titulo: 'Mantenimiento de ascensores',
-      contenido: 'Se realizará mantenimiento preventivo de ascensores el día martes.',
-      fechaPublicacion: '2025-01-18',
-      tipo: 'General',
-      destinatarios: 'todos',
-      autor: 'Administración',
-      leido: false,
-    },
-  ];
-
-  // Comunicados personales para el usuario
-  const mockComunicadosPersonales = [
-    {
-      idComunicado: 5,
-      titulo: 'Recordatorio: Pago de gastos comunes',
-      contenido: 'Estimado residente, recuerde que el pago de gastos comunes vence el 10 de febrero.',
-      fechaPublicacion: '2025-01-20',
-      tipo: 'General',
-      destinatarios: 'personal',
-      autor: 'Administración',
-      leido: false,
-    },
-    {
-      idComunicado: 6,
-      titulo: 'Bienvenido a la comunidad',
-      contenido: 'Gracias por ser parte de nuestra comunidad. Lo invitamos a participar en las actividades.',
-      fechaPublicacion: '2025-01-01',
-      tipo: 'General',
-      destinatarios: 'personal',
-      autor: 'Administración',
-      leido: true,
-    },
-  ];
-
   useEffect(() => {
     // Obtener usuario del storage
     const userData = JSON.parse(localStorage.getItem('user') || sessionStorage.getItem('user') || '{}');
-    setUser(userData);
     setIsAdmin(userData.role === 'admin');
-    
-    // Cargar comunicados según el rol
-    if (userData.role === 'admin') {
-      setComunicados(mockComunicados);
-    } else {
-      // Para usuario regular: combinar comunicados generales y personales
-      const todosComunicados = [...mockComunicados, ...mockComunicadosPersonales];
-      // Ordenar por fecha (más reciente primero)
-      todosComunicados.sort((a, b) => new Date(b.fechaPublicacion) - new Date(a.fechaPublicacion));
-      setComunicados(todosComunicados);
-    }
+
+    let cancelled = false;
+    const load = async () => {
+      setLoading(true);
+      try {
+        const response = await communicationAPI.getAll();
+        const rows = Array.isArray(response.data) ? response.data : [];
+        const normalized = rows.map(normalizeComunicado);
+        normalized.sort((a, b) => new Date(b.fechaPublicacion) - new Date(a.fechaPublicacion));
+        if (!cancelled) setComunicados(normalized);
+      } catch (error) {
+        const msg =
+          error?.response?.data?.error ||
+          error?.response?.data?.message ||
+          error?.message ||
+          'Error al obtener comunicados';
+        if (!cancelled) {
+          setComunicados([]);
+          setSnackbar({ open: true, message: msg, severity: 'error' });
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+
+    load();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const tipoConfig = (tipo) => {
@@ -246,7 +233,7 @@ const Comunicacion = () => {
     setNuevoComunicado(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleEnviarComunicado = () => {
+  const handleEnviarComunicado = async () => {
     // Validar campos
     if (!nuevoComunicado.titulo || !nuevoComunicado.contenido) {
       setSnackbar({
@@ -257,25 +244,33 @@ const Comunicacion = () => {
       return;
     }
 
-    // Crear nuevo comunicado
-    const nuevo = {
-      idComunicado: comunicados.length + 1,
-      ...nuevoComunicado,
-      fechaPublicacion: new Date().toISOString().split('T')[0],
-      autor: 'Administración',
-      leido: false,
-    };
+    try {
+      const payload = {
+        titulo: nuevoComunicado.titulo,
+        contenido: nuevoComunicado.contenido,
+        fechaPublicacion: new Date().toISOString(),
+        tipo: mapUiTipoToBackend(nuevoComunicado.tipo),
+      };
 
-    // Agregar a la lista
-    setComunicados([nuevo, ...comunicados]);
-    
-    // Cerrar diálogo y mostrar mensaje
-    handleCloseDialog();
-    setSnackbar({
-      open: true,
-      message: 'Comunicado enviado exitosamente',
-      severity: 'success'
-    });
+      const response = await communicationAPI.create(payload);
+      const nuevo = normalizeComunicado(response.data);
+
+      setComunicados((prev) => [nuevo, ...prev]);
+
+      handleCloseDialog();
+      setSnackbar({
+        open: true,
+        message: 'Comunicado enviado exitosamente',
+        severity: 'success'
+      });
+    } catch (error) {
+      const msg =
+        error?.response?.data?.error ||
+        error?.response?.data?.message ||
+        error?.message ||
+        'Error al enviar comunicado';
+      setSnackbar({ open: true, message: msg, severity: 'error' });
+    }
   };
 
   const handleMarcarLeido = (id) => {
@@ -408,14 +403,35 @@ const Comunicacion = () => {
 
         {/* Feed de comunicados */}
         <Grid container spacing={3}>
-          {comunicadosFiltrados.map((comunicado, index) => {
-            const config = tipoConfig(comunicado.tipo);
-            
-            return (
-              <Grid item xs={12} md={6} key={comunicado.idComunicado}>
-                <Zoom in timeout={300} style={{ transitionDelay: `${index * 50}ms` }}>
-                  <GlassCard>
-                    <CardContent sx={{ p: 3 }}>
+          {loading ? (
+            <Grid item xs={12}>
+              <Paper
+                elevation={0}
+                sx={{
+                  p: 6,
+                  borderRadius: 4,
+                  textAlign: 'center',
+                  bgcolor: colors.surface,
+                  border: `1px solid ${colors.border}`,
+                }}
+              >
+                <Typography variant="h6" sx={{ color: colors.text.secondary, mb: 1 }}>
+                  Cargando comunicados…
+                </Typography>
+                <Typography variant="body2" sx={{ color: colors.text.disabled }}>
+                  Obteniendo datos desde la base de datos
+                </Typography>
+              </Paper>
+            </Grid>
+          ) : (
+            comunicadosFiltrados.map((comunicado, index) => {
+              const config = tipoConfig(comunicado.tipo);
+
+              return (
+                <Grid item xs={12} md={6} key={comunicado.idComunicado}>
+                  <Zoom in timeout={300} style={{ transitionDelay: `${index * 50}ms` }}>
+                    <GlassCard>
+                      <CardContent sx={{ p: 3 }}>
                       {/* Header del comunicado */}
                       <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2, mb: 2 }}>
                         <Avatar
@@ -539,12 +555,13 @@ const Comunicacion = () => {
                   </GlassCard>
                 </Zoom>
               </Grid>
-            );
-          })}
+              );
+            })
+          )}
         </Grid>
 
         {/* Mensaje cuando no hay comunicados */}
-        {comunicadosFiltrados.length === 0 && (
+        {!loading && comunicadosFiltrados.length === 0 && (
           <Paper
             elevation={0}
             sx={{
