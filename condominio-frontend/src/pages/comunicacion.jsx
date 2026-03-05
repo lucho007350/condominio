@@ -145,13 +145,17 @@ const Comunicacion = () => {
   const [tabValue, setTabValue] = useState(0);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
   
-  // Estado para nuevo comunicado
+  // Estado para nuevo comunicado / edición
   const [nuevoComunicado, setNuevoComunicado] = useState({
     titulo: '',
     contenido: '',
     tipo: 'General',
     destinatarios: 'todos',
   });
+  const [editingComunicado, setEditingComunicado] = useState(null);
+  const [openDeleteConfirm, setOpenDeleteConfirm] = useState(false);
+  const [comunicadoToDelete, setComunicadoToDelete] = useState(null);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     // Obtener usuario del storage
@@ -220,6 +224,7 @@ const Comunicacion = () => {
 
   const handleCloseDialog = () => {
     setOpenDialog(false);
+    setEditingComunicado(null);
     setNuevoComunicado({
       titulo: '',
       contenido: '',
@@ -228,13 +233,85 @@ const Comunicacion = () => {
     });
   };
 
+  const handleOpenEdit = (comunicado) => {
+    setEditingComunicado(comunicado);
+    setNuevoComunicado({
+      titulo: comunicado.titulo,
+      contenido: comunicado.contenido,
+      tipo: comunicado.tipo,
+      destinatarios: comunicado.destinatarios || 'todos',
+    });
+    setOpenDialog(true);
+  };
+
+  const handleOpenDeleteConfirm = (comunicado) => {
+    setComunicadoToDelete(comunicado);
+    setOpenDeleteConfirm(true);
+  };
+
+  const handleCloseDeleteConfirm = () => {
+    setOpenDeleteConfirm(false);
+    setComunicadoToDelete(null);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!comunicadoToDelete?.idComunicado) return;
+    setSaving(true);
+    try {
+      await communicationAPI.delete(comunicadoToDelete.idComunicado);
+      setComunicados((prev) => prev.filter((c) => c.idComunicado !== comunicadoToDelete.idComunicado));
+      handleCloseDeleteConfirm();
+      setSnackbar({ open: true, message: 'Comunicado eliminado correctamente', severity: 'success' });
+    } catch (error) {
+      const msg =
+        error?.response?.data?.message ||
+        error?.response?.data?.error ||
+        error?.message ||
+        'Error al eliminar el comunicado';
+      setSnackbar({ open: true, message: msg, severity: 'error' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleGuardarEdicion = async () => {
+    if (!editingComunicado?.idComunicado || !nuevoComunicado.titulo || !nuevoComunicado.contenido) {
+      setSnackbar({ open: true, message: 'Por favor complete todos los campos', severity: 'error' });
+      return;
+    }
+    setSaving(true);
+    try {
+      const payload = {
+        titulo: nuevoComunicado.titulo,
+        contenido: nuevoComunicado.contenido,
+        fechaPublicacion: editingComunicado.fechaPublicacion || new Date().toISOString(),
+        tipo: mapUiTipoToBackend(nuevoComunicado.tipo),
+      };
+      const response = await communicationAPI.update(editingComunicado.idComunicado, payload);
+      const updated = normalizeComunicado(response.data);
+      setComunicados((prev) =>
+        prev.map((c) => (c.idComunicado === updated.idComunicado ? updated : c))
+      );
+      handleCloseDialog();
+      setSnackbar({ open: true, message: 'Comunicado actualizado correctamente', severity: 'success' });
+    } catch (error) {
+      const msg =
+        error?.response?.data?.message ||
+        error?.response?.data?.error ||
+        error?.message ||
+        'Error al actualizar el comunicado';
+      setSnackbar({ open: true, message: msg, severity: 'error' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setNuevoComunicado(prev => ({ ...prev, [name]: value }));
   };
 
   const handleEnviarComunicado = async () => {
-    // Validar campos
     if (!nuevoComunicado.titulo || !nuevoComunicado.contenido) {
       setSnackbar({
         open: true,
@@ -244,6 +321,7 @@ const Comunicacion = () => {
       return;
     }
 
+    setSaving(true);
     try {
       const payload = {
         titulo: nuevoComunicado.titulo,
@@ -253,7 +331,8 @@ const Comunicacion = () => {
       };
 
       const response = await communicationAPI.create(payload);
-      const nuevo = normalizeComunicado(response.data);
+      const data = response?.data?.data ?? response?.data;
+      const nuevo = normalizeComunicado(data);
 
       setComunicados((prev) => [nuevo, ...prev]);
 
@@ -270,6 +349,8 @@ const Comunicacion = () => {
         error?.message ||
         'Error al enviar comunicado';
       setSnackbar({ open: true, message: msg, severity: 'error' });
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -524,12 +605,20 @@ const Comunicacion = () => {
                         {isAdmin && (
                           <>
                             <Tooltip title="Editar">
-                              <IconButton size="small" sx={{ color: colors.info }}>
+                              <IconButton
+                                size="small"
+                                sx={{ color: colors.info }}
+                                onClick={() => handleOpenEdit(comunicado)}
+                              >
                                 <EditIcon fontSize="small" />
                               </IconButton>
                             </Tooltip>
                             <Tooltip title="Eliminar">
-                              <IconButton size="small" sx={{ color: colors.error }}>
+                              <IconButton
+                                size="small"
+                                sx={{ color: colors.error }}
+                                onClick={() => handleOpenDeleteConfirm(comunicado)}
+                              >
                                 <DeleteIcon fontSize="small" />
                               </IconButton>
                             </Tooltip>
@@ -608,8 +697,10 @@ const Comunicacion = () => {
             alignItems: 'center',
           }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <AddIcon />
-              <Typography variant="h6">Nuevo Comunicado</Typography>
+              {editingComunicado ? <EditIcon /> : <AddIcon />}
+              <Typography variant="h6">
+                {editingComunicado ? 'Editar Comunicado' : 'Nuevo Comunicado'}
+              </Typography>
             </Box>
             <IconButton onClick={handleCloseDialog} sx={{ color: 'white' }}>
               <CloseIcon />
@@ -687,6 +778,7 @@ const Comunicacion = () => {
             <Button
               onClick={handleCloseDialog}
               variant="outlined"
+              disabled={saving}
               sx={{
                 borderColor: colors.border,
                 color: colors.text.primary,
@@ -697,12 +789,44 @@ const Comunicacion = () => {
               Cancelar
             </Button>
             <GradientButton
-              startIcon={<SendIcon />}
-              onClick={handleEnviarComunicado}
+              startIcon={editingComunicado ? <EditIcon /> : <SendIcon />}
+              onClick={editingComunicado ? handleGuardarEdicion : handleEnviarComunicado}
+              disabled={saving}
               sx={{ px: 4 }}
             >
-              Publicar
+              {editingComunicado ? 'Guardar cambios' : 'Publicar'}
             </GradientButton>
+          </DialogActions>
+        </Dialog>
+
+        {/* Diálogo de confirmación para eliminar */}
+        <Dialog
+          open={openDeleteConfirm}
+          onClose={handleCloseDeleteConfirm}
+          maxWidth="xs"
+          fullWidth
+          PaperProps={{ sx: { borderRadius: 3 } }}
+        >
+          <DialogTitle sx={{ fontWeight: 600 }}>
+            ¿Eliminar comunicado?
+          </DialogTitle>
+          <DialogContent>
+            <Typography variant="body2" color="text.secondary">
+              Se eliminará "{comunicadoToDelete?.titulo}". Esta acción no se puede deshacer.
+            </Typography>
+          </DialogContent>
+          <DialogActions sx={{ p: 2 }}>
+            <Button onClick={handleCloseDeleteConfirm} disabled={saving}>
+              Cancelar
+            </Button>
+            <Button
+              variant="contained"
+              color="error"
+              onClick={handleConfirmDelete}
+              disabled={saving}
+            >
+              {saving ? 'Eliminando…' : 'Eliminar'}
+            </Button>
           </DialogActions>
         </Dialog>
 

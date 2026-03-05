@@ -2,6 +2,20 @@ const connection = require("../libs/mysql"); // Conexión a la base de datos
 const Comunicacion = require("../models/Comunications.js");
 const { models } = require("../libs/sequelize.js");
 
+/** Convierte fecha ISO o Date a formato MySQL DATETIME (YYYY-MM-DD HH:MM:SS) */
+function toMySQLDateTime(value) {
+    if (value == null) return null;
+    const d = typeof value === 'string' ? new Date(value) : value;
+    if (isNaN(d.getTime())) return null;
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    const h = String(d.getHours()).padStart(2, '0');
+    const min = String(d.getMinutes()).padStart(2, '0');
+    const s = String(d.getSeconds()).padStart(2, '0');
+    return `${y}-${m}-${day} ${h}:${min}:${s}`;
+}
+
 class ComunicacionRepository {
 
     #comunicaciones = []; // arreglo local de comunicaciones
@@ -42,7 +56,7 @@ class ComunicacionRepository {
         const values = [
             comunicacion.getTitulo(),
             comunicacion.getContenido(),
-            comunicacion.getFechaPublicacion(),
+            toMySQLDateTime(comunicacion.getFechaPublicacion()),
             comunicacion.getTipo()
         ];
 
@@ -83,7 +97,7 @@ class ComunicacionRepository {
         const values = [
             comunicacion.getTitulo(),
             comunicacion.getContenido(),
-            comunicacion.getFechaPublicacion(),
+            toMySQLDateTime(comunicacion.getFechaPublicacion()),
             comunicacion.getTipo(),
             comunicacion.getIdComunicado()
         ];
