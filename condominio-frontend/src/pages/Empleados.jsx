@@ -25,6 +25,9 @@ import {
   Zoom,
   Fade,
   Divider,
+  Alert,
+  Snackbar,
+  CircularProgress,
   alpha,
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
@@ -39,14 +42,24 @@ import {
   Work as WorkIcon,
   CalendarMonth as CalendarIcon,
   Person as PersonIcon,
-  Email as EmailIcon,
-  AccessTime as AccessTimeIcon,
   CheckCircle as CheckCircleIcon,
   Close as CloseIcon,
   Save as SaveIcon,
   Cancel as CancelIcon,
   Group as GroupIcon,
+  MonetizationOn as MoneyIcon,
 } from '@mui/icons-material';
+import { empleadosAPI } from '../services/api.jsx';
+
+const emptyForm = {
+  nombre: '',
+  apellido: '',
+  cargo: '',
+  documento: '',
+  telefono: '',
+  fechaContratacion: '',
+  salario: '',
+};
 
 // Colores personalizados
 const colors = {
@@ -117,95 +130,79 @@ const StyledFab = styled(Fab)(({ theme }) => ({
 const Empleados = () => {
   const [empleados, setEmpleados] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [anchorEl, setAnchorEl] = useState(null);
   const [selectedEmpleado, setSelectedEmpleado] = useState(null);
   const [openDialog, setOpenDialog] = useState(false);
+  const [form, setForm] = useState(emptyForm);
+  const [saving, setSaving] = useState(false);
+  const [openDeleteConfirm, setOpenDeleteConfirm] = useState(false);
+  const [empleadoToDelete, setEmpleadoToDelete] = useState(null);
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
   const [hoveredCard, setHoveredCard] = useState(null);
   const [stats, setStats] = useState({
     total: 0,
     cargos: [],
   });
 
-  const mockEmpleados = [
-    {
-      idEmpleado: 1,
-      nombre: 'Carlos',
-      apellido: 'Ramírez',
-      cargo: 'Administrador',
-      documento: '1023456789',
-      telefono: '3001234567',
-      email: 'carlos.ramirez@condominio.com',
-      fechaContratacion: '2023-01-15',
-      estado: 'Activo',
-      horario: 'Lun-Vie 8:00-17:00',
-    },
-    {
-      idEmpleado: 2,
-      nombre: 'Laura',
-      apellido: 'Gómez',
-      cargo: 'Contadora',
-      documento: '1019876543',
-      telefono: '3104567890',
-      email: 'laura.gomez@condominio.com',
-      fechaContratacion: '2022-09-10',
-      estado: 'Activo',
-      horario: 'Lun-Vie 9:00-18:00',
-    },
-    {
-      idEmpleado: 3,
-      nombre: 'Miguel',
-      apellido: 'Torres',
-      cargo: 'Vigilante',
-      documento: '1004567891',
-      telefono: '3209876543',
-      email: 'miguel.torres@condominio.com',
-      fechaContratacion: '2024-03-01',
-      estado: 'Activo',
-      horario: 'Turnos rotativos',
-    },
-    {
-      idEmpleado: 4,
-      nombre: 'Ana',
-      apellido: 'Martínez',
-      cargo: 'Aseo',
-      documento: '1034567890',
-      telefono: '3012345678',
-      email: 'ana.martinez@condominio.com',
-      fechaContratacion: '2023-06-20',
-      estado: 'Activo',
-      horario: 'Lun-Sab 6:00-14:00',
-    },
-    {
-      idEmpleado: 5,
-      nombre: 'Pedro',
-      apellido: 'Sánchez',
-      cargo: 'Jardinero',
-      documento: '1045678901',
-      telefono: '3023456789',
-      email: 'pedro.sanchez@condominio.com',
-      fechaContratacion: '2023-11-05',
-      estado: 'Activo',
-      horario: 'Lun-Vie 7:00-15:00',
-    },
-  ];
+  const normalizeEmpleado = (emp) => ({
+    ...emp,
+    estado: emp.estado ?? 'Activo',
+  });
+
+  const buildStats = (list) => {
+    const cargosCount = list.reduce((acc, emp) => {
+      const cargo = emp.cargo ?? 'Sin cargo';
+      acc[cargo] = (acc[cargo] || 0) + 1;
+      return acc;
+    }, {});
+
+    return {
+      total: list.length,
+      cargos: Object.entries(cargosCount).map(([cargo, count]) => ({ cargo, count })),
+    };
+  };
+
+  const toDateInputValue = (value) => {
+    if (!value) return '';
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return '';
+    return d.toISOString().split('T')[0];
+  };
 
   useEffect(() => {
-    setTimeout(() => {
-      setEmpleados(mockEmpleados);
-      
-      // Calcular estadísticas
-      const cargosCount = mockEmpleados.reduce((acc, emp) => {
-        acc[emp.cargo] = (acc[emp.cargo] || 0) + 1;
-        return acc;
-      }, {});
-      
-      setStats({
-        total: mockEmpleados.length,
-        cargos: Object.entries(cargosCount).map(([cargo, count]) => ({ cargo, count })),
-      });
-      
-      setLoading(false);
-    }, 800);
+    let cancelled = false;
+
+    const loadEmpleados = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const response = await empleadosAPI.getAll();
+        const data = response?.data;
+        const list = Array.isArray(data) ? data : [];
+        const normalized = list.map(normalizeEmpleado);
+
+        if (!cancelled) {
+          setEmpleados(normalized);
+          setStats(buildStats(normalized));
+        }
+      } catch (err) {
+        const msg = err?.response?.data?.message ?? err?.message ?? 'Error al cargar empleados';
+        if (!cancelled) {
+          setError(msg);
+          setEmpleados([]);
+          setStats({ total: 0, cargos: [] });
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+
+    loadEmpleados();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const handleMenuOpen = (event, empleado) => {
@@ -215,23 +212,163 @@ const Empleados = () => {
 
   const handleMenuClose = () => {
     setAnchorEl(null);
-    setSelectedEmpleado(null);
   };
 
   const handleOpenDialog = (empleado = null) => {
     setSelectedEmpleado(empleado);
+    setForm(
+      empleado
+        ? {
+            nombre: empleado.nombre ?? '',
+            apellido: empleado.apellido ?? '',
+            cargo: empleado.cargo ?? '',
+            documento: empleado.documento ?? '',
+            telefono: empleado.telefono ?? '',
+            fechaContratacion: toDateInputValue(empleado.fechaContratacion),
+            salario: empleado.salario ?? '',
+          }
+        : emptyForm
+    );
     setOpenDialog(true);
-    handleMenuClose();
+    setAnchorEl(null);
   };
 
   const handleCloseDialog = () => {
     setOpenDialog(false);
     setSelectedEmpleado(null);
+    setForm(emptyForm);
+  };
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleSaveEmpleado = async () => {
+    if (!form.nombre.trim() || !form.apellido.trim() || !form.cargo.trim() || !form.documento.trim() || !form.telefono.trim() || !form.fechaContratacion || form.salario === '') {
+      setSnackbar({
+        open: true,
+        severity: 'error',
+        message: 'Completa todos los campos obligatorios',
+      });
+      return;
+    }
+
+    const salarioNum = Number(form.salario);
+    if (Number.isNaN(salarioNum) || salarioNum < 0) {
+      setSnackbar({
+        open: true,
+        severity: 'error',
+        message: 'El salario debe ser un numero valido',
+      });
+      return;
+    }
+
+    const payload = {
+      nombre: form.nombre.trim(),
+      apellido: form.apellido.trim(),
+      cargo: form.cargo.trim(),
+      documento: form.documento.trim(),
+      telefono: form.telefono.trim(),
+      fechaContratacion: form.fechaContratacion,
+      salario: salarioNum,
+    };
+
+    setSaving(true);
+    setError(null);
+
+    try {
+      if (selectedEmpleado?.idEmpleado) {
+        const response = await empleadosAPI.update(selectedEmpleado.idEmpleado, payload);
+        const updated = normalizeEmpleado(response?.data ?? response ?? payload);
+
+        setEmpleados((prev) => {
+          const next = prev.map((emp) =>
+            emp.idEmpleado === selectedEmpleado.idEmpleado ? updated : emp
+          );
+          setStats(buildStats(next));
+          return next;
+        });
+
+        setSnackbar({ open: true, message: 'Empleado actualizado correctamente', severity: 'success' });
+      } else {
+        const response = await empleadosAPI.create(payload);
+        const created = normalizeEmpleado(response?.data ?? response ?? payload);
+
+        setEmpleados((prev) => {
+          const next = [created, ...prev];
+          setStats(buildStats(next));
+          return next;
+        });
+
+        setSnackbar({ open: true, message: 'Empleado creado correctamente', severity: 'success' });
+      }
+
+      handleCloseDialog();
+    } catch (err) {
+      const msg = err?.response?.data?.message ?? err?.message ?? 'Error al guardar empleado';
+      setSnackbar({ open: true, message: msg, severity: 'error' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleOpenDeleteConfirm = (empleado) => {
+    setEmpleadoToDelete(empleado);
+    setOpenDeleteConfirm(true);
+    handleMenuClose();
+  };
+
+  const handleCloseDeleteConfirm = () => {
+    setOpenDeleteConfirm(false);
+    setEmpleadoToDelete(null);
+  };
+
+  const handleDeleteEmpleado = async () => {
+    if (!empleadoToDelete?.idEmpleado) return;
+
+    setSaving(true);
+    setError(null);
+
+    try {
+      await empleadosAPI.delete(empleadoToDelete.idEmpleado);
+
+      setEmpleados((prev) => {
+        const next = prev.filter((emp) => emp.idEmpleado !== empleadoToDelete.idEmpleado);
+        setStats(buildStats(next));
+        return next;
+      });
+
+      setSnackbar({ open: true, message: 'Empleado eliminado correctamente', severity: 'success' });
+      handleCloseDeleteConfirm();
+    } catch (err) {
+      const msg = err?.response?.data?.message ?? err?.message ?? 'Error al eliminar empleado';
+      setSnackbar({ open: true, message: msg, severity: 'error' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleCloseSnackbar = () => {
+    setSnackbar((prev) => ({ ...prev, open: false }));
   };
 
   const formatDate = (dateString) => {
+    if (!dateString) return 'No registrada';
     const options = { year: 'numeric', month: 'long', day: 'numeric' };
-    return new Date(dateString).toLocaleDateString('es-ES', options);
+    const parsedDate = new Date(dateString);
+    if (Number.isNaN(parsedDate.getTime())) return 'No registrada';
+    return parsedDate.toLocaleDateString('es-ES', options);
+  };
+
+  const formatCurrency = (value) => {
+    const amount = Number(value);
+    if (Number.isNaN(amount)) return 'No registrado';
+    return amount.toLocaleString('es-CO', {
+      style: 'currency',
+      currency: 'COP',
+      maximumFractionDigits: 0,
+    });
   };
 
   const getCargoColor = (cargo) => {
@@ -340,6 +477,12 @@ const Empleados = () => {
         </Paper>
 
         {/* Estadísticas rápidas */}
+        {error && (
+          <Alert severity="error" sx={{ mb: 3 }}>
+            {error}
+          </Alert>
+        )}
+
         <Grid container spacing={2} sx={{ mb: 4 }}>
           {stats.cargos.map((item, index) => (
             <Grid item xs={6} sm={4} md={2.4} key={index}>
@@ -372,7 +515,7 @@ const Empleados = () => {
             const cargoColor = getCargoColor(emp.cargo);
             
             return (
-              <Grid item xs={12} sm={6} md={4} key={emp.idEmpleado}>
+              <Grid item xs={12} sm={6} md={4} key={emp.idEmpleado ?? index}>
                 <Zoom in timeout={400} style={{ transitionDelay: `${index * 50}ms` }}>
                   <GlassCard
                     onMouseEnter={() => setHoveredCard(emp.idEmpleado)}
@@ -395,15 +538,15 @@ const Empleados = () => {
                               transform: hoveredCard === emp.idEmpleado ? 'scale(1.1)' : 'scale(1)',
                             }}
                           >
-                            {emp.nombre[0]}{emp.apellido[0]}
-                          </Avatar>
+                             {(emp.nombre?.[0] ?? '?')}{(emp.apellido?.[0] ?? '')}
+                           </Avatar>
                           <Box>
                             <Typography variant="h6" sx={{ fontWeight: 700, color: colors.text.primary }}>
-                              {emp.nombre} {emp.apellido}
+                              {emp.nombre ?? 'Sin nombre'} {emp.apellido ?? ''}
                             </Typography>
                             <Chip
                               icon={<WorkIcon sx={{ fontSize: 14 }} />}
-                              label={emp.cargo}
+                               label={emp.cargo ?? 'Sin cargo'}
                               size="small"
                               sx={{
                                 backgroundColor: alpha(cargoColor, 0.1),
@@ -454,16 +597,6 @@ const Empleados = () => {
                         </Box>
 
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <EmailIcon sx={{ fontSize: 18, color: colors.text.secondary }} />
-                          <Typography variant="body2" sx={{ color: colors.text.secondary, flexShrink: 0 }}>
-                            Email:
-                          </Typography>
-                          <Typography variant="body2" sx={{ fontWeight: 500, color: colors.text.primary, fontSize: '0.8rem' }}>
-                            {emp.email}
-                          </Typography>
-                        </Box>
-
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                           <CalendarIcon sx={{ fontSize: 18, color: colors.text.secondary }} />
                           <Typography variant="body2" sx={{ color: colors.text.secondary }}>
                             Contratación:
@@ -474,14 +607,15 @@ const Empleados = () => {
                         </Box>
 
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <AccessTimeIcon sx={{ fontSize: 18, color: colors.text.secondary }} />
+                          <MoneyIcon sx={{ fontSize: 18, color: colors.text.secondary }} />
                           <Typography variant="body2" sx={{ color: colors.text.secondary }}>
-                            Horario:
+                            Salario:
                           </Typography>
                           <Typography variant="body2" sx={{ fontWeight: 500, color: colors.text.primary }}>
-                            {emp.horario}
+                            {formatCurrency(emp.salario)}
                           </Typography>
                         </Box>
+
                       </Box>
 
                       {/* Estado */}
@@ -531,7 +665,7 @@ const Empleados = () => {
           <MenuItem onClick={() => handleOpenDialog(selectedEmpleado)} sx={{ py: 1.5 }}>
             <EditIcon sx={{ mr: 1.5, fontSize: 20, color: colors.info }} /> Editar
           </MenuItem>
-          <MenuItem sx={{ py: 1.5 }}>
+          <MenuItem onClick={() => handleOpenDeleteConfirm(selectedEmpleado)} sx={{ py: 1.5 }}>
             <DeleteIcon sx={{ mr: 1.5, fontSize: 20, color: colors.error }} /> Eliminar
           </MenuItem>
         </Menu>
@@ -574,8 +708,10 @@ const Empleados = () => {
               <Grid item xs={12} sm={6}>
                 <TextField
                   fullWidth
+                  name="nombre"
                   label="Nombre"
-                  defaultValue={selectedEmpleado?.nombre || ''}
+                  value={form.nombre}
+                  onChange={handleInputChange}
                   InputProps={{
                     startAdornment: (
                       <InputAdornment position="start">
@@ -593,8 +729,10 @@ const Empleados = () => {
               <Grid item xs={12} sm={6}>
                 <TextField
                   fullWidth
+                  name="apellido"
                   label="Apellido"
-                  defaultValue={selectedEmpleado?.apellido || ''}
+                  value={form.apellido}
+                  onChange={handleInputChange}
                   InputProps={{
                     startAdornment: (
                       <InputAdornment position="start">
@@ -612,8 +750,10 @@ const Empleados = () => {
               <Grid item xs={12} sm={6}>
                 <TextField
                   fullWidth
+                  name="cargo"
                   label="Cargo"
-                  defaultValue={selectedEmpleado?.cargo || ''}
+                  value={form.cargo}
+                  onChange={handleInputChange}
                   InputProps={{
                     startAdornment: (
                       <InputAdornment position="start">
@@ -631,8 +771,10 @@ const Empleados = () => {
               <Grid item xs={12} sm={6}>
                 <TextField
                   fullWidth
+                  name="documento"
                   label="Documento"
-                  defaultValue={selectedEmpleado?.documento || ''}
+                  value={form.documento}
+                  onChange={handleInputChange}
                   InputProps={{
                     startAdornment: (
                       <InputAdornment position="start">
@@ -650,8 +792,10 @@ const Empleados = () => {
               <Grid item xs={12} sm={6}>
                 <TextField
                   fullWidth
+                  name="telefono"
                   label="Teléfono"
-                  defaultValue={selectedEmpleado?.telefono || ''}
+                  value={form.telefono}
+                  onChange={handleInputChange}
                   InputProps={{
                     startAdornment: (
                       <InputAdornment position="start">
@@ -669,13 +813,16 @@ const Empleados = () => {
               <Grid item xs={12} sm={6}>
                 <TextField
                   fullWidth
-                  label="Email"
-                  defaultValue={selectedEmpleado?.email || ''}
-                  type="email"
+                  name="fechaContratacion"
+                  label="Fecha de contratación"
+                  type="date"
+                  value={form.fechaContratacion}
+                  onChange={handleInputChange}
+                  InputLabelProps={{ shrink: true }}
                   InputProps={{
                     startAdornment: (
                       <InputAdornment position="start">
-                        <EmailIcon sx={{ color: colors.text.secondary }} />
+                        <CalendarIcon sx={{ color: colors.text.secondary }} />
                       </InputAdornment>
                     ),
                   }}
@@ -689,13 +836,16 @@ const Empleados = () => {
               <Grid item xs={12}>
                 <TextField
                   fullWidth
-                  label="Horario"
-                  defaultValue={selectedEmpleado?.horario || ''}
-                  placeholder="Ej: Lun-Vie 8:00-17:00"
+                  name="salario"
+                  label="Salario"
+                  type="number"
+                  value={form.salario}
+                  onChange={handleInputChange}
+                  inputProps={{ min: 0 }}
                   InputProps={{
                     startAdornment: (
                       <InputAdornment position="start">
-                        <AccessTimeIcon sx={{ color: colors.text.secondary }} />
+                        <MoneyIcon sx={{ color: colors.text.secondary }} />
                       </InputAdornment>
                     ),
                   }}
@@ -714,6 +864,7 @@ const Empleados = () => {
               onClick={handleCloseDialog}
               variant="outlined"
               startIcon={<CancelIcon />}
+              disabled={saving}
               sx={{
                 borderColor: colors.border,
                 color: colors.text.primary,
@@ -724,13 +875,52 @@ const Empleados = () => {
               Cancelar
             </Button>
             <GradientButton
+              onClick={handleSaveEmpleado}
               startIcon={selectedEmpleado ? <SaveIcon /> : <AddIcon />}
               bgcolor={colors.primary}
+              disabled={saving}
             >
-              {selectedEmpleado ? 'Actualizar' : 'Guardar'}
+              {saving ? <CircularProgress size={18} sx={{ color: 'white' }} /> : (selectedEmpleado ? 'Actualizar' : 'Guardar')}
             </GradientButton>
           </DialogActions>
         </Dialog>
+
+        <Dialog
+          open={openDeleteConfirm}
+          onClose={handleCloseDeleteConfirm}
+          maxWidth="xs"
+          fullWidth
+        >
+          <DialogTitle>Eliminar empleado</DialogTitle>
+          <DialogContent>
+            <Typography variant="body2" sx={{ color: colors.text.secondary }}>
+              {`¿Seguro que deseas eliminar a ${empleadoToDelete?.nombre ?? ''} ${empleadoToDelete?.apellido ?? ''}?`}
+            </Typography>
+          </DialogContent>
+          <DialogActions sx={{ p: 2 }}>
+            <Button onClick={handleCloseDeleteConfirm} disabled={saving}>Cancelar</Button>
+            <Button
+              color="error"
+              variant="contained"
+              onClick={handleDeleteEmpleado}
+              disabled={saving}
+              startIcon={<DeleteIcon />}
+            >
+              {saving ? 'Eliminando...' : 'Eliminar'}
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        <Snackbar
+          open={snackbar.open}
+          autoHideDuration={3500}
+          onClose={handleCloseSnackbar}
+          anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        >
+          <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} sx={{ width: '100%' }}>
+            {snackbar.message}
+          </Alert>
+        </Snackbar>
       </Container>
     </Box>
   );
