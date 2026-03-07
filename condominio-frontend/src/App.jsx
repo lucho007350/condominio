@@ -38,6 +38,24 @@ const Layout = ({ children }) => {
   );
 };
 
+const RootRedirect = () => {
+  const user = JSON.parse(localStorage.getItem('user') || sessionStorage.getItem('user') || '{}');
+
+  if (!user || !user.username) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (user.role === 'admin') {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  if (user.role === 'propietario') {
+    return <Navigate to="/mis-propiedades" replace />;
+  }
+
+  return <Navigate to="/inicio" replace />;
+};
+
 function App() {
   return (
     <Router>
@@ -116,8 +134,8 @@ function App() {
         <Route path="/profile" element={<Navigate to="/perfil" />} />
         <Route path="/mypays" element={<Navigate to="/mis-pagos" />} />
         
-        {/* Redirigir ruta raíz a login */}
-        <Route path="/" element={<Navigate to="/login" />} />
+        {/* Redirigir ruta raíz según sesión y rol */}
+        <Route path="/" element={<RootRedirect />} />
         
         {/* Ruta para cualquier otra URL no definida */}
         <Route path="*" element={<Navigate to="/login" />} />

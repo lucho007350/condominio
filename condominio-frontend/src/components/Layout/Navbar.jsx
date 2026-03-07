@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   AppBar,
@@ -32,22 +32,18 @@ const Navbar = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
+  const storedUser = JSON.parse(localStorage.getItem('user') || sessionStorage.getItem('user') || '{}');
+
   const [anchorAdmin, setAnchorAdmin] = useState(null);
   const [anchorGestion, setAnchorGestion] = useState(null);
   const [anchorUser, setAnchorUser] = useState(null);
   
   // Obtener usuario del storage
-  const [user, setUser] = useState(null);
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [isPropietario, setIsPropietario] = useState(false); // Nuevo estado para propietario
+  const [user] = useState(storedUser);
+  const [isAdmin] = useState(storedUser.role === 'admin');
+  const [isPropietario] = useState(storedUser.role === 'propietario'); // Nuevo estado para propietario
 
-  useEffect(() => {
-    // Obtener usuario al cargar el componente
-    const userData = JSON.parse(localStorage.getItem('user') || sessionStorage.getItem('user') || '{}');
-    setUser(userData);
-    setIsAdmin(userData.role === 'admin');
-    setIsPropietario(userData.role === 'propietario'); // Verificar si es propietario
-  }, []);
+  const homePath = isAdmin ? '/dashboard' : isPropietario ? '/mis-propiedades' : '/inicio';
 
   const handleLogout = () => {
     localStorage.removeItem('user');
@@ -62,7 +58,7 @@ const Navbar = () => {
         <Typography
           variant="h6"
           component={Link}
-          to="/"
+          to={homePath}
           sx={{
             flexGrow: 1,
             textDecoration: "none",
@@ -76,12 +72,12 @@ const Navbar = () => {
         {/* INICIO - Visible para todos */}
         <Button
           component={Link}
-          to="/"
+          to={homePath}
           color="inherit"
           startIcon={<HomeIcon />}
           sx={{
             mx: 1,
-            borderBottom: location.pathname === "/" ? "2px solid #ffffff" : "none",
+            borderBottom: location.pathname === homePath ? "2px solid #ffffff" : "none",
             '&:hover': {
               backgroundColor: 'rgba(255,255,255,0.1)',
             }
