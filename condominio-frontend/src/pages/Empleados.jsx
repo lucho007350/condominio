@@ -42,7 +42,6 @@ import {
   Work as WorkIcon,
   CalendarMonth as CalendarIcon,
   Person as PersonIcon,
-  CheckCircle as CheckCircleIcon,
   Close as CloseIcon,
   Save as SaveIcon,
   Cancel as CancelIcon,
@@ -147,7 +146,6 @@ const Empleados = () => {
 
   const normalizeEmpleado = (emp) => ({
     ...emp,
-    estado: emp.estado ?? 'Activo',
   });
 
   const buildStats = (list) => {
@@ -618,19 +616,6 @@ const Empleados = () => {
 
                       </Box>
 
-                      {/* Estado */}
-                      <Box sx={{ mt: 2, display: 'flex', justifyContent: 'flex-end' }}>
-                        <Chip
-                          icon={<CheckCircleIcon />}
-                          label={emp.estado}
-                          size="small"
-                          sx={{
-                            backgroundColor: alpha(colors.success, 0.1),
-                            color: colors.success,
-                            '& .MuiChip-icon': { color: colors.success },
-                          }}
-                        />
-                      </Box>
                     </CardContent>
                   </GlassCard>
                 </Zoom>
