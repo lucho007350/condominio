@@ -20,12 +20,7 @@ export const residentAPI = {
   delete: (id) => api.delete(`/users/${id}`),
 };
 
-// export const paymentAPI = {
-//   getAll: () => api.get('/payments'),
-//   create: (data) => api.post('/payments', data),
-//   update: (id, data) => api.put(`/payments/${id}`, data),
-//   delete: (id) => api.delete(`/payments/${id}`),
-// };
+
 
 export const paymentAPI = {
   getAll: () => api.get('/pagos'),
