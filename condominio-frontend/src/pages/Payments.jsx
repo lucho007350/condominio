@@ -6,9 +6,9 @@ Tooltip, Alert,} from '@mui/material';
 
 import {Search as SearchIcon, FilterList as FilterIcon, Download as DownloadIcon, Add as AddIcon,
 Edit as EditIcon, Delete as DeleteIcon, CheckCircle as CheckIcon, Pending as PendingIcon, 
-Warning as WarningIcon, AttachMoney as MoneyIcon, CalendarMonth as CalendarIcon, Person as PersonIcon, 
-Receipt as ReceiptIcon,} from '@mui/icons-material';
+Warning as WarningIcon, AttachMoney as MoneyIcon, CalendarMonth as CalendarIcon, Receipt as ReceiptIcon,} from '@mui/icons-material';
 
+import { paymentAPI, facturasAPI } from '../services/api';
 
 import { DatePicker } from '@mui/x-date-pickers/DatePicker'; //para seleccionar fechas
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider'; //para localizacion de fechas
@@ -16,163 +16,108 @@ import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns'; //adaptador
 import { format } from 'date-fns'; //funcion para formatear fechas
 import { es } from 'date-fns/locale'; //localizacion en español
 
+// Mapeo estado API (Pendiente, Procesado, Rechazado) <-> vista (pending, paid, overdue)
+const estadoToView = (estadoPago) => {
+  if (!estadoPago) return 'pending';
+  const e = String(estadoPago);
+  if (e === 'Procesado') return 'paid';
+  if (e === 'Rechazado') return 'overdue';
+  return 'pending';
+};
+const viewToEstado = (status) => {
+  if (status === 'paid') return 'Procesado';
+  if (status === 'overdue') return 'Rechazado';
+  return 'Pendiente';
+};
+
 const Payments = () => {
-  // Estados
-  const [payments, setPayments] = useState([]);  
+  const [payments, setPayments] = useState([]);
+  const [facturas, setFacturas] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [page, setPage] = useState(0); //Página actual (0 = primera)
-  const [rowsPerPage, setRowsPerPage] = useState(10); //Filas por página
-  const [searchTerm, setSearchTerm] = useState(''); //Término de búsqueda
-  const [filterStatus, setFilterStatus] = useState('all'); //Filtro de estado
-  const [openDialog, setOpenDialog] = useState(false); // para registrar/editar pago
-  const [selectedPayment, setSelectedPayment] = useState(null); //pago seleccionado para editar
+  const [error, setError] = useState(null);
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterStatus, setFilterStatus] = useState('all');
+  const [openDialog, setOpenDialog] = useState(false);
+  const [selectedPayment, setSelectedPayment] = useState(null);
+  const [saving, setSaving] = useState(false);
   const [stats, setStats] = useState({
     totalCollected: 0,
     pendingAmount: 0,
     overduePayments: 0,
-    collectionRate: 0,
+  });
+  const [formData, setFormData] = useState({
+    fechaPago: '',
+    monto: '',
+    metodoPago: 'Transferencia',
+    estadoPago: 'Pendiente',
+    idFactura: '',
   });
 
-  // Datos
-  const mockPayments = [
-    {
-      id: 1,
-      resident: 'Juan Pérez',
-      apartment: '101',
-      amount: 1500,
-      dueDate: '2024-01-15',
-      paymentDate: '2024-01-10',
-      status: 'paid',
-      method: 'Transferencia',
-      receipt: 'RC-001',
-      notes: 'Pago completo',
-    },
-    {
-      id: 2,
-      resident: 'María García',
-      apartment: '202',
-      amount: 1500,
-      dueDate: '2024-01-15',
-      paymentDate: null,
-      status: 'pending',
-      method: '',
-      receipt: '',
+  const normalizePago = (p, facturasList = []) => {
+    const factura = facturasList.find((f) => (f.idFactura ?? f.id) === (p.idFactura ?? p.idFactura));
+    const dueDate = factura?.fechaVencimiento ?? factura?.fecha_vencimiento ?? null;
+    const apartment = factura?.numeroUnidad ?? factura?.numero ?? factura?.idUnidad ?? '-';
+    return {
+      id: p.idPago ?? p.id,
+      idPago: p.idPago ?? p.id,
+      resident: '-',
+      apartment: String(apartment),
+      amount: Number(p.monto ?? 0),
+      dueDate,
+      paymentDate: p.fechaPago ?? null,
+      status: estadoToView(p.estadoPago ?? p.estado),
+      method: p.metodoPago ?? p.metodo ?? '',
+      receipt: '-',
       notes: '',
-    },
-    {
-      id: 3,
-      resident: 'Carlos López',
-      apartment: '303',
-      amount: 1500,
-      dueDate: '2024-01-15',
-      paymentDate: '2024-01-12',
-      status: 'paid',
-      method: 'Efectivo',
-      receipt: 'RC-002',
-      notes: '',
-    },
-    {
-      id: 4,
-      resident: 'Ana Martínez',
-      apartment: '404',
-      amount: 1500,
-      dueDate: '2024-01-15',
-      paymentDate: null,
-      status: 'overdue',
-      method: '',
-      receipt: '',
-      notes: 'Recordar llamar',
-    },
-    {
-      id: 5,
-      resident: 'Pedro Rodríguez',
-      apartment: '505',
-      amount: 1500,
-      dueDate: '2024-02-15',
-      paymentDate: null,
-      status: 'pending',
-      method: '',
-      receipt: '',
-      notes: '',
-    },
-    {
-      id: 6,
-      resident: 'Laura Sánchez',
-      apartment: '606',
-      amount: 1500,
-      dueDate: '2024-01-15',
-      paymentDate: '2024-01-14',
-      status: 'paid',
-      method: 'Tarjeta',
-      receipt: 'RC-003',
-      notes: 'Pago online',
-    },
-    {
-      id: 7,
-      resident: 'Miguel Torres',
-      apartment: '707',
-      amount: 1500,
-      dueDate: '2023-12-15',
-      paymentDate: null,
-      status: 'overdue',
-      method: '',
-      receipt: '',
-      notes: 'Moroso',
-    },
-    {
-      id: 8,
-      resident: 'Sofía Ramírez',
-      apartment: '808',
-      amount: 1500,
-      dueDate: '2024-01-15',
-      paymentDate: '2024-01-08',
-      status: 'paid',
-      method: 'Transferencia',
-      receipt: 'RC-004',
-      notes: '',
-    },
-  ];
+      idFactura: p.idFactura ?? p.idFactura,
+    };
+  };
+
+  const fetchPayments = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const [pagosRes, facturasRes] = await Promise.all([
+        paymentAPI.getAll(),
+        facturasAPI.getAll(),
+      ]);
+      const facturasList = Array.isArray(facturasRes.data) ? facturasRes.data : [];
+      const pagosList = Array.isArray(pagosRes.data) ? pagosRes.data : [];
+      setFacturas(facturasList);
+      const normalized = pagosList.map((p) => normalizePago(p, facturasList));
+      setPayments(normalized);
+
+      const totalCollected = normalized
+        .filter((p) => p.status === 'paid')
+        .reduce((sum, p) => sum + p.amount, 0);
+      const pendingAmount = normalized
+        .filter((p) => p.status === 'pending')
+        .reduce((sum, p) => sum + p.amount, 0);
+      const overduePayments = normalized.filter((p) => p.status === 'overdue').length;
+      setStats({
+        totalCollected,
+        pendingAmount,
+        overduePayments,
+      });
+    } catch (err) {
+      setError(err.response?.data?.message || err.message || 'Error al cargar los pagos');
+      setPayments([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    fetchPayments(); //trae los pagos
-    calculateStats(); //calcula las estadísticas
-  }, []); // Ejecutar al cargar el componente
-
-  const fetchPayments = () => {  // Simular llamada a API
-    setTimeout(() => {
-      setPayments(mockPayments);
-      setLoading(false);
-    }, 1000);
-  };
-
-  const calculateStats = () => {
-    const totalCollected = mockPayments // obtener solo los pagos realizados
-      .filter(p => p.status === 'paid')
-      .reduce((sum, p) => sum + p.amount, 0); // reducirlos a un unico valor
-    
-    const pendingAmount = mockPayments
-      .filter(p => p.status === 'pending')
-      .reduce((sum, p) => sum + p.amount, 0);
-
-    //vencidos
-    const overduePayments = mockPayments.filter(p => p.status === 'overdue').length;
-    
-    const totalExpected = mockPayments.length * 1500;
-    const collectionRate = totalExpected > 0 ? Math.round((totalCollected / totalExpected) * 100) : 0;
-
-    setStats({ 
-      totalCollected,
-      pendingAmount,
-      overduePayments,
-      collectionRate,
-    });
-  };
+    fetchPayments();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Filtrar pagos
   const filteredPayments = payments.filter(payment => {
     const matchesSearch = 
-      payment.resident.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      payment.apartment.includes(searchTerm) ||
+      payment.apartment.toString().toLowerCase().includes(searchTerm.toLowerCase()) ||
       payment.receipt.toLowerCase().includes(searchTerm.toLowerCase());
     
     const matchesStatus = 
@@ -218,15 +163,98 @@ const Payments = () => {
     }
   };
 
-  // Manejar apertura/cierre de diálogo formulario
-  const handleOpenDialog = (payment = null) => { // si payment es null, es para registrar nuevo pago
-    setSelectedPayment(payment)//si es null, no hay pago seleccionado
-    setOpenDialog(true);//abrir diálogo
+  const handleOpenDialog = (payment = null) => {
+    setSelectedPayment(payment);
+    if (payment) {
+      const fp = payment.paymentDate ? new Date(payment.paymentDate) : null;
+      setFormData({
+        fechaPago: fp ? format(fp, 'yyyy-MM-dd') : '',
+        monto: payment.amount ?? '',
+        metodoPago: payment.method || 'Transferencia',
+        estadoPago: viewToEstado(payment.status),
+        idFactura: payment.idFactura ?? '',
+      });
+    } else {
+      setFormData({
+        fechaPago: format(new Date(), 'yyyy-MM-dd'),
+        monto: '',
+        metodoPago: 'Transferencia',
+        estadoPago: 'Pendiente',
+        idFactura: '',
+      });
+    }
+    setOpenDialog(true);
   };
 
-  const handleCloseDialog = () => { //cerrar diálogo
-    setOpenDialog(false);//
-    setSelectedPayment(null);//limpiar pago seleccionado
+  const handleCloseDialog = () => {
+    setOpenDialog(false);
+    setSelectedPayment(null);
+    setFormData({
+      fechaPago: '',
+      monto: '',
+      metodoPago: 'Transferencia',
+      estadoPago: 'Pendiente',
+      idFactura: '',
+    });
+  };
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleSave = async () => {
+    try {
+      setSaving(true);
+      setError(null);
+      const payload = {
+        fechaPago: formData.fechaPago || null,
+        monto: Number(formData.monto),
+        metodoPago: formData.metodoPago,
+        estadoPago: formData.estadoPago,
+        idFactura: Number(formData.idFactura),
+      };
+      if (selectedPayment) {
+        await paymentAPI.update(selectedPayment.idPago ?? selectedPayment.id, payload);
+      } else {
+        await paymentAPI.create(payload);
+      }
+      handleCloseDialog();
+      await fetchPayments();
+    } catch (err) {
+      setError(err.response?.data?.message || err.message || 'Error al guardar el pago');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDelete = async (payment) => {
+    if (!window.confirm('¿Está seguro de eliminar este pago?')) return;
+    try {
+      setError(null);
+      await paymentAPI.delete(payment.idPago ?? payment.id);
+      await fetchPayments();
+    } catch (err) {
+      setError(err.response?.data?.message || err.message || 'Error al eliminar');
+    }
+  };
+
+  const handleMarkAsPaid = async (payment) => {
+    try {
+      setError(null);
+      const today = format(new Date(), 'yyyy-MM-dd');
+      const payload = {
+        fechaPago: payment.paymentDate ? format(new Date(payment.paymentDate), 'yyyy-MM-dd') : today,
+        monto: payment.amount,
+        metodoPago: payment.method || 'Transferencia',
+        estadoPago: 'Procesado',
+        idFactura: payment.idFactura,
+      };
+      await paymentAPI.update(payment.idPago ?? payment.id, payload);
+      await fetchPayments();
+    } catch (err) {
+      setError(err.response?.data?.message || err.message || 'Error al actualizar');
+    }
   };
 
   // Componente de estadísticas
@@ -279,6 +307,11 @@ const Payments = () => {
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={es}>
       <Box>
+        {error && (
+          <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
+            {error}
+          </Alert>
+        )}
         {/* Header */}
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
           <Box>
@@ -328,15 +361,6 @@ const Payments = () => {
               subtitle="Atrasados"
             />
           </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <StatCard
-              title="Tasa de Cobranza"
-              value={stats.collectionRate}
-              icon={<CheckIcon />}
-              color="#2196F3"
-              subtitle="Eficiencia"
-            />
-          </Grid>
         </Grid>
 
         {/* Filtros y búsqueda */}
@@ -345,7 +369,7 @@ const Payments = () => {
             <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
-                placeholder="Buscar por residente, apartamento o recibo..."
+                placeholder="Buscar por apartamento o recibo..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 InputProps={{
@@ -406,12 +430,11 @@ const Payments = () => {
             <Table>
               <TableHead>
                 <TableRow>
-                  <TableCell>Residente</TableCell>
-                  <TableCell>Apartamento</TableCell>
+<TableCell>Apartamento</TableCell>
                   <TableCell>Monto</TableCell>
                   <TableCell>Fecha Vencimiento</TableCell>
                   <TableCell>Fecha Pago</TableCell>
-                  <TableCell>Estado</TableCell>
+                  <TableCell>Estado del pago</TableCell>
                   <TableCell>Método</TableCell>
                   <TableCell>Recibo</TableCell>
                   <TableCell>Acciones</TableCell>
@@ -422,12 +445,6 @@ const Payments = () => {
                   .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
                   .map((payment) => (
                     <TableRow key={payment.id} hover>
-                      <TableCell>
-                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                          <PersonIcon sx={{ mr: 1, color: 'text.secondary' }} />
-                          {payment.resident}
-                        </Box>
-                      </TableCell>
                       <TableCell>
                         <Chip label={payment.apartment} size="small" />
                       </TableCell>
@@ -480,13 +497,13 @@ const Payments = () => {
                             </IconButton>
                           </Tooltip>
                           <Tooltip title="Eliminar">
-                            <IconButton size="small" color="error">
+                            <IconButton size="small" color="error" onClick={() => handleDelete(payment)}>
                               <DeleteIcon fontSize="small" />
                             </IconButton>
                           </Tooltip>
                           {payment.status !== 'paid' && (
                             <Tooltip title="Marcar como pagado">
-                              <IconButton size="small" color="success">
+                              <IconButton size="small" color="success" onClick={() => handleMarkAsPaid(payment)}>
                                 <CheckIcon fontSize="small" />
                               </IconButton>
                             </Tooltip>
@@ -575,7 +592,7 @@ const Payments = () => {
                       >
                         <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                           <Typography variant="subtitle2">
-                            {payment.resident} - Apt. {payment.apartment}
+                            Unidad {payment.apartment}
                           </Typography>
                           <Typography variant="subtitle2" sx={{ fontWeight: 'bold', color: '#d32f2f' }}>
                             ${payment.amount.toLocaleString()}
@@ -603,34 +620,60 @@ const Payments = () => {
             {selectedPayment ? 'Editar Pago' : 'Registrar Nuevo Pago'}
           </DialogTitle>
           <DialogContent>
-            <Grid container spacing={3} sx={{ mt: 1 }}>
-              <Grid item xs={12} md={6}>
+            <Grid container spacing={3} sx={{ mt: 0.5 }}>
+              <Grid item xs={12}>
+                
+                <FormControl fullWidth size="medium" sx={{ minHeight: 64 }}>
+                  <Select
+                    name="idFactura"
+                    value={formData.idFactura}
+                    onChange={handleInputChange}
+                    required
+                    displayEmpty
+                    renderValue={(v) => {
+                      if (!v) return 'Seleccione una factura';
+                      const f = facturas.find((x) => (x.idFactura ?? x.id) === Number(v));
+                      return f
+                        ? `Factura #${f.idFactura ?? f.id} – Unidad ${f.numeroUnidad ?? f.numero ?? f.idUnidad ?? '-'}`
+                        : `Factura #${v}`;
+                    }}
+                    sx={{
+                      fontSize: '1.0625rem',
+                      py: 1.5,
+                      '& .MuiSelect-select': { py: 1.5 },
+                    }}
+                  >
+                    <MenuItem value="">
+                      <em>Seleccione una factura</em>
+                    </MenuItem>
+                    {facturas.map((f) => (
+                      <MenuItem key={f.idFactura ?? f.id} value={f.idFactura ?? f.id} sx={{ fontSize: '1.0625rem' }}>
+                        Factura #{f.idFactura ?? f.id} – Unidad {f.numeroUnidad ?? f.numero ?? f.idUnidad ?? '-'}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
+              <Grid item xs={12} sm={6}>
                 <TextField
                   fullWidth
-                  label="Residente"
-                  defaultValue={selectedPayment?.resident || ''}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <PersonIcon />
-                      </InputAdornment>
-                    ),
-                  }}
+                  label="Fecha de pago"
+                  type="date"
+                  name="fechaPago"
+                  value={formData.fechaPago}
+                  onChange={handleInputChange}
+                  InputLabelProps={{ shrink: true }}
                 />
               </Grid>
-              <Grid item xs={12} md={6}>
-                <TextField
-                  fullWidth
-                  label="Apartamento"
-                  defaultValue={selectedPayment?.apartment || ''}
-                />
-              </Grid>
-              <Grid item xs={12} md={6}>
+              <Grid item xs={12} sm={6}>
                 <TextField
                   fullWidth
                   label="Monto"
                   type="number"
-                  defaultValue={selectedPayment?.amount || 1500}
+                  name="monto"
+                  value={formData.monto}
+                  onChange={handleInputChange}
+                  inputProps={{ min: 0, step: 1000 }}
                   InputProps={{
                     startAdornment: (
                       <InputAdornment position="start">
@@ -640,62 +683,47 @@ const Payments = () => {
                   }}
                 />
               </Grid>
-              <Grid item xs={12} md={6}>
-                <DatePicker
-                  label="Fecha de Vencimiento"
-                  defaultValue={selectedPayment?.dueDate ? new Date(selectedPayment.dueDate) : new Date()}
-                  slotProps={{ textField: { fullWidth: true } }}
-                />
-              </Grid>
-              <Grid item xs={12} md={6}>
+              <Grid item xs={12} sm={6}>
                 <FormControl fullWidth>
                   <InputLabel>Estado</InputLabel>
                   <Select
+                    name="estadoPago"
+                    value={formData.estadoPago}
                     label="Estado"
-                    defaultValue={selectedPayment?.status || 'pending'}
+                    onChange={handleInputChange}
                   >
-                    <MenuItem value="pending">Pendiente</MenuItem>
-                    <MenuItem value="paid">Pagado</MenuItem>
-                    <MenuItem value="overdue">Vencido</MenuItem>
+                    <MenuItem value="Pendiente">Pendiente</MenuItem>
+                    <MenuItem value="Procesado">Procesado (Pagado)</MenuItem>
+                    <MenuItem value="Rechazado">Rechazado</MenuItem>
                   </Select>
                 </FormControl>
               </Grid>
-              <Grid item xs={12} md={6}>
+              <Grid item xs={12} sm={6}>
                 <FormControl fullWidth>
-                  <InputLabel>Método de Pago</InputLabel>
+                  <InputLabel>Método de pago</InputLabel>
                   <Select
-                    label="Método de Pago"
-                    defaultValue={selectedPayment?.method || ''}
+                    name="metodoPago"
+                    value={formData.metodoPago}
+                    label="Método de pago"
+                    onChange={handleInputChange}
                   >
                     <MenuItem value="Efectivo">Efectivo</MenuItem>
                     <MenuItem value="Transferencia">Transferencia</MenuItem>
                     <MenuItem value="Tarjeta">Tarjeta</MenuItem>
-                    <MenuItem value="Cheque">Cheque</MenuItem>
                   </Select>
                 </FormControl>
               </Grid>
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  label="Número de Recibo"
-                  defaultValue={selectedPayment?.receipt || ''}
-                />
-              </Grid>
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  label="Notas"
-                  multiline
-                  rows={3}
-                  defaultValue={selectedPayment?.notes || ''}
-                />
-              </Grid>
             </Grid>
           </DialogContent>
-          <DialogActions>
+          <DialogActions sx={{ px: 3, pb: 2 }}>
             <Button onClick={handleCloseDialog}>Cancelar</Button>
-            <Button variant="contained" onClick={handleCloseDialog}>
-              {selectedPayment ? 'Actualizar' : 'Registrar'}
+            <Button
+              variant="contained"
+              onClick={handleSave}
+              disabled={saving || !formData.idFactura || !formData.fechaPago || formData.monto === ''}
+              sx={{ backgroundColor: '#1e3a5f' }}
+            >
+              {saving ? 'Guardando...' : selectedPayment ? 'Actualizar' : 'Registrar'}
             </Button>
           </DialogActions>
         </Dialog>
