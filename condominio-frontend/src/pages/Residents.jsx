@@ -117,6 +117,7 @@ const Residents = () => {
         setResidents((prev) => [created, ...prev]);
         setSnackbar({ open: true, message: 'Residente creado correctamente', severity: 'success' });
       }
+      window.dispatchEvent(new Event('dashboard:refresh'));
       handleCloseDialog();
     } catch (err) {
       const msg = err?.response?.data?.message ?? err?.message ?? 'Error al guardar';
@@ -144,6 +145,7 @@ const Residents = () => {
       setResidents((prev) => prev.filter((r) => r.idResidente !== residentToDelete.idResidente));
       handleCloseDeleteConfirm();
       setSnackbar({ open: true, message: 'Residente eliminado correctamente', severity: 'success' });
+      window.dispatchEvent(new Event('dashboard:refresh'));
     } catch (err) {
       const msg = err?.response?.data?.message ?? err?.message ?? 'Error al eliminar';
       setSnackbar({ open: true, message: msg, severity: 'error' });

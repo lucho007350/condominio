@@ -47,8 +47,8 @@ import {
   Build as BuildIcon,
   Event as EventIcon,
 } from '@mui/icons-material';
-// Importar las APIs de residentes y comunicaciones
-import { residentAPI, communicationAPI, empleadosAPI, facturasAPI, ingresosAPI, egresosAPI, paymentAPI, residentesAPI, documentosAPI, unidadesAPI } from '../services/api.jsx';
+// APIs
+import { facturasAPI, paymentAPI, residentesAPI, unidadesAPI } from '../services/api.jsx';
 
 // Colores personalizados
 const colors = {
@@ -203,18 +203,22 @@ const QuickAction = ({ title, description, icon, color, onClick }) => {
 
 // Componente de gráfico de barras simple (solo con CSS)
 const SimpleBarChart = ({ data }) => {
-  const maxValue = Math.max(...data.map(d => d.amount));
+  const list = Array.isArray(data) ? data : [];
+  if (list.length === 0) {
+    return <Typography variant="body2" sx={{ color: colors.text.secondary }}>Sin datos para mostrar</Typography>;
+  }
+  const maxValue = Math.max(1, ...list.map(d => Number(d.amount ?? 0)));
   
   return (
     <Box sx={{ mt: 2 }}>
-      {data.map((item, index) => (
+      {list.map((item, index) => (
         <Box key={index} sx={{ mb: 2 }}>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
             <Typography variant="body2" sx={{ color: colors.text.secondary }}>
               {item.month}
             </Typography>
             <Typography variant="body2" sx={{ fontWeight: 600, color: colors.primary }}>
-              ${item.amount.toLocaleString()}
+              ${Number(item.amount ?? 0).toLocaleString()}
             </Typography>
           </Box>
           <Box
@@ -228,7 +232,7 @@ const SimpleBarChart = ({ data }) => {
           >
             <Box
               sx={{
-                width: `${(item.amount / maxValue) * 100}%`,
+                width: `${(Number(item.amount ?? 0) / maxValue) * 100}%`,
                 height: '100%',
                 background: `linear-gradient(90deg, ${colors.primary}, ${colors.secondary})`,
                 borderRadius: 4,
@@ -244,13 +248,17 @@ const SimpleBarChart = ({ data }) => {
 
 // Componente de gráfico de pastel simple
 const SimplePieChart = ({ data, colors: pieColors }) => {
-  const total = data.reduce((sum, item) => sum + item.value, 0);
+  const list = Array.isArray(data) ? data : [];
+  const total = list.reduce((sum, item) => sum + Number(item.value ?? 0), 0);
+  if (list.length === 0 || total <= 0) {
+    return <Typography variant="body2" sx={{ color: colors.text.secondary }}>Sin datos para mostrar</Typography>;
+  }
   
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
       <Box sx={{ position: 'relative', width: 200, height: 200, mb: 2 }}>
         <svg viewBox="0 0 100 100" style={{ width: '100%', height: '100%' }}>
-          {data.reduce((acc, item, index) => {
+          {list.reduce((acc, item, index) => {
             const percentage = item.value / total;
             const startAngle = acc.lastAngle;
             const angle = percentage * 360;
@@ -289,8 +297,8 @@ const SimplePieChart = ({ data, colors: pieColors }) => {
         </svg>
       </Box>
       
-      <Box sx={{ display: 'flex', justifyContent: 'center', gap: 3, flexWrap: 'wrap' }}>
-        {data.map((item, index) => (
+       <Box sx={{ display: 'flex', justifyContent: 'center', gap: 3, flexWrap: 'wrap' }}>
+        {list.map((item, index) => (
           <Box key={item.name} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: pieColors[index] }} />
             <Typography variant="caption" sx={{ color: colors.text.secondary }}>
@@ -311,126 +319,255 @@ const Dashboard = () => {
     collectionRate: 0,
   });
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [recentActivity, setRecentActivity] = useState([]);
   const [hoveredRow, setHoveredRow] = useState(null);
 
-  // Datos para gráficos
-  const paymentData = [
-    { month: 'Ene', amount: 45000 },
-    { month: 'Feb', amount: 52000 },
-    { month: 'Mar', amount: 48000 },
-    { month: 'Abr', amount: 61000 },
-    { month: 'May', amount: 55000 },
-    { month: 'Jun', amount: 67000 },
-  ];
-
-  const residentDistribution = [
-    { name: 'Propietarios', value: 45 },
-    { name: 'Arrendatarios', value: 30 },
-    { name: 'Invitados', value: 15 },
-  ];
+  const [paymentData, setPaymentData] = useState([]);
+  const [residentDistribution, setResidentDistribution] = useState([]);
+  const [upcomingDue, setUpcomingDue] = useState([]);
 
   const pieColors = [colors.primary, colors.info, colors.warning];
 
   useEffect(() => {
     fetchDashboardData();
-
-
-    communicationAPI.getAll()
-      .then(response => {
-        console.log('Comunicados obtenidos:', response.data);
-      })
-      .catch(error => {
-        console.error('Error al obtener comunicados:', error);
-      });
-
-      empleadosAPI.getAll()
-        .then(response => {
-          console.log('Empleados obtenidos:', response.data);
-        })
-        .catch(error => {
-          console.error('Error al obtener empleados:', error);
-        });
-
-        facturasAPI.getAll()
-        .then(response => {
-          console.log('Facturas obtenidas:', response.data);
-        })
-        .catch(error => {
-          console.error('Error al obtener facturas:', error);
-        });
-
-        ingresosAPI.getAll()
-        .then(response => {
-          console.log('Ingresos obtenidos:', response.data);
-        })
-        .catch(error => {
-          console.error('Error al obtener ingresos:', error);
-        });
-
-        egresosAPI.getAll()
-        .then(response => {
-          console.log('Egresos obtenidos:', response.data);
-        })
-        .catch(error => {
-          console.error('Error al obtener egresos:', error);
-        });
-
-          paymentAPI.getAll()
-        .then(response => {
-          console.log('Pagos obtenidos:', response.data);
-        })
-        .catch(error => {
-          console.error('Error al obtener pagos:', error);
-        });
-
-        residentesAPI.getAll()
-        .then(response => {
-          console.log('Residentes obtenidos:', response.data);
-        })
-        .catch(error => {
-          console.error('Error al obtener residentes:', error);
-        });
-
-        documentosAPI.getAll()
-        .then(response => {
-          console.log('Documentos obtenidos:', response.data);
-        })
-        .catch(error => {
-          console.error('Error al obtener documentos:', error);
-        });
-
-        unidadesAPI.getAll()
-        .then(response => {
-          console.log('Unidades obtenidas:', response.data);
-        })
-        .catch(error => {
-          console.error('Error al obtener unidades:', error);
-        });
-
-
+    const handler = () => fetchDashboardData();
+    window.addEventListener('dashboard:refresh', handler);
+    return () => window.removeEventListener('dashboard:refresh', handler);
   }, []);
 
-  const fetchDashboardData = () => {
-    setTimeout(() => {
-      setStats({
-        totalResidents: 128,
-        totalPayments: 85000,
-        pendingRequests: 12,
-        collectionRate: 92,
-      });
-      
-      setRecentActivity([
-        { id: 1, type: 'payment', user: 'Juan Pérez', amount: 85000, time: 'Hace 2 horas', status: 'completed' },
-        { id: 2, type: 'request', user: 'María García', description: 'Mantenimiento ascensor', time: 'Hace 4 horas', status: 'pending' },
-        { id: 3, type: 'new', user: 'Carlos López', description: 'Nuevo residente - Unidad 305', time: 'Ayer', status: 'completed' },
-        { id: 4, type: 'payment', user: 'Ana Martínez', amount: 85000, time: 'Ayer', status: 'completed' },
-        { id: 5, type: 'request', user: 'Pedro Rodríguez', description: 'Limpieza áreas comunes', time: '2 días', status: 'pending' },
-        { id: 6, type: 'payment', user: 'Laura Sánchez', amount: 85000, time: '3 días', status: 'completed' },
+  const toArray = (v) => (Array.isArray(v) ? v : []);
+  const toNumber = (v) => {
+    const n = Number(v);
+    return Number.isFinite(n) ? n : 0;
+  };
+  const safeDate = (v) => {
+    if (!v) return null;
+    const d = new Date(v);
+    return Number.isNaN(d.getTime()) ? null : d;
+  };
+  const monthLabelEs = (monthIndex) => (['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'][monthIndex] || '');
+  const isSameMonth = (a, b) => a && b && a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth();
+  const relativeTimeEs = (date) => {
+    const d = safeDate(date);
+    if (!d) return '—';
+    const diffMs = Date.now() - d.getTime();
+    const diffMin = Math.floor(diffMs / 60000);
+    if (diffMin < 1) return 'Hace un momento';
+    if (diffMin < 60) return `Hace ${diffMin} min`;
+    const diffHr = Math.floor(diffMin / 60);
+    if (diffHr < 24) return `Hace ${diffHr} h`;
+    const diffDay = Math.floor(diffHr / 24);
+    if (diffDay === 1) return 'Ayer';
+    return `Hace ${diffDay} días`;
+  };
+
+  const fetchDashboardData = async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const [resRes, pagosRes, factRes, unidadesRes] = await Promise.all([
+        residentesAPI.getAll(),
+        paymentAPI.getAll(),
+        facturasAPI.getAll(),
+        unidadesAPI.getAll(),
       ]);
-      
+
+      const residentes = toArray(resRes?.data);
+      const pagos = toArray(pagosRes?.data);
+      const facturas = toArray(factRes?.data);
+      const unidades = toArray(unidadesRes?.data);
+
+      const unidadesById = new Map();
+      unidades.forEach((u) => {
+        const id = u.idUnidad ?? u.id;
+        if (id != null) unidadesById.set(String(id), u);
+      });
+
+      // Stats
+      const now = new Date();
+      const pagosProcesadosMes = pagos
+        .filter((p) => String(p.estadoPago ?? p.estado ?? '').toLowerCase() === 'procesado')
+        .filter((p) => {
+          const fp = safeDate(p.fechaPago);
+          return fp ? isSameMonth(fp, now) : false;
+        });
+      const totalPayments = pagosProcesadosMes.reduce((sum, p) => sum + Number(p.monto ?? 0), 0);
+
+      const facturasPendientes = facturas.filter((f) => {
+        const e = String(f.estadoFactura ?? f.estado ?? '').toLowerCase();
+        return e === 'pendiente' || e === 'vencida';
+      });
+
+      const totalFacturaMonto = facturas.reduce((sum, f) => sum + Number(f.monto ?? 0), 0);
+      const totalFacturaPagadaMonto = facturas
+        .filter((f) => String(f.estadoFactura ?? f.estado ?? '').toLowerCase() === 'pagada')
+        .reduce((sum, f) => sum + Number(f.monto ?? 0), 0);
+      const collectionRate = totalFacturaMonto > 0 ? Math.round((totalFacturaPagadaMonto / totalFacturaMonto) * 100) : 0;
+
+      setStats({
+        totalResidents: residentes.length,
+        totalPayments,
+        pendingRequests: facturasPendientes.length,
+        collectionRate,
+      });
+
+      // Charts
+      const months = Array.from({ length: 6 }).map((_, i) => {
+        const d = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1);
+        return d;
+      });
+      const bar = months.map((m) => {
+        const amount = pagos
+          .filter((p) => String(p.estadoPago ?? p.estado ?? '').toLowerCase() === 'procesado')
+          .filter((p) => {
+            const fp = safeDate(p.fechaPago);
+            return fp ? isSameMonth(fp, m) : false;
+          })
+          .reduce((sum, p) => sum + Number(p.monto ?? 0), 0);
+        return { month: monthLabelEs(m.getMonth()), amount };
+      });
+      setPaymentData(bar);
+
+      const tipoCounts = residentes.reduce(
+        (acc, r) => {
+          const t = String(r.tipoResidente ?? '').toLowerCase();
+          if (t.includes('prop')) acc.prop += 1;
+          else if (t.includes('arren')) acc.arr += 1;
+          else acc.other += 1;
+          return acc;
+        },
+        { prop: 0, arr: 0, other: 0 }
+      );
+      setResidentDistribution([
+        { name: 'Propietarios', value: tipoCounts.prop },
+        { name: 'Arrendatarios', value: tipoCounts.arr },
+        { name: 'Otros', value: tipoCounts.other },
+      ]);
+
+      // Upcoming due invoices
+      const upcoming = facturas
+        .map((f) => {
+          const due = safeDate(f.fechaVencimiento ?? f.fecha_vencimiento);
+          if (!due) return null;
+          const estado = String(f.estadoFactura ?? f.estado ?? '').toLowerCase();
+          if (estado === 'pagada') return null;
+          const idUnidad = f.idUnidad ?? f.unidadId;
+          const unidad = idUnidad != null ? unidadesById.get(String(idUnidad)) : null;
+          const unitNumber = unidad?.numero ?? unidad?.number ?? idUnidad ?? '-';
+          const days = Math.ceil((due.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+          return {
+            key: f.idFactura ?? f.id,
+            label: `Factura unidad ${unitNumber}`,
+            days,
+          };
+        })
+        .filter(Boolean)
+        .filter((x) => x.days >= 0)
+        .sort((a, b) => a.days - b.days)
+        .slice(0, 3);
+      setUpcomingDue(upcoming);
+
+      // Recent activity (payments + pending invoices + latest residents)
+      const pagosRecent = pagos
+        .map((p) => {
+          const fp = safeDate(p.fechaPago);
+          const estado = String(p.estadoPago ?? p.estado ?? '').toLowerCase();
+          const completed = estado === 'procesado';
+          const facturaId = p.idFactura ?? p.id_factura ?? null;
+          const factura = facturaId == null
+            ? null
+            : facturas.find((f) => String(f.idFactura ?? f.id) === String(facturaId));
+          const idUnidad = factura?.idUnidad ?? factura?.unidadId;
+          const unidad = idUnidad != null ? unidadesById.get(String(idUnidad)) : null;
+          const unitNumber = unidad?.numero ?? unidad?.number ?? idUnidad ?? '-';
+          const amount = Number(p.monto ?? 0);
+          return {
+            _date: fp,
+            _sort: fp ? fp.getTime() : 0,
+            id: `pago-${p.idPago ?? p.id ?? Math.random()}`,
+            type: 'payment',
+            user: `Unidad ${unitNumber}`,
+            amount,
+            time: relativeTimeEs(fp),
+            status: completed ? 'completed' : 'pending',
+          };
+        })
+        .sort((a, b) => (b._sort ?? 0) - (a._sort ?? 0))
+        .slice(0, 4);
+
+      const facturasRecent = facturasPendientes
+        .map((f) => {
+          const refDate = safeDate(f.fechaVencimiento ?? f.fecha_vencimiento ?? f.fechaEmision ?? f.fecha_emision);
+          const idUnidad = f.idUnidad ?? f.unidadId;
+          const unidad = idUnidad != null ? unidadesById.get(String(idUnidad)) : null;
+          const unitNumber = unidad?.numero ?? unidad?.number ?? idUnidad ?? '-';
+          const amount = Number(f.monto ?? 0);
+          return {
+            _date: refDate,
+            _sort: refDate ? refDate.getTime() : 0,
+            id: `factura-${f.idFactura ?? f.id ?? Math.random()}`,
+            type: 'request',
+            user: `Unidad ${unitNumber}`,
+            description: `Factura pendiente: $${amount.toLocaleString()}`,
+            time: relativeTimeEs(refDate),
+            status: 'pending',
+          };
+        })
+        .sort((a, b) => (b._sort ?? 0) - (a._sort ?? 0))
+        .slice(0, 3);
+
+      const residentesRecent = residentes
+        .map((r) => {
+          const created = safeDate(
+            r.createdAt ??
+            r.fechaRegistro ??
+            r.fecha_creacion ??
+            r.updatedAt ??
+            r.fechaActualizacion ??
+            r.fecha_actualizacion
+          );
+          const idFallback = toNumber(r.idResidente ?? r.id);
+          const fullName = [r.nombre, r.apellido].filter(Boolean).join(' ') || 'Residente';
+          return {
+            _date: created,
+            _sort: created ? created.getTime() : idFallback,
+            id: `residente-${r.idResidente ?? r.id ?? Math.random()}`,
+            type: 'new',
+            user: fullName,
+            description: 'Nuevo residente registrado',
+            time: relativeTimeEs(created),
+            status: 'completed',
+          };
+        })
+        .sort((a, b) => (b._sort ?? 0) - (a._sort ?? 0))
+        .slice(0, 3);
+
+      // Keep a mix of movement types so "Nuevo residente" doesn't disappear when timestamps are missing.
+      const mixed = [
+        ...pagosRecent.slice(0, 4),
+        ...facturasRecent.slice(0, 2),
+        ...residentesRecent.slice(0, 2),
+      ];
+
+      const merged = mixed
+        .sort((a, b) => (b._sort ?? 0) - (a._sort ?? 0))
+        .slice(0, 8)
+        .map(({ _date, _sort, ...rest }) => rest);
+
+      setRecentActivity(merged);
+    } catch (err) {
+      const msg = err?.response?.data?.message ?? err?.message ?? 'Error al cargar datos del dashboard';
+      setError(msg);
+      setStats({ totalResidents: 0, totalPayments: 0, pendingRequests: 0, collectionRate: 0 });
+      setPaymentData([]);
+      setResidentDistribution([]);
+      setUpcomingDue([]);
+      setRecentActivity([]);
+    } finally {
       setLoading(false);
-    }, 1000);
+    }
   };
 
   const getActivityIcon = (type) => {
@@ -491,6 +628,16 @@ const Dashboard = () => {
   return (
     <Box sx={{ backgroundColor: colors.background, minHeight: '100vh', py: 4 }}>
       <Container maxWidth="xl">
+        {error && (
+          <Paper elevation={0} sx={{ p: 2, mb: 3, borderRadius: 3, border: `1px solid ${alpha(colors.error, 0.25)}`, backgroundColor: alpha(colors.error, 0.06) }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <InfoIcon sx={{ color: colors.error }} />
+              <Typography variant="body2" sx={{ color: colors.text.primary, fontWeight: 600 }}>No se pudieron cargar los datos reales</Typography>
+            </Box>
+            <Typography variant="caption" sx={{ color: colors.text.secondary, display: 'block', mt: 0.5 }}>{error}</Typography>
+          </Paper>
+        )}
+
         {/* Header */}
         <Paper
           elevation={0}
@@ -627,7 +774,11 @@ const Dashboard = () => {
                 <Typography variant="h6" sx={{ fontWeight: 700, color: colors.text.primary, mb: 3 }}>
                   Distribución de Residentes
                 </Typography>
-                <SimplePieChart data={residentDistribution} colors={pieColors} />
+                {residentDistribution.length > 0 ? (
+                  <SimplePieChart data={residentDistribution} colors={pieColors} />
+                ) : (
+                  <Typography variant="body2" sx={{ color: colors.text.secondary }}>Sin datos para mostrar</Typography>
+                )}
               </CardContent>
             </GlassCard>
           </Grid>
@@ -803,11 +954,7 @@ const Dashboard = () => {
                     </Typography>
                   </Box>
                   
-                  {[
-                    { event: 'Pago cuota mensual', days: 5, color: colors.warning },
-                    { event: 'Reunión de condominio', days: 7, color: colors.info },
-                    { event: 'Mantenimiento ascensor', days: 15, color: colors.success },
-                  ].map((item, index) => (
+                  {(upcomingDue.length > 0 ? upcomingDue : []).map((item, index) => (
                     <Box
                       key={index}
                       sx={{
@@ -818,17 +965,23 @@ const Dashboard = () => {
                         borderBottom: index < 2 ? `1px solid ${alpha(colors.border, 0.5)}` : 'none',
                       }}
                     >
-                      <Typography variant="body2">{item.event}</Typography>
+                      <Typography variant="body2">{item.label}</Typography>
                       <Chip
                         label={`${item.days} días`}
                         size="small"
                         sx={{
-                          backgroundColor: alpha(item.color, 0.1),
-                          color: item.color,
+                          backgroundColor: alpha(item.days <= 3 ? colors.error : item.days <= 10 ? colors.warning : colors.info, 0.1),
+                          color: item.days <= 3 ? colors.error : item.days <= 10 ? colors.warning : colors.info,
                         }}
                       />
                     </Box>
                   ))}
+
+                  {upcomingDue.length === 0 && (
+                    <Typography variant="body2" sx={{ color: colors.text.secondary }}>
+                      No hay facturas pendientes con vencimiento proximo
+                    </Typography>
+                  )}
                 </Box>
               </CardContent>
             </GlassCard>

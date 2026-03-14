@@ -181,6 +181,7 @@ const UnidadesHabitacionales = () => {
 
       handleCloseDialog();
       fetchUnits();
+      window.dispatchEvent(new Event('dashboard:refresh'));
     } catch (error) {
       console.error("Error saving unit:", error);
     }
@@ -191,6 +192,7 @@ const UnidadesHabitacionales = () => {
       try {
         await unidadesAPI.delete(id);
         fetchUnits();
+        window.dispatchEvent(new Event('dashboard:refresh'));
       } catch (error) {
         console.error("Error deleting unit:", error);
       }

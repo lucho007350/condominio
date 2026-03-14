@@ -146,6 +146,7 @@ const Facturas = () => {
       }
       handleCloseDialog();
       await cargarFacturas();
+      window.dispatchEvent(new Event('dashboard:refresh'));
     } catch (err) {
       setError(err.response?.data?.message || err.message || 'Error al guardar');
     } finally {
@@ -158,6 +159,7 @@ const Facturas = () => {
     try {
       await facturasAPI.delete(factura.idFactura ?? factura.id);
       await cargarFacturas();
+      window.dispatchEvent(new Event('dashboard:refresh'));
     } catch (err) {
       setError(err.response?.data?.message || err.message || 'Error al eliminar');
     }

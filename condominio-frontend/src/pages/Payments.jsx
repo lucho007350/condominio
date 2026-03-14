@@ -221,6 +221,7 @@ const Payments = () => {
       }
       handleCloseDialog();
       await fetchPayments();
+      window.dispatchEvent(new Event('dashboard:refresh'));
     } catch (err) {
       setError(err.response?.data?.message || err.message || 'Error al guardar el pago');
     } finally {
@@ -234,6 +235,7 @@ const Payments = () => {
       setError(null);
       await paymentAPI.delete(payment.idPago ?? payment.id);
       await fetchPayments();
+      window.dispatchEvent(new Event('dashboard:refresh'));
     } catch (err) {
       setError(err.response?.data?.message || err.message || 'Error al eliminar');
     }
@@ -252,6 +254,7 @@ const Payments = () => {
       };
       await paymentAPI.update(payment.idPago ?? payment.id, payload);
       await fetchPayments();
+      window.dispatchEvent(new Event('dashboard:refresh'));
     } catch (err) {
       setError(err.response?.data?.message || err.message || 'Error al actualizar');
     }
