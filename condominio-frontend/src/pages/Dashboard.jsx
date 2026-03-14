@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Grid,
   Paper,
@@ -28,7 +29,6 @@ import { styled } from '@mui/material/styles';
 import {
   People as PeopleIcon,
   AttachMoney as MoneyIcon,
-  RequestQuote as RequestIcon,
   TrendingUp as TrendingIcon,
   Refresh as RefreshIcon,
   Add as AddIcon,
@@ -44,11 +44,10 @@ import {
   ArrowDownward as ArrowDownwardIcon,
   Info as InfoIcon,
   Receipt as ReceiptIcon,
-  Build as BuildIcon,
   Event as EventIcon,
 } from '@mui/icons-material';
 // APIs
-import { facturasAPI, paymentAPI, residentesAPI, unidadesAPI } from '../services/api.jsx';
+import { empleadosAPI, facturasAPI, paymentAPI, residentesAPI, unidadesAPI } from '../services/api.jsx';
 
 // Colores personalizados
 const colors = {
@@ -312,6 +311,7 @@ const SimplePieChart = ({ data, colors: pieColors }) => {
 };
 
 const Dashboard = () => {
+  const navigate = useNavigate();
   const [stats, setStats] = useState({
     totalResidents: 0,
     totalPayments: 0,
@@ -367,17 +367,19 @@ const Dashboard = () => {
     setError(null);
 
     try {
-      const [resRes, pagosRes, factRes, unidadesRes] = await Promise.all([
+      const [resRes, pagosRes, factRes, unidadesRes, empRes] = await Promise.all([
         residentesAPI.getAll(),
         paymentAPI.getAll(),
         facturasAPI.getAll(),
         unidadesAPI.getAll(),
+        empleadosAPI.getAll(),
       ]);
 
       const residentes = toArray(resRes?.data);
       const pagos = toArray(pagosRes?.data);
       const facturas = toArray(factRes?.data);
       const unidades = toArray(unidadesRes?.data);
+      const empleados = toArray(empRes?.data);
 
       const unidadesById = new Map();
       unidades.forEach((u) => {
@@ -397,7 +399,8 @@ const Dashboard = () => {
 
       const facturasPendientes = facturas.filter((f) => {
         const e = String(f.estadoFactura ?? f.estado ?? '').toLowerCase();
-        return e === 'pendiente' || e === 'vencida';
+        const isPaid = e.includes('pagad');
+        return !isPaid;
       });
 
       const totalFacturaMonto = facturas.reduce((sum, f) => sum + Number(f.monto ?? 0), 0);
@@ -452,7 +455,7 @@ const Dashboard = () => {
           const due = safeDate(f.fechaVencimiento ?? f.fecha_vencimiento);
           if (!due) return null;
           const estado = String(f.estadoFactura ?? f.estado ?? '').toLowerCase();
-          if (estado === 'pagada') return null;
+          if (estado.includes('pagad')) return null;
           const idUnidad = f.idUnidad ?? f.unidadId;
           const unidad = idUnidad != null ? unidadesById.get(String(idUnidad)) : null;
           const unitNumber = unidad?.numero ?? unidad?.number ?? idUnidad ?? '-';
@@ -497,22 +500,34 @@ const Dashboard = () => {
         .sort((a, b) => (b._sort ?? 0) - (a._sort ?? 0))
         .slice(0, 4);
 
-      const facturasRecent = facturasPendientes
+      const facturasRecent = facturas
         .map((f) => {
-          const refDate = safeDate(f.fechaVencimiento ?? f.fecha_vencimiento ?? f.fechaEmision ?? f.fecha_emision);
+          const refDate = safeDate(
+            f.updatedAt ??
+            f.fechaActualizacion ??
+            f.fecha_actualizacion ??
+            f.fechaEmision ??
+            f.fecha_emision ??
+            f.fechaVencimiento ??
+            f.fecha_vencimiento
+          );
           const idUnidad = f.idUnidad ?? f.unidadId;
           const unidad = idUnidad != null ? unidadesById.get(String(idUnidad)) : null;
           const unitNumber = unidad?.numero ?? unidad?.number ?? idUnidad ?? '-';
           const amount = Number(f.monto ?? 0);
+          const estadoRaw = String(f.estadoFactura ?? f.estado ?? '').toLowerCase();
+          const isPaid = estadoRaw.includes('pagad');
+          const estadoLabel = isPaid ? 'Pagada' : (f.estadoFactura ?? f.estado ?? 'Pendiente');
+          const idFallback = toNumber(f.idFactura ?? f.id);
           return {
             _date: refDate,
-            _sort: refDate ? refDate.getTime() : 0,
+            _sort: refDate ? refDate.getTime() : idFallback,
             id: `factura-${f.idFactura ?? f.id ?? Math.random()}`,
-            type: 'request',
+            type: 'invoice',
             user: `Unidad ${unitNumber}`,
-            description: `Factura pendiente: $${amount.toLocaleString()}`,
+            description: `Factura ${String(estadoLabel).toLowerCase()}: $${amount.toLocaleString()}`,
             time: relativeTimeEs(refDate),
-            status: 'pending',
+            status: isPaid ? 'completed' : 'pending',
           };
         })
         .sort((a, b) => (b._sort ?? 0) - (a._sort ?? 0))
@@ -544,16 +559,73 @@ const Dashboard = () => {
         .sort((a, b) => (b._sort ?? 0) - (a._sort ?? 0))
         .slice(0, 3);
 
-      // Keep a mix of movement types so "Nuevo residente" doesn't disappear when timestamps are missing.
+      const empleadosRecent = empleados
+        .map((e) => {
+          const created = safeDate(
+            e.createdAt ??
+            e.fechaRegistro ??
+            e.fecha_creacion ??
+            e.updatedAt ??
+            e.fechaActualizacion ??
+            e.fecha_actualizacion ??
+            e.fechaContratacion
+          );
+          const idFallback = toNumber(e.idEmpleado ?? e.id);
+          const fullName = [e.nombre, e.apellido].filter(Boolean).join(' ') || 'Empleado';
+          const cargo = e.cargo ? ` (${e.cargo})` : '';
+          return {
+            _date: created,
+            _sort: created ? created.getTime() : idFallback,
+            id: `empleado-${e.idEmpleado ?? e.id ?? Math.random()}`,
+            type: 'employee',
+            user: fullName,
+            description: `Nuevo empleado registrado${cargo}`,
+            time: relativeTimeEs(created),
+            status: 'completed',
+          };
+        })
+        .sort((a, b) => (b._sort ?? 0) - (a._sort ?? 0))
+        .slice(0, 3);
+
+      const unidadesRecent = unidades
+        .map((u) => {
+          const created = safeDate(
+            u.createdAt ??
+            u.fechaRegistro ??
+            u.fecha_creacion ??
+            u.updatedAt ??
+            u.fechaActualizacion ??
+            u.fecha_actualizacion
+          );
+          const idFallback = toNumber(u.idUnidad ?? u.id);
+          const numero = u.numero ?? u.number ?? idFallback ?? '-';
+          const tipo = u.tipoUnidad ?? u.tipo ?? '';
+          return {
+            _date: created,
+            _sort: created ? created.getTime() : idFallback,
+            id: `unidad-${u.idUnidad ?? u.id ?? Math.random()}`,
+            type: 'unit',
+            user: `Unidad ${numero}`,
+            description: `Nueva unidad registrada${tipo ? ` (${tipo})` : ''}`,
+            time: relativeTimeEs(created),
+            status: 'completed',
+          };
+        })
+        .sort((a, b) => (b._sort ?? 0) - (a._sort ?? 0))
+        .slice(0, 3);
+
+      // Keep a mix of movement types so non-payment events always show up.
       const mixed = [
-        ...pagosRecent.slice(0, 4),
-        ...facturasRecent.slice(0, 2),
+        ...pagosRecent.slice(0, 3),
+        ...facturasRecent.slice(0, 3),
         ...residentesRecent.slice(0, 2),
+        ...empleadosRecent.slice(0, 2),
+        ...unidadesRecent.slice(0, 2),
       ];
 
       const merged = mixed
         .sort((a, b) => (b._sort ?? 0) - (a._sort ?? 0))
-        .slice(0, 8)
+        .slice(0, 10)
         .map(({ _date, _sort, ...rest }) => rest);
 
       setRecentActivity(merged);
@@ -570,24 +642,30 @@ const Dashboard = () => {
     }
   };
 
-  const getActivityIcon = (type) => {
-    switch(type) {
-      case 'payment':
-        return { icon: <PaymentIcon />, color: colors.success, bgColor: alpha(colors.success, 0.1) };
-      case 'request':
-        return { icon: <BuildIcon />, color: colors.warning, bgColor: alpha(colors.warning, 0.1) };
-      default:
-        return { icon: <PeopleIcon />, color: colors.info, bgColor: alpha(colors.info, 0.1) };
-    }
-  };
+      const getActivityIcon = (type) => {
+        switch(type) {
+          case 'payment':
+            return { icon: <PaymentIcon />, color: colors.success, bgColor: alpha(colors.success, 0.1) };
+          case 'invoice':
+            return { icon: <ReceiptIcon />, color: colors.warning, bgColor: alpha(colors.warning, 0.1) };
+          case 'unit':
+            return { icon: <HomeIcon />, color: colors.primary, bgColor: alpha(colors.primary, 0.1) };
+          case 'employee':
+            return { icon: <PeopleIcon />, color: colors.purple, bgColor: alpha(colors.purple, 0.1) };
+          default:
+            return { icon: <PeopleIcon />, color: colors.info, bgColor: alpha(colors.info, 0.1) };
+        }
+      };
 
-  const getActivityLabel = (type) => {
-    switch(type) {
-      case 'payment': return 'Pago';
-      case 'request': return 'Solicitud';
-      default: return 'Nuevo';
-    }
-  };
+      const getActivityLabel = (type) => {
+        switch(type) {
+          case 'payment': return 'Pago';
+          case 'invoice': return 'Factura';
+          case 'unit': return 'Unidad';
+          case 'employee': return 'Empleado';
+          default: return 'Nuevo';
+        }
+      };
 
   if (loading) {
     return (
@@ -720,11 +798,11 @@ const Dashboard = () => {
           </Grid>
           <Grid item xs={12} sm={6} md={3}>
             <StatCard
-              title="Pendientes"
+              title="Facturas pendientes"
               value={stats.pendingRequests}
-              icon={RequestIcon}
+              icon={ReceiptIcon}
               color={colors.warning}
-              subtitle="Solicitudes por atender"
+              subtitle="Pendientes / vencidas"
               trend="down"
               trendValue={5}
             />
@@ -915,15 +993,7 @@ const Dashboard = () => {
                     description="Agregar nuevo pago de residente"
                     icon={MoneyIcon}
                     color={colors.success}
-                    onClick={() => console.log('Registrar pago')}
-                  />
-                  
-                  <QuickAction
-                    title="Nueva Solicitud"
-                    description="Crear solicitud de mantenimiento"
-                    icon={BuildIcon}
-                    color={colors.info}
-                    onClick={() => console.log('Nueva solicitud')}
+                    onClick={() => navigate('/payments')}
                   />
                   
                   <QuickAction
@@ -931,15 +1001,15 @@ const Dashboard = () => {
                     description="Registrar nuevo residente"
                     icon={PeopleIcon}
                     color={colors.warning}
-                    onClick={() => console.log('Agregar residente')}
+                    onClick={() => navigate('/residents')}
                   />
                   
                   <QuickAction
-                    title="Generar Reporte"
-                    description="Crear reporte mensual"
+                    title="Registrar Empleado"
+                    description="Agregar nuevo empleado"
                     icon={AssessmentIcon}
                     color={colors.purple}
-                    onClick={() => console.log('Generar reporte')}
+                    onClick={() => navigate('/employees')}
                   />
                 </Box>
 

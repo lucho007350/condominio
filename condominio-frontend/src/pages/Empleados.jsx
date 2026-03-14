@@ -302,6 +302,8 @@ const Empleados = () => {
         setSnackbar({ open: true, message: 'Empleado creado correctamente', severity: 'success' });
       }
 
+      window.dispatchEvent(new Event('dashboard:refresh'));
+
       handleCloseDialog();
     } catch (err) {
       const msg = err?.response?.data?.message ?? err?.message ?? 'Error al guardar empleado';
@@ -338,6 +340,7 @@ const Empleados = () => {
       });
 
       setSnackbar({ open: true, message: 'Empleado eliminado correctamente', severity: 'success' });
+      window.dispatchEvent(new Event('dashboard:refresh'));
       handleCloseDeleteConfirm();
     } catch (err) {
       const msg = err?.response?.data?.message ?? err?.message ?? 'Error al eliminar empleado';
