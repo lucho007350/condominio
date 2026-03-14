@@ -16,6 +16,9 @@ import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns'; //adaptador
 import { format } from 'date-fns'; //funcion para formatear fechas
 import { es } from 'date-fns/locale'; //localizacion en español
 
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+
 // Mapeo estado API (Pendiente, Procesado, Rechazado) <-> vista (pending, paid, overdue)
 const estadoToView = (estadoPago) => {
   if (!estadoPago) return 'pending';
@@ -141,6 +144,59 @@ const Payments = () => {
   const formatDate = (dateString) => {
     if (!dateString) return '-';
     return format(new Date(dateString), 'dd/MM/yyyy', { locale: es });
+  };
+
+  const handleExportPDF = () => {
+    const rows = filteredPayments;
+    const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'a4' });
+
+    const now = new Date();
+    const title = 'Reporte de Pagos';
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(16);
+    doc.text(title, 40, 40);
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    doc.text(`Generado: ${format(now, 'dd/MM/yyyy HH:mm', { locale: es })}`, 40, 58);
+    doc.text(`Filtro estado: ${filterStatus} | Busqueda: ${searchTerm || '-'}`, 40, 72);
+    doc.text(`Registros: ${rows.length}`, 40, 86);
+
+    const head = [[
+      'Apartamento',
+      'Monto',
+      'Fecha Vencimiento',
+      'Fecha Pago',
+      'Estado',
+      'Metodo',
+      'Recibo',
+    ]];
+
+    const body = rows.map((p) => {
+      const estado = p.status === 'paid' ? 'Pagado' : p.status === 'pending' ? 'Pendiente' : 'Vencido';
+      return [
+        String(p.apartment ?? '-'),
+        `$${Number(p.amount ?? 0).toLocaleString()}`,
+        formatDate(p.dueDate),
+        p.paymentDate ? formatDate(p.paymentDate) : '-',
+        estado,
+        String(p.method ?? '-'),
+        String(p.receipt ?? '-'),
+      ];
+    });
+
+    autoTable(doc, {
+      head,
+      body,
+      startY: 105,
+      styles: { fontSize: 9, cellPadding: 4 },
+      headStyles: { fillColor: [30, 58, 95] },
+      alternateRowStyles: { fillColor: [248, 250, 252] },
+      margin: { left: 40, right: 40 },
+    });
+
+    const fileName = `pagos_${format(now, 'yyyyMMdd_HHmm')}.pdf`;
+    doc.save(fileName);
   };
 
   // Obtener color según estado
@@ -411,16 +467,9 @@ const Payments = () => {
                   variant="outlined"
                   startIcon={<DownloadIcon />}
                   sx={{ color: 'white', backgroundColor: '#1e3a5f' }}
+                  onClick={handleExportPDF}
                 >
                   Exportar
-                </Button>
-                <Button
-                  fullWidth
-                  variant="outlined"
-                  startIcon={<ReceiptIcon />}
-                  sx={{ color: 'white', backgroundColor: '#1e3a5f' }}
-                >
-                  Reporte
                 </Button>
               </Box>
             </Grid>
