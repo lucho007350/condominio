@@ -26,6 +26,7 @@ import {
   Logout as LogoutIcon,
   Receipt as ReceiptIcon,
   Business as BusinessIcon, // Agregar este ícono
+  MarkEmailUnread as PqrsIcon,
 } from "@mui/icons-material";
 
 const Navbar = () => {
@@ -138,6 +139,23 @@ const Navbar = () => {
               }}
             >
               Mis Pagos
+            </Button>
+
+            {/* PQRS */}
+            <Button
+              component={Link}
+              to="/pqrs"
+              color="inherit"
+              startIcon={<PqrsIcon />}
+              sx={{
+                mx: 1,
+                borderBottom: location.pathname === "/pqrs" ? "2px solid #ffffff" : "none",
+                '&:hover': {
+                  backgroundColor: 'rgba(255,255,255,0.1)',
+                }
+              }}
+            >
+              PQRS
             </Button>
           </>
         )}
@@ -317,6 +335,17 @@ const Navbar = () => {
                   sx={{ '&:hover': { backgroundColor: 'rgba(255,255,255,0.1)' } }}
                 >
                   <ReceiptIcon sx={{ mr: 2, fontSize: 20 }} /> Mis Pagos
+                </MenuItem>
+              )}
+
+              {!isAdmin && !isPropietario && (
+                <MenuItem 
+                  component={Link}
+                  to="/pqrs"
+                  onClick={() => setAnchorUser(null)}
+                  sx={{ '&:hover': { backgroundColor: 'rgba(255,255,255,0.1)' } }}
+                >
+                  <PqrsIcon sx={{ mr: 2, fontSize: 20 }} /> PQRS
                 </MenuItem>
               )}
 

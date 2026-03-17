@@ -17,6 +17,7 @@ import MyPays from "./pages/MyPays";
 import Perfil from "./pages/profile"; // Solo una importación
 import Comunicacion from "./pages/comunicacion";
 import Propietarios from "./pages/Propietarios";
+import PQRS from "./pages/PQRS";
 
 // Componente para Layout con Navbar y Footer
 const Layout = ({ children }) => {
@@ -124,6 +125,12 @@ function App() {
             <MyPays />
           </Layout>
         } />
+
+        <Route path="/pqrs" element={
+          <Layout>
+            <PQRS />
+          </Layout>
+        } />
         <Route path="/mis-propiedades" element={  // Cambiado de "/mypays" a "/mis-pagos"
           <Layout>
             <Propietarios />
@@ -133,6 +140,7 @@ function App() {
         {/* Mantén también las rutas en inglés por si acaso (opcional) */}
         <Route path="/profile" element={<Navigate to="/perfil" />} />
         <Route path="/mypays" element={<Navigate to="/mis-pagos" />} />
+        <Route path="/pqr" element={<Navigate to="/pqrs" />} />
         
         {/* Redirigir ruta raíz según sesión y rol */}
         <Route path="/" element={<RootRedirect />} />
