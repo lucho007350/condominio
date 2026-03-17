@@ -1,14 +1,87 @@
 import axios from 'axios';
 
-// Configuración para tu backend local
-const API_BASE_URL = 'http://localhost:3001/api';
+// Prefer proxy in dev (/api -> vite proxy) and allow override via env.
+// Examples:
+// - VITE_API_BASE_URL=/api
+// - VITE_API_BASE_URL=http://localhost:3001/api
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
   headers: {
-    'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1lIjoiTHVpcyBGZWxpcGUiLCJleHAiOjE3NzI1ODEzNjAxODUsImlhdCI6MTc3MjU4MTI0MH0.qJyxaeNMkP-BysUTpX-k8NOfHopBi8rSU84RdDZhYLU',
     'Content-Type': 'application/json',
   },
+});
+
+let _tokenPromise = null;
+
+const getStoredUser = () => {
+  try {
+    const local = localStorage.getItem('user');
+    if (local) return { where: 'local', user: JSON.parse(local) };
+    const session = sessionStorage.getItem('user');
+    if (session) return { where: 'session', user: JSON.parse(session) };
+  } catch {
+    // ignore
+  }
+  return { where: null, user: null };
+};
+
+const storeTokenOnUser = (token) => {
+  const { where, user } = getStoredUser();
+  if (!where || !user) return;
+  const next = { ...user, token };
+  try {
+    if (where === 'local') localStorage.setItem('user', JSON.stringify(next));
+    if (where === 'session') sessionStorage.setItem('user', JSON.stringify(next));
+  } catch {
+    // ignore
+  }
+};
+
+const ensureToken = async () => {
+  const { user } = getStoredUser();
+  const existing = user?.token || user?.accessToken || user?.jwt;
+  if (existing) return existing;
+
+  if (_tokenPromise) return _tokenPromise;
+  _tokenPromise = fetch('/token', { method: 'POST' })
+    .then(async (r) => {
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(data?.error || 'No se pudo obtener token');
+      if (!data?.token) throw new Error('Token no viene en la respuesta');
+      storeTokenOnUser(data.token);
+      return data.token;
+    })
+    .finally(() => {
+      _tokenPromise = null;
+    });
+
+  return _tokenPromise;
+};
+
+api.interceptors.request.use(async (config) => {
+  config.headers = config.headers || {};
+
+  const auth = config.headers.Authorization || config.headers.authorization;
+  if (auth) return config;
+
+  const { user } = getStoredUser();
+  const token = user?.token || user?.accessToken || user?.jwt;
+
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+    return config;
+  }
+
+  try {
+    const fresh = await ensureToken();
+    config.headers.Authorization = `Bearer ${fresh}`;
+  } catch {
+    // no token available; proceed without Authorization
+  }
+
+  return config;
 });
 
 // Funciones de la API 
