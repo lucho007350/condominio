@@ -1,15 +1,64 @@
-import React from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Container, Row, Col } from 'react-bootstrap';
+
+import { residentesAPI, unidadesAPI } from '../services/api.jsx';
+
+const toArray = (v) => (Array.isArray(v) ? v : v ? [v] : []);
 
 const Inicio = () => {
   const primaryColor = '#1e3a5f';
-  
-  const stats = [
-    { number: '42', label: 'Unidades', icon: '🏢' },
-    { number: '128', label: 'Residentes', icon: '👥' },
-    { number: '3', label: 'Piscinas', icon: '🏊' },
-    { number: '24/7', label: 'Seguridad', icon: '🛡️' }
-  ];
+
+  const [unitsCount, setUnitsCount] = useState(null);
+  const [residentsCount, setResidentsCount] = useState(null);
+  const [loadingStats, setLoadingStats] = useState(true);
+  const [statsError, setStatsError] = useState('');
+
+  useEffect(() => {
+    let alive = true;
+
+    const load = async () => {
+      try {
+        setLoadingStats(true);
+        setStatsError('');
+        const [unitsRes, residentsRes] = await Promise.all([
+          unidadesAPI.getAll(),
+          residentesAPI.getAll(),
+        ]);
+
+        const units = toArray(unitsRes?.data);
+        const residents = toArray(residentsRes?.data);
+
+        if (!alive) return;
+        setUnitsCount(units.length);
+        setResidentsCount(residents.length);
+      } catch (err) {
+        if (!alive) return;
+        setUnitsCount(null);
+        setResidentsCount(null);
+        const msg = err?.response?.data?.message || err?.message;
+        console.error('Inicio stats error:', err);
+        setStatsError(msg ? `No se pudieron cargar las cifras desde la API: ${msg}` : 'No se pudieron cargar las cifras desde la API.');
+      } finally {
+        if (alive) setLoadingStats(false);
+      }
+    };
+
+    load();
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  const stats = useMemo(() => {
+    const unitsLabel = loadingStats ? '...' : unitsCount == null ? '-' : String(unitsCount);
+    const residentsLabel = loadingStats ? '...' : residentsCount == null ? '-' : String(residentsCount);
+
+    return [
+      { number: unitsLabel, label: 'Unidades', icon: '🏢' },
+      { number: residentsLabel, label: 'Residentes', icon: '👥' },
+      { number: '24/7', label: 'Seguridad', icon: '🛡️' },
+    ];
+  }, [loadingStats, residentsCount, unitsCount]);
 
   return (
     <div style={{
@@ -126,8 +175,8 @@ const Inicio = () => {
                 marginRight: 'auto',
                 textShadow: '1px 1px 2px rgba(0, 0, 0, 0.3)'
               }}>
-                Vive en el lugar más exclusivo de la ciudad. Disfruta de piscina, gimnasio, áreas verdes, 
-                seguridad 24/7 y salón de eventos. Un espacio diseñado para tu bienestar y el de tu familia.
+                Vive en el lugar más exclusivo de la ciudad. Disfruta de gimnasio, areas verdes,
+                seguridad 24/7 y salon de eventos. Un espacio disenado para tu bienestar y el de tu familia.
               </p>
 
               {/* Tarjetas de estadísticas */}
@@ -200,6 +249,17 @@ const Inicio = () => {
                   </Col>
                 ))}
               </Row>
+
+              {statsError && (
+                <div style={{
+                  marginTop: '1.5rem',
+                  color: 'rgba(255, 255, 255, 0.85)',
+                  fontSize: '0.95rem',
+                  textShadow: '1px 1px 2px rgba(0, 0, 0, 0.3)'
+                }}>
+                  {statsError}
+                </div>
+              )}
 
               {/* Botón de acción (opcional) */}
               <div style={{ marginTop: '3rem' }}>
