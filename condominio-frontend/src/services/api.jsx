@@ -86,11 +86,11 @@ api.interceptors.request.use(async (config) => {
 
 // Funciones de la API 
 export const residentAPI = {
-  getAll: () => api.get('/users'),
-  getById: (id) => api.get(`/users/${id}`),
-  create: (data) => api.post('/users', data),
-  update: (id, data) => api.put(`/users/${id}`, data),
-  delete: (id) => api.delete(`/users/${id}`),
+  getAll: () => api.get('/residentes'),
+  getById: (id) => api.get(`/residentes/${id}`),
+  create: (data) => api.post('/residentes', data),
+  update: (id, data) => api.put(`/residentes/${id}`, data),
+  delete: (id) => api.delete(`/residentes/${id}`),
 };
 
 

@@ -266,7 +266,7 @@ const PQRS = () => {
       prioridad: form.prioridad,
       estado: 'pendiente',
       fecha: new Date().toISOString(),
-      propietarioId: form.propietarioId || null,
+      propietarioId: form.propietarioId ? Number(form.propietarioId) : null,
       propietarioNombre: form.propietarioNombre.trim() || null,
       remitenteUsuario: user?.username || null,
       remitenteNombre: user?.name || null,
@@ -385,46 +385,65 @@ const PQRS = () => {
       )}
 
       {tab === 0 && (
-        <Paper sx={{ p: 3, borderRadius: 3, border: `1px solid ${colors.border}` }}>
+        <Paper
+          sx={{
+            p: 3,
+            borderRadius: 3,
+            border: `1px solid ${colors.border}`,
+            backgroundColor: colors.surface,
+          }}
+        >
           {(loadingOwners || sending) && <LinearProgress sx={{ mb: 2, borderRadius: 2 }} />}
 
-          <Grid container spacing={2.5}>
-            <Grid item xs={12} md={6}>
-              <FormControl fullWidth>
-                <InputLabel id="pqrs-propietario">Propietario</InputLabel>
-                <Select
-                  labelId="pqrs-propietario"
-                  label="Propietario"
-                  value={form.propietarioId}
-                  onChange={onSelectPropietario}
-                  disabled={loadingOwners}
-                >
-                  <MenuItem value="">
-                    <em>Seleccionar</em>
-                  </MenuItem>
-                  {propietarioOptions.map((p) => (
-                    <MenuItem key={String(p.id)} value={String(p.id)}>
-                      {p.name}{p.email ? ` (${p.email})` : ''}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
+          <Grid
+            container
+            spacing={2.5}
+            alignItems="stretch"
+            sx={{
+              '& .MuiFormControl-root, & .MuiTextField-root': { width: '100%' },
+            }}
+          >
+            
 
             <Grid item xs={12} md={6}>
               <TextField
                 fullWidth
-                label="Nombre del propietario (si no aparece)"
+                label="Nombre del propietario"
                 value={form.propietarioNombre}
                 onChange={handleChange('propietarioNombre')}
                 disabled={Boolean(form.propietarioId)}
               />
             </Grid>
 
-            <Grid item xs={12} md={4}>
+            {/* Fila 2 */}
+            <Grid item xs={12} md={12}>
+              <TextField
+                fullWidth
+                label="Asunto"
+                value={form.asunto}
+                onChange={handleChange('asunto')}
+              />
+            </Grid>
+
+            {/* Fila 2 */}
+            <Grid item xs={12} md={3}>
               <FormControl fullWidth>
                 <InputLabel id="pqrs-tipo">Tipo</InputLabel>
-                <Select labelId="pqrs-tipo" label="Tipo" value={form.tipo} onChange={handleChange('tipo')}>
+                <Select
+                  labelId="pqrs-tipo"
+                  label="Tipo"
+                  value={form.tipo}
+                  onChange={handleChange('tipo')}
+                  MenuProps={{
+                    slotProps: {
+                      backdrop: {
+                        sx: {
+                          backgroundColor: 'transparent',
+                        },
+                      },
+                    },
+                  }}
+                >
                   <MenuItem value="peticion">Peticion</MenuItem>
                   <MenuItem value="queja">Queja</MenuItem>
                   <MenuItem value="reclamo">Reclamo</MenuItem>
@@ -433,10 +452,24 @@ const PQRS = () => {
               </FormControl>
             </Grid>
 
-            <Grid item xs={12} md={4}>
+            <Grid item xs={12} md={3}>
               <FormControl fullWidth>
                 <InputLabel id="pqrs-prioridad">Prioridad</InputLabel>
-                <Select labelId="pqrs-prioridad" label="Prioridad" value={form.prioridad} onChange={handleChange('prioridad')}>
+                <Select
+                  labelId="pqrs-prioridad"
+                  label="Prioridad"
+                  value={form.prioridad}
+                  onChange={handleChange('prioridad')}
+                  MenuProps={{
+                    slotProps: {
+                      backdrop: {
+                        sx: {
+                          backgroundColor: 'transparent',
+                        },
+                      },
+                    },
+                  }}
+                >
                   <MenuItem value="baja">Baja</MenuItem>
                   <MenuItem value="media">Media</MenuItem>
                   <MenuItem value="alta">Alta</MenuItem>
@@ -444,9 +477,17 @@ const PQRS = () => {
               </FormControl>
             </Grid>
 
-            <Grid item xs={12} md={4}>
-              <Box sx={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: { xs: 'flex-start', md: 'flex-end' } }}>
+            <Grid item xs={12} md={6}>
+              <Box
+                sx={{
+                  height: '100%',
+                  display: 'flex',
+                  alignItems: { xs: 'stretch', md: 'center' },
+                  justifyContent: { xs: 'stretch', md: 'flex-end' },
+                }}
+              >
                 <Button
+                  fullWidth
                   variant="contained"
                   onClick={handleSubmit}
                   startIcon={<SendIcon />}
@@ -456,10 +497,11 @@ const PQRS = () => {
                     color: 'white',
                     borderRadius: 2,
                     px: 2.5,
-                    py: 1.2,
+                    height: 40,
                     fontWeight: 800,
                     textTransform: 'none',
                     '&:hover': { backgroundColor: colors.secondary },
+                    maxWidth: { xs: '100%', md: 260 },
                   }}
                 >
                   Enviar PQRS
@@ -467,15 +509,7 @@ const PQRS = () => {
               </Box>
             </Grid>
 
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Asunto"
-                value={form.asunto}
-                onChange={handleChange('asunto')}
-              />
-            </Grid>
-
+            {/* Descripción */}
             <Grid item xs={12}>
               <TextField
                 fullWidth
@@ -483,7 +517,7 @@ const PQRS = () => {
                 value={form.descripcion}
                 onChange={handleChange('descripcion')}
                 multiline
-                minRows={5}
+                minRows={4}
               />
             </Grid>
           </Grid>
