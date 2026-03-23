@@ -29,6 +29,14 @@ import {
   Fade,
   Zoom,
   alpha,
+  Radio,
+  RadioGroup,
+  FormControlLabel,
+  TextField,
+  Stepper,
+  Step,
+  StepLabel,
+  CircularProgress,
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import {
@@ -47,7 +55,14 @@ import {
   CheckCircleOutline as CheckCircleOutlineIcon,
   ErrorOutline as ErrorOutlineIcon,
   MoreHoriz as MoreHorizIcon,
+  Close as CloseIcon,
+  Lock as LockIcon,
+  Security as SecurityIcon,
+  Verified as VerifiedIcon,
+  PhoneIphone as PhoneIphoneIcon,
 } from '@mui/icons-material';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 // Colores personalizados
 const colors = {
@@ -67,45 +82,15 @@ const colors = {
   border: '#e2e8f0',
 };
 
-// Animaciones personalizadas
-const fadeIn = {
-  animation: 'fadeIn 0.5s ease-out',
-  '@keyframes fadeIn': {
-    from: { opacity: 0, transform: 'translateY(10px)' },
-    to: { opacity: 1, transform: 'translateY(0)' },
-  },
-};
-
-const slideIn = {
-  animation: 'slideIn 0.4s ease-out',
-  '@keyframes slideIn': {
-    from: { transform: 'translateX(-10px)', opacity: 0 },
-    to: { transform: 'translateX(0)', opacity: 1 },
-  },
-};
-
-const pulse = {
-  animation: 'pulse 2s infinite',
-  '@keyframes pulse': {
-    '0%': { opacity: 1 },
-    '50%': { opacity: 0.7 },
-    '100%': { opacity: 1 },
-  },
-};
-
-// Componentes estilizados
-const GlassCard = styled(Card)(({ theme }) => ({
-  background: `linear-gradient(135deg, ${alpha(colors.surface, 0.95)} 0%, ${alpha(colors.surface, 0.98)} 100%)`,
-  backdropFilter: 'blur(10px)',
-  border: `1px solid ${alpha(colors.border, 0.5)}`,
-  borderRadius: 16,
-  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-  '&:hover': {
-    transform: 'translateY(-4px)',
-    boxShadow: `0 20px 30px -10px ${alpha(colors.primary, 0.2)}`,
-    borderColor: alpha(colors.primary, 0.3),
-  },
-}));
+// Bancos de Colombia para simulación
+const bancosColombia = [
+  { id: 'bancolombia', name: 'Bancolombia', icon: '🏦', color: '#004481' },
+  { id: 'davivienda', name: 'Davivienda', icon: '🏛️', color: '#003366' },
+  { id: 'bbva', name: 'BBVA Colombia', icon: '🌐', color: '#004481' },
+  { id: 'occidente', name: 'Banco de Occidente', icon: '🏦', color: '#003366' },
+  { id: 'popular', name: 'Banco Popular', icon: '⭐', color: '#004481' },
+  { id: 'cajaSocial', name: 'Caja Social', icon: '🤝', color: '#006633' },
+];
 
 const GradientButton = styled(Button)(({ bgcolor = colors.primary }) => ({
   background: `linear-gradient(135deg, ${bgcolor} 0%, ${alpha(bgcolor, 0.8)} 100%)`,
@@ -135,46 +120,126 @@ const StatusChip = styled(Chip)(({ statuscolor }) => ({
   },
 }));
 
-const StatCard = ({ icon, title, value, subtitle, color, delay = 0 }) => (
-  <Zoom in timeout={300} style={{ transitionDelay: `${delay}ms` }}>
-    <GlassCard>
-      <CardContent sx={{ p: 3 }}>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
-          <Avatar
-            sx={{
-              bgcolor: alpha(color, 0.1),
-              color: color,
-              width: 48,
-              height: 48,
-              borderRadius: 3,
-            }}
-          >
-            {icon}
-          </Avatar>
-          <MoreHorizIcon sx={{ color: colors.text.disabled, fontSize: 20 }} />
-        </Box>
-        <Typography variant="h4" sx={{ fontWeight: 700, color: colors.text.primary, mb: 0.5 }}>
-          {value}
-        </Typography>
-        <Typography variant="body2" sx={{ color: colors.text.secondary, fontWeight: 500 }}>
-          {title}
-        </Typography>
-        {subtitle && (
-          <Typography variant="caption" sx={{ color: color, mt: 1, display: 'block' }}>
-            {subtitle}
-          </Typography>
-        )}
-      </CardContent>
-    </GlassCard>
-  </Zoom>
-);
+const BankCard = styled(Paper)(({ selected, bankcolor }) => ({
+  padding: '16px',
+  cursor: 'pointer',
+  borderRadius: 12,
+  border: selected ? `2px solid ${bankcolor}` : `1px solid ${colors.border}`,
+  backgroundColor: selected ? alpha(bankcolor, 0.05) : colors.surface,
+  transition: 'all 0.3s ease',
+  '&:hover': {
+    transform: 'translateY(-4px)',
+    boxShadow: '0 8px 20px rgba(0,0,0,0.1)',
+  },
+}));
+
+// Función para generar PDF
+const generarComprobantePDF = (pago) => {
+  const doc = new jsPDF();
+  
+  // Header con gradiente
+  doc.setFillColor(30, 58, 95);
+  doc.rect(0, 0, doc.internal.pageSize.width, 45, 'F');
+  
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(22);
+  doc.setFont('helvetica', 'bold');
+  doc.text('COMPROBANTE DE PAGO', doc.internal.pageSize.width / 2, 28, { align: 'center' });
+  
+  // Información del comprobante
+  doc.setTextColor(30, 58, 95);
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'normal');
+  doc.text(`N° Comprobante: ${pago.comprobante || `COMP-${Date.now()}`}`, 20, 60);
+  doc.text(`Fecha: ${new Date().toLocaleDateString('es-CO')}`, 20, 67);
+  doc.text(`Hora: ${new Date().toLocaleTimeString('es-CO')}`, 20, 74);
+  
+  // Línea separadora
+  doc.setDrawColor(226, 232, 240);
+  doc.line(20, 85, doc.internal.pageSize.width - 20, 85);
+  
+  // Tabla de detalles
+  autoTable(doc, {
+    startY: 95,
+    head: [['Concepto', 'Detalle']],
+    body: [
+      ['Período', pago.periodo],
+      ['Fecha de vencimiento', new Date(pago.fechaVencimiento).toLocaleDateString('es-CO')],
+      ['Concepto', pago.concepto],
+      ['Método de pago', pago.metodoPago || 'Transferencia Bancaria'],
+      ['Fecha de pago', new Date().toLocaleDateString('es-CO')],
+      ['Estado', 'PAGADO'],
+      ['Referencia', `REF-${Date.now()}`],
+    ],
+    theme: 'striped',
+    headStyles: {
+      fillColor: [30, 58, 95],
+      textColor: 255,
+      fontStyle: 'bold',
+      fontSize: 10,
+    },
+    styles: {
+      fontSize: 9,
+      cellPadding: 4,
+    },
+    columnStyles: {
+      0: { fontStyle: 'bold', cellWidth: 60 },
+      1: { cellWidth: 'auto' },
+    },
+  });
+  
+  const finalY = doc.lastAutoTable.finalY + 10;
+  
+  // Monto total
+  doc.setFillColor(248, 250, 252);
+  doc.rect(20, finalY, doc.internal.pageSize.width - 40, 30, 'F');
+  
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(30, 58, 95);
+  doc.text('TOTAL PAGADO:', 30, finalY + 18);
+  
+  doc.setFontSize(16);
+  doc.setTextColor(16, 185, 129);
+  doc.text(`$${pago.monto.toLocaleString()} COP`, doc.internal.pageSize.width - 40, finalY + 18, { align: 'right' });
+  
+  // Mensaje de confirmación
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(100, 116, 139);
+  doc.text('Este documento certifica que el pago ha sido realizado exitosamente.', 20, finalY + 48);
+  doc.text('Gracias por tu pago puntual.', 20, finalY + 55);
+  
+  // Código de verificación
+  doc.setDrawColor(226, 232, 240);
+  doc.roundedRect(doc.internal.pageSize.width - 55, finalY + 42, 35, 25, 3, 3);
+  doc.setFontSize(7);
+  doc.text('CÓDIGO', doc.internal.pageSize.width - 48, finalY + 55);
+  doc.text('VERIFICACIÓN', doc.internal.pageSize.width - 52, finalY + 62);
+  
+  doc.save(`comprobante_${pago.periodo.replace(/\s/g, '_')}.pdf`);
+};
 
 const MyPays = () => {
   const [loading, setLoading] = useState(true);
   const [openPagoDialog, setOpenPagoDialog] = useState(false);
+  const [openPaymentDialog, setOpenPaymentDialog] = useState(false);
   const [selectedPago, setSelectedPago] = useState(null);
   const [filterEstado, setFilterEstado] = useState('todos');
   const [hoveredRow, setHoveredRow] = useState(null);
+  
+  // Estados para la pasarela de pagos
+  const [activeStep, setActiveStep] = useState(0);
+  const [paymentMethod, setPaymentMethod] = useState('bank');
+  const [selectedBank, setSelectedBank] = useState(null);
+  const [cardData, setCardData] = useState({
+    number: '',
+    name: '',
+    expiry: '',
+    cvv: '',
+  });
+  const [processing, setProcessing] = useState(false);
+  const [paymentSuccess, setPaymentSuccess] = useState(false);
   
   const [pagos, setPagos] = useState([
     {
@@ -184,7 +249,7 @@ const MyPays = () => {
       monto: 85000,
       estado: 'pagado',
       fechaPago: '2026-03-05',
-      metodoPago: 'Transferencia',
+      metodoPago: 'Transferencia Bancolombia',
       comprobante: 'COMP-001-2026',
       concepto: 'Gastos comunes + Fondo de reserva',
     },
@@ -195,7 +260,7 @@ const MyPays = () => {
       monto: 85000,
       estado: 'pagado',
       fechaPago: '2026-02-08',
-      metodoPago: 'Webpay',
+      metodoPago: 'Tarjeta de Crédito',
       comprobante: 'COMP-002-2026',
       concepto: 'Gastos comunes',
     },
@@ -288,12 +353,302 @@ const MyPays = () => {
     return `${day}/${month}/${year}`;
   };
 
-  const getDiasRestantes = (fechaVencimiento) => {
-    const hoy = new Date();
-    const vencimiento = new Date(fechaVencimiento);
-    const diffTime = vencimiento - hoy;
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return diffDays;
+  const handleOpenPayment = (pago) => {
+    setSelectedPago(pago);
+    setActiveStep(0);
+    setPaymentMethod('bank');
+    setSelectedBank(null);
+    setCardData({ number: '', name: '', expiry: '', cvv: '' });
+    setPaymentSuccess(false);
+    setOpenPaymentDialog(true);
+  };
+
+  const handleProcessPayment = () => {
+    setProcessing(true);
+    
+    setTimeout(() => {
+      setProcessing(false);
+      setPaymentSuccess(true);
+      
+      // Actualizar el pago
+      const metodoTexto = paymentMethod === 'bank' ? `Transferencia - ${selectedBank?.name}` : 
+                          paymentMethod === 'card' ? 'Tarjeta de Crédito' : 'PSE';
+      
+      const pagoActualizado = {
+        ...selectedPago,
+        estado: 'pagado',
+        fechaPago: new Date().toISOString().split('T')[0],
+        metodoPago: metodoTexto,
+        comprobante: `COMP-${Date.now()}`,
+      };
+      
+      setPagos(pagos.map(p => p.id === selectedPago.id ? pagoActualizado : p));
+      setSelectedPago(pagoActualizado);
+      
+      // Generar PDF automáticamente
+      generarComprobantePDF(pagoActualizado);
+      
+      // Avanzar al paso de confirmación
+      setActiveStep(2);
+    }, 2000);
+  };
+
+  const handleDownloadPDF = (pago) => {
+    generarComprobantePDF(pago);
+  };
+
+  const handleClosePaymentDialog = () => {
+    if (!processing) {
+      setOpenPaymentDialog(false);
+      setActiveStep(0);
+      setPaymentSuccess(false);
+    }
+  };
+
+  const steps = ['Método de pago', 'Confirmar', 'Completado'];
+
+  const isNextDisabled = () => {
+    if (activeStep === 0) {
+      if (paymentMethod === 'bank') return !selectedBank;
+      if (paymentMethod === 'card') {
+        return !cardData.number || !cardData.name || !cardData.expiry || !cardData.cvv;
+      }
+      return false;
+    }
+    return false;
+  };
+
+  const getStepContent = () => {
+    switch (activeStep) {
+      case 0:
+        return (
+          <Box sx={{ mt: 2 }}>
+            <Typography variant="h6" sx={{ mb: 3, color: colors.text.primary }}>
+              Selecciona tu método de pago
+            </Typography>
+            
+            <RadioGroup value={paymentMethod} onChange={(e) => setPaymentMethod(e.target.value)}>
+              <Paper sx={{ mb: 2, p: 2, borderRadius: 2, border: `1px solid ${colors.border}` }}>
+                <FormControlLabel
+                  value="bank"
+                  control={<Radio />}
+                  label={
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                      <AccountBalanceIcon sx={{ color: colors.primary }} />
+                      <Box>
+                        <Typography variant="body1" fontWeight={600}>
+                          Transferencia Bancaria
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          Desde cualquier banco de Colombia
+                        </Typography>
+                      </Box>
+                    </Box>
+                  }
+                />
+              </Paper>
+              
+              <Paper sx={{ mb: 2, p: 2, borderRadius: 2, border: `1px solid ${colors.border}` }}>
+                <FormControlLabel
+                  value="card"
+                  control={<Radio />}
+                  label={
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                      <CreditCardIcon sx={{ color: colors.primary }} />
+                      <Box>
+                        <Typography variant="body1" fontWeight={600}>
+                          Tarjeta de Crédito/Débito
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          Visa, Mastercard, American Express
+                        </Typography>
+                      </Box>
+                    </Box>
+                  }
+                />
+              </Paper>
+              
+              <Paper sx={{ p: 2, borderRadius: 2, border: `1px solid ${colors.border}` }}>
+                <FormControlLabel
+                  value="pse"
+                  control={<Radio />}
+                  label={
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                      <PhoneIphoneIcon sx={{ color: colors.primary }} />
+                      <Box>
+                        <Typography variant="body1" fontWeight={600}>
+                          PSE
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          Pago Seguro en Línea
+                        </Typography>
+                      </Box>
+                    </Box>
+                  }
+                />
+              </Paper>
+            </RadioGroup>
+            
+            {paymentMethod === 'bank' && (
+              <Box sx={{ mt: 3 }}>
+                <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 600 }}>
+                  Selecciona tu banco
+                </Typography>
+                <Grid container spacing={2}>
+                  {bancosColombia.map((banco) => (
+                    <Grid item xs={6} sm={4} key={banco.id}>
+                      <BankCard
+                        selected={selectedBank?.id === banco.id}
+                        bankcolor={banco.color}
+                        onClick={() => setSelectedBank(banco)}
+                        elevation={0}
+                      >
+                        <Box sx={{ textAlign: 'center' }}>
+                          <Typography variant="h3" sx={{ fontSize: 32, mb: 1 }}>
+                            {banco.icon}
+                          </Typography>
+                          <Typography variant="body2" fontWeight={500}>
+                            {banco.name}
+                          </Typography>
+                        </Box>
+                      </BankCard>
+                    </Grid>
+                  ))}
+                </Grid>
+              </Box>
+            )}
+            
+            {paymentMethod === 'card' && (
+              <Box sx={{ mt: 3 }}>
+                <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 600 }}>
+                  Datos de la tarjeta
+                </Typography>
+                <TextField
+                  fullWidth
+                  label="Número de tarjeta"
+                  placeholder="**** **** **** ****"
+                  value={cardData.number}
+                  onChange={(e) => setCardData({ ...cardData, number: e.target.value })}
+                  sx={{ mb: 2 }}
+                />
+                <TextField
+                  fullWidth
+                  label="Nombre del titular"
+                  placeholder="Como aparece en la tarjeta"
+                  value={cardData.name}
+                  onChange={(e) => setCardData({ ...cardData, name: e.target.value })}
+                  sx={{ mb: 2 }}
+                />
+                <Grid container spacing={2}>
+                  <Grid item xs={6}>
+                    <TextField
+                      fullWidth
+                      label="Fecha expiración"
+                      placeholder="MM/AA"
+                      value={cardData.expiry}
+                      onChange={(e) => setCardData({ ...cardData, expiry: e.target.value })}
+                    />
+                  </Grid>
+                  <Grid item xs={6}>
+                    <TextField
+                      fullWidth
+                      label="CVV"
+                      placeholder="***"
+                      type="password"
+                      value={cardData.cvv}
+                      onChange={(e) => setCardData({ ...cardData, cvv: e.target.value })}
+                    />
+                  </Grid>
+                </Grid>
+              </Box>
+            )}
+            
+            <Alert
+              icon={<SecurityIcon fontSize="small" />}
+              severity="info"
+              sx={{ mt: 3, borderRadius: 2 }}
+            >
+              <Typography variant="body2">
+                Tu pago será procesado de forma segura.
+              </Typography>
+
+            </Alert>
+          </Box>
+        );
+        
+      case 1:
+        return (
+          <Box sx={{ mt: 2 }}>
+            <Typography variant="h6" sx={{ mb: 3, color: colors.text.primary }}>
+              Confirma tu pago
+            </Typography>
+            
+            <Paper sx={{ p: 3, borderRadius: 2, bgcolor: alpha(colors.primary, 0.02) }}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
+                <Typography variant="body2" color="text.secondary">Período</Typography>
+                <Typography variant="body2" fontWeight={500}>{selectedPago?.periodo}</Typography>
+              </Box>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
+                <Typography variant="body2" color="text.secondary">Concepto</Typography>
+                <Typography variant="body2" fontWeight={500}>{selectedPago?.concepto}</Typography>
+              </Box>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
+                <Typography variant="body2" color="text.secondary">Método</Typography>
+                <Typography variant="body2" fontWeight={500}>
+                  {paymentMethod === 'bank' ? selectedBank?.name : 
+                   paymentMethod === 'card' ? 'Tarjeta de Crédito' : 'PSE'}
+                </Typography>
+              </Box>
+              <Divider sx={{ my: 2 }} />
+              <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                <Typography variant="h6" fontWeight={600}>Total a pagar</Typography>
+                <Typography variant="h5" fontWeight={700} sx={{ color: colors.primary }}>
+                  ${selectedPago?.monto.toLocaleString()}
+                </Typography>
+              </Box>
+            </Paper>
+            
+            <Alert
+              severity="warning"
+              sx={{ mt: 3, borderRadius: 2 }}
+            >
+              Al hacer clic en "Pagar", se generará un comprobante PDF.
+            </Alert>
+          </Box>
+        );
+        
+      case 2:
+        return (
+          <Box sx={{ textAlign: 'center', py: 4 }}>
+            {processing ? (
+              <Box>
+                <CircularProgress sx={{ color: colors.primary, mb: 2 }} />
+                <Typography variant="body1">Procesando tu pago...</Typography>
+              </Box>
+            ) : (
+              <Fade in timeout={500}>
+                <Box>
+                  <CheckCircleIcon sx={{ fontSize: 80, color: colors.success, mb: 2 }} />
+                  <Typography variant="h5" sx={{ mb: 2, fontWeight: 600, color: colors.text.primary }}>
+                    ¡Pago exitoso!
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                    El comprobante se ha descargado automáticamente
+                  </Typography>
+                  <Paper sx={{ p: 2, bgcolor: alpha(colors.success, 0.1), borderRadius: 2 }}>
+                    <Typography variant="caption" sx={{ color: colors.success }}>
+                      Comprobante: {selectedPago?.comprobante || `COMP-${Date.now()}`}
+                    </Typography>
+                  </Paper>
+                </Box>
+              </Fade>
+            )}
+          </Box>
+        );
+        
+      default:
+        return null;
+    }
   };
 
   const pagosFiltrados = filterEstado === 'todos' 
@@ -302,36 +657,12 @@ const MyPays = () => {
 
   if (loading) {
     return (
-      <Box 
-        sx={{ 
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          minHeight: '60vh',
-        }}
-      >
-        <Box sx={{ ...pulse, textAlign: 'center' }}>
-          <ReceiptIcon sx={{ fontSize: 60, color: colors.primary, mb: 2 }} />
-          <Typography variant="h6" sx={{ color: colors.text.primary, fontWeight: 600 }}>
-            Cargando tus pagos
-          </Typography>
-          <Typography variant="body2" sx={{ color: colors.text.secondary, mt: 1 }}>
-            Por favor espera un momento
-          </Typography>
-        </Box>
-        <LinearProgress 
-          sx={{ 
-            width: 200,
-            mt: 3,
-            height: 4,
-            borderRadius: 2,
-            backgroundColor: alpha(colors.primary, 0.1),
-            '& .MuiLinearProgress-bar': { 
-              backgroundColor: colors.primary,
-            } 
-          }} 
-        />
+      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '60vh' }}>
+        <ReceiptIcon sx={{ fontSize: 60, color: colors.primary, mb: 2, animation: 'pulse 1.5s infinite' }} />
+        <Typography variant="h6" sx={{ color: colors.text.primary, fontWeight: 600 }}>
+          Cargando tus pagos
+        </Typography>
+        <LinearProgress sx={{ width: 200, mt: 3, height: 4, borderRadius: 2, backgroundColor: alpha(colors.primary, 0.1), '& .MuiLinearProgress-bar': { backgroundColor: colors.primary } }} />
       </Box>
     );
   }
@@ -339,30 +670,10 @@ const MyPays = () => {
   return (
     <Box sx={{ backgroundColor: colors.background, minHeight: '100vh', py: 4 }}>
       <Container maxWidth="xl">
-        {/* Header con bienvenida */}
-        <Box sx={{ ...fadeIn, mb: 4 }}>
-          <Paper
-            elevation={0}
-            sx={{
-              p: 4,
-              borderRadius: 4,
-              background: `linear-gradient(135deg, ${colors.primary} 0%, ${colors.secondary} 100%)`,
-              color: 'white',
-              position: 'relative',
-              overflow: 'hidden',
-            }}
-          >
-            <Box
-              sx={{
-                position: 'absolute',
-                top: -20,
-                right: -20,
-                width: 200,
-                height: 200,
-                borderRadius: '50%',
-                background: 'rgba(255,255,255,0.1)',
-              }}
-            />
+        {/* Header */}
+        <Box sx={{ mb: 4 }}>
+          <Paper elevation={0} sx={{ p: 4, borderRadius: 4, background: `linear-gradient(135deg, ${colors.primary} 0%, ${colors.secondary} 100%)`, color: 'white', position: 'relative', overflow: 'hidden' }}>
+            <Box sx={{ position: 'absolute', top: -20, right: -20, width: 200, height: 200, borderRadius: '50%', background: 'rgba(255,255,255,0.1)' }} />
             <Box sx={{ position: 'relative', zIndex: 1 }}>
               <Typography variant="overline" sx={{ color: 'rgba(255,255,255,0.8)', letterSpacing: 2 }}>
                 Panel de Pagos
@@ -372,148 +683,92 @@ const MyPays = () => {
               </Typography>
               <Typography variant="body1" sx={{ color: 'rgba(255,255,255,0.9)', maxWidth: 600 }}>
                 Gestiona y visualiza todos tus pagos de gastos comunes en un solo lugar.
-                Mantén tu historial al día y evita intereses por mora.
               </Typography>
             </Box>
           </Paper>
         </Box>
 
-        {/* Filtros rápidos */}
-        <Box sx={{ ...slideIn, mb: 3 }}>
-          <Paper
-            elevation={0}
-            sx={{
-              p: 2,
-              borderRadius: 3,
-              bgcolor: colors.surface,
-              border: `1px solid ${colors.border}`,
-              display: 'flex',
-              gap: 1,
-              flexWrap: 'wrap',
-            }}
-          >
-            <Button
-              variant={filterEstado === 'todos' ? 'contained' : 'text'}
-              onClick={() => setFilterEstado('todos')}
-              sx={{
-                borderRadius: 8,
-                px: 3,
-                py: 1,
-                backgroundColor: filterEstado === 'todos' ? colors.primary : 'transparent',
-                color: filterEstado === 'todos' ? 'white' : colors.text.secondary,
-                '&:hover': {
-                  backgroundColor: filterEstado === 'todos' ? colors.secondary : alpha(colors.primary, 0.05),
-                },
-              }}
-            >
-              Todos los pagos
-            </Button>
-            <Button
-              variant={filterEstado === 'pagado' ? 'contained' : 'text'}
-              onClick={() => setFilterEstado('pagado')}
-              sx={{
-                borderRadius: 8,
-                px: 3,
-                py: 1,
-                backgroundColor: filterEstado === 'pagado' ? colors.success : 'transparent',
-                color: filterEstado === 'pagado' ? 'white' : colors.text.secondary,
-                '&:hover': {
-                  backgroundColor: filterEstado === 'pagado' ? colors.success : alpha(colors.success, 0.05),
-                },
-              }}
-            >
-              Pagados
-            </Button>
-            <Button
-              variant={filterEstado === 'pendiente' ? 'contained' : 'text'}
-              onClick={() => setFilterEstado('pendiente')}
-              sx={{
-                borderRadius: 8,
-                px: 3,
-                py: 1,
-                backgroundColor: filterEstado === 'pendiente' ? colors.warning : 'transparent',
-                color: filterEstado === 'pendiente' ? 'white' : colors.text.secondary,
-                '&:hover': {
-                  backgroundColor: filterEstado === 'pendiente' ? colors.warning : alpha(colors.warning, 0.05),
-                },
-              }}
-            >
-              Pendientes
-            </Button>
-            <Button
-              variant={filterEstado === 'atrasado' ? 'contained' : 'text'}
-              onClick={() => setFilterEstado('atrasado')}
-              sx={{
-                borderRadius: 8,
-                px: 3,
-                py: 1,
-                backgroundColor: filterEstado === 'atrasado' ? colors.error : 'transparent',
-                color: filterEstado === 'atrasado' ? 'white' : colors.text.secondary,
-                '&:hover': {
-                  backgroundColor: filterEstado === 'atrasado' ? colors.error : alpha(colors.error, 0.05),
-                },
-              }}
-            >
-              Atrasados
-            </Button>
+        {/* Filtros */}
+        <Box sx={{ mb: 3 }}>
+          <Paper elevation={0} sx={{ p: 2, borderRadius: 3, bgcolor: colors.surface, border: `1px solid ${colors.border}`, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+            {['todos', 'pagado', 'pendiente', 'atrasado'].map((filtro) => (
+              <Button
+                key={filtro}
+                variant={filterEstado === filtro ? 'contained' : 'text'}
+                onClick={() => setFilterEstado(filtro)}
+                sx={{
+                  borderRadius: 8,
+                  px: 3,
+                  py: 1,
+                  backgroundColor: filterEstado === filtro ? 
+                    (filtro === 'pagado' ? colors.success : filtro === 'pendiente' ? colors.warning : filtro === 'atrasado' ? colors.error : colors.primary) : 'transparent',
+                  color: filterEstado === filtro ? 'white' : colors.text.secondary,
+                }}
+              >
+                {filtro === 'todos' ? 'Todos' : filtro === 'pagado' ? 'Pagados' : filtro === 'pendiente' ? 'Pendientes' : 'Atrasados'}
+              </Button>
+            ))}
           </Paper>
         </Box>
 
-        {/* Tarjetas de estadísticas */}
+        {/* Estadísticas */}
         <Grid container spacing={3} sx={{ mb: 4 }}>
           <Grid item xs={12} sm={6} md={3}>
-            <StatCard
-              icon={<AccountBalanceIcon />}
-              title="Total Pagado"
-              value={`$${stats.totalPagado.toLocaleString()}`}
-              subtitle={`${stats.pagados} pagos completados`}
-              color={colors.success}
-              delay={0}
-            />
+            <Paper elevation={0} sx={{ p: 3, borderRadius: 3, bgcolor: colors.surface, border: `1px solid ${colors.border}` }}>
+              <Avatar sx={{ bgcolor: alpha(colors.success, 0.1), color: colors.success, width: 48, height: 48, borderRadius: 3, mb: 2 }}>
+                <AccountBalanceIcon />
+              </Avatar>
+              <Typography variant="h4" sx={{ fontWeight: 700, color: colors.text.primary }}>
+                ${stats.totalPagado.toLocaleString()}
+              </Typography>
+              <Typography variant="body2" sx={{ color: colors.text.secondary }}>
+                Total Pagado
+              </Typography>
+            </Paper>
           </Grid>
           <Grid item xs={12} sm={6} md={3}>
-            <StatCard
-              icon={<ScheduleIcon />}
-              title="Por Pagar"
-              value={`$${stats.totalPendiente.toLocaleString()}`}
-              subtitle={`${stats.pendientes + stats.atrasados} pendientes`}
-              color={colors.warning}
-              delay={100}
-            />
+            <Paper elevation={0} sx={{ p: 3, borderRadius: 3, bgcolor: colors.surface, border: `1px solid ${colors.border}` }}>
+              <Avatar sx={{ bgcolor: alpha(colors.warning, 0.1), color: colors.warning, width: 48, height: 48, borderRadius: 3, mb: 2 }}>
+                <ScheduleIcon />
+              </Avatar>
+              <Typography variant="h4" sx={{ fontWeight: 700, color: colors.text.primary }}>
+                ${stats.totalPendiente.toLocaleString()}
+              </Typography>
+              <Typography variant="body2" sx={{ color: colors.text.secondary }}>
+                Por Pagar
+              </Typography>
+            </Paper>
           </Grid>
           <Grid item xs={12} sm={6} md={3}>
-            <StatCard
-              icon={<TrendingUpIcon />}
-              title="Pago Promedio"
-              value={`$${stats.pagoPromedio.toLocaleString()}`}
-              subtitle="Últimos 3 meses"
-              color={colors.info}
-              delay={200}
-            />
+            <Paper elevation={0} sx={{ p: 3, borderRadius: 3, bgcolor: colors.surface, border: `1px solid ${colors.border}` }}>
+              <Avatar sx={{ bgcolor: alpha(colors.info, 0.1), color: colors.info, width: 48, height: 48, borderRadius: 3, mb: 2 }}>
+                <TrendingUpIcon />
+              </Avatar>
+              <Typography variant="h4" sx={{ fontWeight: 700, color: colors.text.primary }}>
+                ${stats.pagoPromedio.toLocaleString()}
+              </Typography>
+              <Typography variant="body2" sx={{ color: colors.text.secondary }}>
+                Pago Promedio
+              </Typography>
+            </Paper>
           </Grid>
           <Grid item xs={12} sm={6} md={3}>
-            <StatCard
-              icon={<CheckCircleOutlineIcon />}
-              title="Pagos Puntuales"
-              value={stats.pagados - stats.atrasados}
-              subtitle={`${stats.atrasados} atrasados`}
-              color={colors.primary}
-              delay={300}
-            />
+            <Paper elevation={0} sx={{ p: 3, borderRadius: 3, bgcolor: colors.surface, border: `1px solid ${colors.border}` }}>
+              <Avatar sx={{ bgcolor: alpha(colors.primary, 0.1), color: colors.primary, width: 48, height: 48, borderRadius: 3, mb: 2 }}>
+                <CheckCircleOutlineIcon />
+              </Avatar>
+              <Typography variant="h4" sx={{ fontWeight: 700, color: colors.text.primary }}>
+                {stats.pagados}
+              </Typography>
+              <Typography variant="body2" sx={{ color: colors.text.secondary }}>
+                Pagos Realizados
+              </Typography>
+            </Paper>
           </Grid>
         </Grid>
 
         {/* Tabla de pagos */}
-        <Paper
-          elevation={0}
-          sx={{
-            borderRadius: 4,
-            bgcolor: colors.surface,
-            border: `1px solid ${colors.border}`,
-            overflow: 'hidden',
-            ...fadeIn,
-          }}
-        >
+        <Paper elevation={0} sx={{ borderRadius: 4, bgcolor: colors.surface, border: `1px solid ${colors.border}`, overflow: 'hidden' }}>
           <Box sx={{ p: 3, borderBottom: `1px solid ${colors.border}` }}>
             <Typography variant="h6" sx={{ color: colors.text.primary, fontWeight: 700 }}>
               Historial de Pagos
@@ -527,131 +782,59 @@ const MyPays = () => {
             <Table>
               <TableHead>
                 <TableRow sx={{ backgroundColor: alpha(colors.primary, 0.02) }}>
-                  <TableCell><Typography variant="subtitle2" sx={{ color: colors.text.primary, fontWeight: 600 }}>Período</Typography></TableCell>
-                  <TableCell><Typography variant="subtitle2" sx={{ color: colors.text.primary, fontWeight: 600 }}>Vencimiento</Typography></TableCell>
-                  <TableCell align="right"><Typography variant="subtitle2" sx={{ color: colors.text.primary, fontWeight: 600 }}>Monto</Typography></TableCell>
-                  <TableCell><Typography variant="subtitle2" sx={{ color: colors.text.primary, fontWeight: 600 }}>Estado</Typography></TableCell>
-                  <TableCell><Typography variant="subtitle2" sx={{ color: colors.text.primary, fontWeight: 600 }}>Fecha Pago</Typography></TableCell>
-                  <TableCell><Typography variant="subtitle2" sx={{ color: colors.text.primary, fontWeight: 600 }}>Método</Typography></TableCell>
-                  <TableCell align="center"><Typography variant="subtitle2" sx={{ color: colors.text.primary, fontWeight: 600 }}>Acciones</Typography></TableCell>
+                  <TableCell><Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Período</Typography></TableCell>
+                  <TableCell><Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Vencimiento</Typography></TableCell>
+                  <TableCell align="right"><Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Monto</Typography></TableCell>
+                  <TableCell><Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Estado</Typography></TableCell>
+                  <TableCell><Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Fecha Pago</Typography></TableCell>
+                  <TableCell><Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Método</Typography></TableCell>
+                  <TableCell align="center"><Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Acciones</Typography></TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
-                {pagosFiltrados.map((pago, index) => {
+                {pagosFiltrados.map((pago) => {
                   const estado = getEstadoConfig(pago.estado);
-                  const diasRestantes = pago.estado === 'pendiente' ? getDiasRestantes(pago.fechaVencimiento) : null;
                   
                   return (
-                    <TableRow
-                      key={pago.id}
-                      hover
-                      onMouseEnter={() => setHoveredRow(pago.id)}
-                      onMouseLeave={() => setHoveredRow(null)}
-                      sx={{
-                        transition: 'all 0.2s ease',
-                        backgroundColor: hoveredRow === pago.id ? alpha(colors.primary, 0.02) : 'transparent',
-                        ...slideIn,
-                      }}
-                    >
+                    <TableRow key={pago.id} hover onMouseEnter={() => setHoveredRow(pago.id)} onMouseLeave={() => setHoveredRow(null)}>
                       <TableCell>
-                        <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                          {pago.periodo}
-                        </Typography>
-                        <Typography variant="caption" sx={{ color: colors.text.secondary }}>
-                          {pago.concepto}
-                        </Typography>
+                        <Typography variant="body2" sx={{ fontWeight: 500 }}>{pago.periodo}</Typography>
+                        <Typography variant="caption" sx={{ color: colors.text.secondary }}>{pago.concepto}</Typography>
                       </TableCell>
                       <TableCell>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                           <CalendarIcon sx={{ fontSize: 16, color: colors.text.secondary }} />
-                          <Typography variant="body2">
-                            {formatDate(pago.fechaVencimiento)}
-                          </Typography>
+                          <Typography variant="body2">{formatDate(pago.fechaVencimiento)}</Typography>
                         </Box>
-                        {diasRestantes && (
-                          <Typography variant="caption" sx={{ color: colors.warning }}>
-                            {diasRestantes} días restantes
-                          </Typography>
-                        )}
                       </TableCell>
                       <TableCell align="right">
-                        <Typography variant="body1" sx={{ fontWeight: 700, color: colors.text.primary }}>
-                          ${pago.monto.toLocaleString()}
-                        </Typography>
+                        <Typography variant="body1" sx={{ fontWeight: 700 }}>${pago.monto.toLocaleString()}</Typography>
                       </TableCell>
                       <TableCell>
-                        <StatusChip
-                          icon={estado.icon}
-                          label={estado.label}
-                          statuscolor={estado.color}
-                          size="small"
-                        />
+                        <StatusChip icon={estado.icon} label={estado.label} statuscolor={estado.color} size="small" />
                       </TableCell>
                       <TableCell>
-                        {pago.fechaPago ? (
-                          <Typography variant="body2">
-                            {formatDate(pago.fechaPago)}
-                          </Typography>
-                        ) : (
-                          <Typography variant="body2" sx={{ color: colors.text.disabled }}>
-                            Pendiente
-                          </Typography>
-                        )}
+                        {pago.fechaPago ? formatDate(pago.fechaPago) : '-'}
                       </TableCell>
                       <TableCell>
-                        {pago.metodoPago ? (
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                            {pago.metodoPago === 'Webpay' ? <CreditCardIcon sx={{ fontSize: 16, color: colors.text.secondary }} /> : null}
-                            <Typography variant="body2">{pago.metodoPago}</Typography>
-                          </Box>
-                        ) : (
-                          <Typography variant="body2" sx={{ color: colors.text.disabled }}>
-                            -
-                          </Typography>
-                        )}
+                        {pago.metodoPago || '-'}
                       </TableCell>
                       <TableCell align="center">
                         <Tooltip title="Ver detalle" arrow>
-                          <IconButton
-                            size="small"
-                            onClick={() => {
-                              setSelectedPago(pago);
-                              setOpenPagoDialog(true);
-                            }}
-                            sx={{
-                              color: colors.primary,
-                              transition: 'all 0.2s ease',
-                              transform: hoveredRow === pago.id ? 'scale(1.1)' : 'scale(1)',
-                            }}
-                          >
+                          <IconButton size="small" onClick={() => { setSelectedPago(pago); setOpenPagoDialog(true); }} sx={{ color: colors.primary }}>
                             <VisibilityIcon fontSize="small" />
                           </IconButton>
                         </Tooltip>
                         {pago.estado === 'pagado' && (
                           <Tooltip title="Descargar comprobante" arrow>
-                            <IconButton
-                              size="small"
-                              sx={{
-                                color: colors.success,
-                                transition: 'all 0.2s ease',
-                                transform: hoveredRow === pago.id ? 'scale(1.1)' : 'scale(1)',
-                              }}
-                            >
+                            <IconButton size="small" onClick={() => handleDownloadPDF(pago)} sx={{ color: colors.success }}>
                               <DownloadIcon fontSize="small" />
                             </IconButton>
                           </Tooltip>
                         )}
                         {pago.estado !== 'pagado' && (
                           <Tooltip title="Pagar ahora" arrow>
-                            <GradientButton
-                              size="small"
-                              startIcon={<PaymentIcon />}
-                              onClick={() => {
-                                setSelectedPago(pago);
-                                setOpenPagoDialog(true);
-                              }}
-                              sx={{ ml: 1, py: 0.5, px: 2 }}
-                            >
+                            <GradientButton size="small" startIcon={<PaymentIcon />} onClick={() => handleOpenPayment(pago)} sx={{ ml: 1, py: 0.5, px: 2 }}>
                               Pagar
                             </GradientButton>
                           </Tooltip>
@@ -663,238 +846,126 @@ const MyPays = () => {
               </TableBody>
             </Table>
           </TableContainer>
-
-          {pagosFiltrados.length === 0 && (
-            <Box sx={{ textAlign: 'center', py: 8 }}>
-              <ReceiptIcon sx={{ fontSize: 60, color: colors.text.disabled, mb: 2 }} />
-              <Typography variant="h6" sx={{ color: colors.text.secondary }}>
-                No hay pagos para mostrar
-              </Typography>
-              <Typography variant="body2" sx={{ color: colors.text.disabled, mt: 1 }}>
-                Prueba con otros filtros
-              </Typography>
-            </Box>
-          )}
         </Paper>
 
-        {/* Dialog de detalle */}
-        <Dialog
-          open={openPagoDialog}
-          onClose={() => setOpenPagoDialog(false)}
-          maxWidth="sm"
-          fullWidth
-          TransitionComponent={Fade}
-          PaperProps={{
-            sx: {
-              borderRadius: 4,
-              overflow: 'hidden',
-            },
-          }}
-        >
+        {/* Diálogo de detalle */}
+        <Dialog open={openPagoDialog} onClose={() => setOpenPagoDialog(false)} maxWidth="sm" fullWidth>
           {selectedPago && (
             <>
-              <DialogTitle sx={{ 
-                bgcolor: colors.primary,
-                color: 'white',
-                py: 3,
-              }}>
+              <DialogTitle sx={{ bgcolor: colors.primary, color: 'white', py: 3 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                  <Avatar sx={{ bgcolor: 'rgba(255,255,255,0.2)', width: 48, height: 48 }}>
-                    <ReceiptIcon />
-                  </Avatar>
+                  <Avatar sx={{ bgcolor: 'rgba(255,255,255,0.2)' }}><ReceiptIcon /></Avatar>
                   <Box>
                     <Typography variant="h6">Detalle de Pago</Typography>
-                    <Typography variant="caption" sx={{ opacity: 0.9 }}>
-                      {selectedPago.periodo}
-                    </Typography>
+                    <Typography variant="caption">{selectedPago.periodo}</Typography>
                   </Box>
                 </Box>
               </DialogTitle>
               <DialogContent sx={{ p: 3 }}>
                 <Grid container spacing={3}>
                   <Grid item xs={12}>
-                    <Paper
-                      elevation={0}
-                      sx={{
-                        p: 2,
-                        bgcolor: alpha(colors.primary, 0.02),
-                        borderRadius: 2,
-                        border: `1px solid ${colors.border}`,
-                      }}
-                    >
+                    <Paper sx={{ p: 2, bgcolor: alpha(colors.primary, 0.02), borderRadius: 2 }}>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                        {selectedPago.estado === 'pagado' ? (
-                          <CheckCircleIcon sx={{ color: colors.success, fontSize: 40 }} />
-                        ) : selectedPago.estado === 'pendiente' ? (
-                          <ScheduleIcon sx={{ color: colors.warning, fontSize: 40 }} />
-                        ) : (
-                          <ErrorOutlineIcon sx={{ color: colors.error, fontSize: 40 }} />
-                        )}
+                        {selectedPago.estado === 'pagado' ? <CheckCircleIcon sx={{ color: colors.success, fontSize: 40 }} /> :
+                         selectedPago.estado === 'pendiente' ? <ScheduleIcon sx={{ color: colors.warning, fontSize: 40 }} /> :
+                         <ErrorOutlineIcon sx={{ color: colors.error, fontSize: 40 }} />}
                         <Box>
                           <Typography variant="body1" sx={{ fontWeight: 600 }}>
-                            {selectedPago.estado === 'pagado' && '¡Pago realizado con éxito!'}
-                            {selectedPago.estado === 'pendiente' && 'Pago pendiente'}
-                            {selectedPago.estado === 'atrasado' && 'Pago atrasado'}
+                            {selectedPago.estado === 'pagado' ? '¡Pago realizado!' : selectedPago.estado === 'pendiente' ? 'Pago pendiente' : 'Pago atrasado'}
                           </Typography>
-                          <Typography variant="caption" sx={{ color: colors.text.secondary }}>
-                            {selectedPago.concepto}
-                          </Typography>
+                          <Typography variant="caption">{selectedPago.concepto}</Typography>
                         </Box>
                       </Box>
                     </Paper>
                   </Grid>
-
                   <Grid item xs={12}>
-                    <Typography variant="subtitle2" sx={{ color: colors.text.primary, fontWeight: 600, mb: 2 }}>
-                      Información General
-                    </Typography>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 2 }}>Información General</Typography>
                     <Grid container spacing={2}>
-                      <Grid item xs={6}>
-                        <Typography variant="caption" sx={{ color: colors.text.secondary }}>
-                          Período
-                        </Typography>
-                        <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                          {selectedPago.periodo}
-                        </Typography>
-                      </Grid>
-                      <Grid item xs={6}>
-                        <Typography variant="caption" sx={{ color: colors.text.secondary }}>
-                          Vencimiento
-                        </Typography>
-                        <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                          {formatDate(selectedPago.fechaVencimiento)}
-                        </Typography>
-                      </Grid>
-                      <Grid item xs={12}>
-                        <Divider sx={{ my: 1 }} />
-                      </Grid>
-                      <Grid item xs={6}>
-                        <Typography variant="caption" sx={{ color: colors.text.secondary }}>
-                          Monto
-                        </Typography>
-                        <Typography variant="h6" sx={{ color: colors.primary, fontWeight: 700 }}>
-                          ${selectedPago.monto.toLocaleString()}
-                        </Typography>
-                      </Grid>
-                      <Grid item xs={6}>
-                        <Typography variant="caption" sx={{ color: colors.text.secondary }}>
-                          Estado
-                        </Typography>
-                        <Box sx={{ mt: 1 }}>
-                          <StatusChip
-                            icon={getEstadoConfig(selectedPago.estado).icon}
-                            label={getEstadoConfig(selectedPago.estado).label}
-                            statuscolor={getEstadoConfig(selectedPago.estado).color}
-                            size="small"
-                          />
-                        </Box>
-                      </Grid>
+                      <Grid item xs={6}><Typography variant="caption">Período</Typography><Typography variant="body2" fontWeight={500}>{selectedPago.periodo}</Typography></Grid>
+                      <Grid item xs={6}><Typography variant="caption">Vencimiento</Typography><Typography variant="body2" fontWeight={500}>{formatDate(selectedPago.fechaVencimiento)}</Typography></Grid>
+                      <Grid item xs={12}><Divider /></Grid>
+                      <Grid item xs={6}><Typography variant="caption">Monto</Typography><Typography variant="h6" sx={{ color: colors.primary, fontWeight: 700 }}>${selectedPago.monto.toLocaleString()}</Typography></Grid>
+                      <Grid item xs={6}><Typography variant="caption">Estado</Typography><StatusChip icon={getEstadoConfig(selectedPago.estado).icon} label={getEstadoConfig(selectedPago.estado).label} statuscolor={getEstadoConfig(selectedPago.estado).color} size="small" sx={{ mt: 1 }} /></Grid>
                     </Grid>
                   </Grid>
-
                   {selectedPago.estado === 'pagado' && (
                     <Grid item xs={12}>
-                      <Typography variant="subtitle2" sx={{ color: colors.text.primary, fontWeight: 600, mb: 2 }}>
-                        Detalles del Pago
-                      </Typography>
-                      <Paper
-                        elevation={0}
-                        sx={{
-                          p: 2,
-                          bgcolor: alpha(colors.success, 0.02),
-                          borderRadius: 2,
-                          border: `1px solid ${alpha(colors.success, 0.2)}`,
-                        }}
-                      >
+                      <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 2 }}>Detalles del Pago</Typography>
+                      <Paper sx={{ p: 2, bgcolor: alpha(colors.success, 0.02), borderRadius: 2 }}>
                         <Grid container spacing={2}>
-                          <Grid item xs={6}>
-                            <Typography variant="caption" sx={{ color: colors.text.secondary }}>
-                              Fecha de pago
-                            </Typography>
-                            <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                              {formatDate(selectedPago.fechaPago)}
-                            </Typography>
-                          </Grid>
-                          <Grid item xs={6}>
-                            <Typography variant="caption" sx={{ color: colors.text.secondary }}>
-                              Método de pago
-                            </Typography>
-                            <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                              {selectedPago.metodoPago}
-                            </Typography>
-                          </Grid>
-                          <Grid item xs={12}>
-                            <Typography variant="caption" sx={{ color: colors.text.secondary }}>
-                              Comprobante
-                            </Typography>
-                            <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                              {selectedPago.comprobante}
-                            </Typography>
-                          </Grid>
+                          <Grid item xs={6}><Typography variant="caption">Fecha de pago</Typography><Typography variant="body2">{formatDate(selectedPago.fechaPago)}</Typography></Grid>
+                          <Grid item xs={6}><Typography variant="caption">Método de pago</Typography><Typography variant="body2">{selectedPago.metodoPago}</Typography></Grid>
+                          <Grid item xs={12}><Typography variant="caption">Comprobante</Typography><Typography variant="body2">{selectedPago.comprobante}</Typography></Grid>
                         </Grid>
                       </Paper>
                     </Grid>
                   )}
-
-                  {selectedPago.estado !== 'pagado' && (
-                    <Grid item xs={12}>
-                      <Alert
-                        severity={selectedPago.estado === 'pendiente' ? 'warning' : 'error'}
-                        sx={{
-                          borderRadius: 2,
-                          '& .MuiAlert-icon': {
-                            color: selectedPago.estado === 'pendiente' ? colors.warning : colors.error,
-                          },
-                        }}
-                      >
-                        {selectedPago.estado === 'pendiente' 
-                          ? 'Realiza tu pago antes de la fecha de vencimiento para evitar intereses.'
-                          : 'Tu pago está atrasado. Realiza el pago lo antes posible para regularizar tu situación.'}
-                      </Alert>
-                    </Grid>
-                  )}
                 </Grid>
               </DialogContent>
-              <DialogActions sx={{ p: 3, bgcolor: alpha(colors.primary, 0.02) }}>
-                <Button
-                  onClick={() => setOpenPagoDialog(false)}
-                  variant="outlined"
-                  sx={{
-                    borderColor: colors.border,
-                    color: colors.text.primary,
-                    borderRadius: 2,
-                    px: 3,
-                  }}
-                >
-                  Cerrar
-                </Button>
+              <DialogActions sx={{ p: 3 }}>
+                <Button onClick={() => setOpenPagoDialog(false)} variant="outlined">Cerrar</Button>
                 {selectedPago.estado !== 'pagado' && (
-                  <GradientButton
-                    variant="contained"
-                    startIcon={<PaymentIcon />}
-                    onClick={() => setOpenPagoDialog(false)}
-                    sx={{ px: 4 }}
-                  >
-                    Pagar ahora
-                  </GradientButton>
+                  <GradientButton startIcon={<PaymentIcon />} onClick={() => { setOpenPagoDialog(false); handleOpenPayment(selectedPago); }}>Pagar ahora</GradientButton>
                 )}
                 {selectedPago.estado === 'pagado' && (
-                  <Button
-                    variant="contained"
-                    startIcon={<DownloadIcon />}
-                    sx={{
-                      bgcolor: colors.success,
-                      '&:hover': { bgcolor: alpha(colors.success, 0.9) },
-                      borderRadius: 2,
-                      px: 4,
-                    }}
-                  >
-                    Descargar
-                  </Button>
+                  <Button variant="contained" startIcon={<DownloadIcon />} onClick={() => handleDownloadPDF(selectedPago)} sx={{ bgcolor: colors.success }}>Descargar</Button>
                 )}
               </DialogActions>
             </>
           )}
+        </Dialog>
+
+        {/* Diálogo de pasarela de pagos */}
+        <Dialog open={openPaymentDialog} onClose={handleClosePaymentDialog} maxWidth="md" fullWidth>
+          <DialogTitle sx={{ bgcolor: colors.primary, color: 'white', py: 2 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <LockIcon />
+                <Typography variant="h6">Pasarela de Pagos</Typography>
+              </Box>
+              {!processing && (
+                <IconButton onClick={handleClosePaymentDialog} sx={{ color: 'white' }}>
+                  <CloseIcon />
+                </IconButton>
+              )}
+            </Box>
+          </DialogTitle>
+          
+          <DialogContent sx={{ p: 0 }}>
+            <Stepper activeStep={activeStep} sx={{ p: 3, bgcolor: '#f8fafc' }}>
+              {steps.map((label) => (
+                <Step key={label}>
+                  <StepLabel>{label}</StepLabel>
+                </Step>
+              ))}
+            </Stepper>
+            <Box sx={{ p: 3 }}>
+              {getStepContent()}
+            </Box>
+          </DialogContent>
+          
+          <DialogActions sx={{ p: 3, borderTop: `1px solid ${colors.border}` }}>
+            {activeStep === 1 && (
+              <Button onClick={() => setActiveStep(0)} disabled={processing}>
+                Atrás
+              </Button>
+            )}
+            {activeStep === 0 && (
+              <GradientButton onClick={() => setActiveStep(1)} disabled={isNextDisabled()}>
+                Continuar
+              </GradientButton>
+            )}
+            {activeStep === 1 && (
+              <GradientButton onClick={handleProcessPayment} disabled={processing}>
+                {processing ? <CircularProgress size={24} sx={{ color: 'white' }} /> : 'Pagar ahora'}
+              </GradientButton>
+            )}
+            {activeStep === 2 && !processing && (
+              <GradientButton onClick={handleClosePaymentDialog}>
+                Cerrar
+              </GradientButton>
+            )}
+          </DialogActions>
         </Dialog>
       </Container>
     </Box>

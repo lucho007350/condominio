@@ -25,8 +25,9 @@ import {
   Person as PersonIcon,
   Logout as LogoutIcon,
   Receipt as ReceiptIcon,
-  Business as BusinessIcon, // Agregar este ícono
+  Business as BusinessIcon,
   MarkEmailUnread as PqrsIcon,
+  PersonAdd as PersonAddIcon, // Agregar este ícono para registrar
 } from "@mui/icons-material";
 
 const Navbar = () => {
@@ -41,8 +42,8 @@ const Navbar = () => {
   
   // Obtener usuario del storage
   const [user] = useState(storedUser);
-  const [isAdmin] = useState(storedUser.role === 'admin');
-  const [isPropietario] = useState(storedUser.role === 'propietario'); // Nuevo estado para propietario
+  const [isAdmin] = useState(storedUser.role === 'admin' || storedUser.rol === 'administrador');
+  const [isPropietario] = useState(storedUser.role === 'propietario' || storedUser.rol === 'propietario');
 
   const homePath = isAdmin ? '/dashboard' : isPropietario ? '/mis-propiedades' : '/inicio';
 
@@ -185,6 +186,24 @@ const Navbar = () => {
         {/* OPCIONES DE ADMINISTRADOR (solo si es admin) */}
         {isAdmin && (
           <>
+            {/* REGISTRAR - Botón directo para acceso rápido */}
+            <Button
+              component={Link}
+              to="/register"
+              color="inherit"
+              startIcon={<PersonAddIcon />}
+              sx={{
+                mx: 1,
+                borderBottom: location.pathname === "/register" ? "2px solid #ffffff" : "none",
+                backgroundColor: location.pathname === "/register" ? 'rgba(255,255,255,0.1)' : 'transparent',
+                '&:hover': {
+                  backgroundColor: 'rgba(255,255,255,0.2)',
+                }
+              }}
+            >
+              Registrar
+            </Button>
+
             {/* ADMINISTRACIÓN */}
             <Button
               color="inherit"
@@ -216,8 +235,20 @@ const Navbar = () => {
             >
               <MenuItem
                 component={Link}
+                to="/register"
+                onClick={() => setAnchorAdmin(null)}
+                sx={{ '&:hover': { backgroundColor: 'rgba(255,255,255,0.1)' } }}
+              >
+                <PersonAddIcon sx={{ mr: 1 }} /> Registrar Usuario
+              </MenuItem>
+              
+              <Divider sx={{ backgroundColor: 'rgba(255,255,255,0.2)', my: 1 }} />
+              
+              <MenuItem
+                component={Link}
                 to="/residents"
                 onClick={() => setAnchorAdmin(null)}
+                sx={{ '&:hover': { backgroundColor: 'rgba(255,255,255,0.1)' } }}
               >
                 <PeopleIcon sx={{ mr: 1 }} /> Residentes
               </MenuItem>
@@ -226,6 +257,7 @@ const Navbar = () => {
                 component={Link}
                 to="/employees"
                 onClick={() => setAnchorAdmin(null)}
+                sx={{ '&:hover': { backgroundColor: 'rgba(255,255,255,0.1)' } }}
               >
                 <EmployeeIcon sx={{ mr: 1 }} /> Empleados
               </MenuItem>
@@ -264,6 +296,7 @@ const Navbar = () => {
                 component={Link}
                 to="/units"
                 onClick={() => setAnchorGestion(null)}
+                sx={{ '&:hover': { backgroundColor: 'rgba(255,255,255,0.1)' } }}
               >
                 <BuildingIcon sx={{ mr: 1 }} /> Unidades
               </MenuItem>
@@ -272,6 +305,7 @@ const Navbar = () => {
                 component={Link}
                 to="/facturas"
                 onClick={() => setAnchorGestion(null)}
+                sx={{ '&:hover': { backgroundColor: 'rgba(255,255,255,0.1)' } }}
               >
                 <FacturaIcon sx={{ mr: 1 }} /> Facturas
               </MenuItem>
@@ -280,6 +314,7 @@ const Navbar = () => {
                 component={Link}
                 to="/payments"
                 onClick={() => setAnchorGestion(null)}
+                sx={{ '&:hover': { backgroundColor: 'rgba(255,255,255,0.1)' } }}
               >
                 <PaymentIcon sx={{ mr: 1 }} /> Pagos
               </MenuItem>
@@ -307,7 +342,7 @@ const Navbar = () => {
                   fontSize: '0.9rem'
                 }}
               >
-                {user.name ? user.name.charAt(0).toUpperCase() : 'U'}
+                {user.name ? user.name.charAt(0).toUpperCase() : user.nombre ? user.nombre.charAt(0).toUpperCase() : 'U'}
               </Avatar>
             </IconButton>
 
@@ -325,7 +360,6 @@ const Navbar = () => {
                 },
               }}
             >
-              
               {/* Opciones según el rol */}
               {!isAdmin && !isPropietario && (
                 <MenuItem 
@@ -357,6 +391,17 @@ const Navbar = () => {
                   sx={{ '&:hover': { backgroundColor: 'rgba(255,255,255,0.1)' } }}
                 >
                   <BusinessIcon sx={{ mr: 2, fontSize: 20 }} /> Mis Propiedades
+                </MenuItem>
+              )}
+
+              {isAdmin && (
+                <MenuItem 
+                  component={Link}
+                  to="/register"
+                  onClick={() => setAnchorUser(null)}
+                  sx={{ '&:hover': { backgroundColor: 'rgba(255,255,255,0.1)' } }}
+                >
+                  <PersonAddIcon sx={{ mr: 2, fontSize: 20 }} /> Registrar Usuario
                 </MenuItem>
               )}
               
