@@ -238,6 +238,7 @@ const MyPays = () => {
   const [residentId, setResidentId] = useState(null);
   const [unidades, setUnidades] = useState([]);
   const [selectedUnidadId, setSelectedUnidadId] = useState('all');
+  const [reloadTick, setReloadTick] = useState(0);
   const [openPagoDialog, setOpenPagoDialog] = useState(false);
   const [openPaymentDialog, setOpenPaymentDialog] = useState(false);
   const [selectedPago, setSelectedPago] = useState(null);
@@ -335,19 +336,40 @@ const MyPays = () => {
 
         const rpsMine = rps.filter((rp) => String(rp?.idResidente) === String(idResidente));
 
+        // Fallback: ultimo pago PROCESADO por factura (por si falta residente_pago)
+        const latestPagoByFacturaId = new Map();
+        for (const p of pagosDb) {
+          const idFactura = p?.idFactura;
+          const idPago = p?.idPago ?? p?.id;
+          if (!idFactura || !idPago) continue;
+
+          const estadoPago = String(p?.estadoPago || p?.estado || '').toLowerCase();
+          if (estadoPago !== 'procesado') continue;
+
+          const fechaPago = normalizeDateStr(p?.fechaPago);
+          const prev = latestPagoByFacturaId.get(String(idFactura));
+          if (!prev || String(fechaPago || '') > String(prev.fechaPago || '')) {
+            latestPagoByFacturaId.set(String(idFactura), {
+              idPago,
+              fechaPago,
+              metodoPago: p?.metodoPago || null,
+            });
+          }
+        }
+
         const paidByFacturaId = new Map();
         for (const rp of rpsMine) {
           const idPago = rp?.idPago;
           const pagoDb = pagosById.get(idPago);
           const idFactura = pagoDb?.idFactura;
           if (!idFactura) continue;
-          paidByFacturaId.set(idFactura, {
+          paidByFacturaId.set(String(idFactura), {
             rp,
             pagoDb,
             facturaDb: factById.get(idFactura) || null,
             idPago,
             fechaPago: normalizeDateStr(rp?.fechaPago || pagoDb?.fechaPago),
-            metodoPago: pagoDb?.metodoPago || '—',
+            metodoPago: rp?.metodoPago || pagoDb?.metodoPago || '—',
             montoPagado: Number(rp?.montoPagado ?? pagoDb?.monto ?? 0),
           });
         }
@@ -371,24 +393,35 @@ const MyPays = () => {
               ? monthYearEs(normalizeDateStr(facturaDb.fechaEmision))
               : '—';
 
-            const paid = paidByFacturaId.get(idFactura);
+            const paid = paidByFacturaId.get(String(idFactura));
             const monto = paid ? paid.montoPagado : Number(facturaDb?.monto ?? 0);
+
+            const paidFallback = !paid ? latestPagoByFacturaId.get(String(idFactura)) : null;
 
             const estado = paid
               ? 'pagado'
-              : estadoFacturaToEstado(facturaDb?.estadoFactura, fechaVencimiento);
+              : paidFallback
+                ? 'pagado'
+                : estadoFacturaToEstado(facturaDb?.estadoFactura, fechaVencimiento);
 
             return {
               id: `factura-${idFactura}`,
               idFactura,
-              idPago: paid?.idPago || null,
+              idPago: paid?.idPago || paidFallback?.idPago || null,
               periodo,
               fechaVencimiento: fechaVencimiento || null,
               monto,
               estado,
-              fechaPago: paid?.fechaPago || null,
-              metodoPago: paid?.metodoPago || null,
-              comprobante: paid?.rp?.id ? `RP-${paid.rp.id}` : paid?.idPago ? `PAGO-${paid.idPago}` : null,
+              fechaPago: paid?.fechaPago || paidFallback?.fechaPago || null,
+              metodoPago: paid?.metodoPago || paidFallback?.metodoPago || null,
+              // si el pago viene de residente_pago o solo de pagos
+              comprobante: paid?.rp?.id
+                ? `RP-${paid.rp.id}`
+                : paid?.idPago
+                  ? `PAGO-${paid.idPago}`
+                  : paidFallback?.idPago
+                    ? `PAGO-${paidFallback.idPago}`
+                    : null,
               concepto: `Factura #${idFactura} - Unidad ${facturaDb?.numeroUnidad ?? facturaDb?.idUnidad ?? '—'}`,
               raw: { facturaDb, rp: paid?.rp || null, pagoDb: paid?.pagoDb || null },
             };
@@ -419,7 +452,7 @@ const MyPays = () => {
 
     load();
     return () => { alive = false; };
-  }, []);
+  }, [reloadTick]);
 
   const pagosUnidad = selectedUnidadId === 'all'
     ? pagos
@@ -542,6 +575,12 @@ const MyPays = () => {
           fechaPago: today,
           metodoPago: metodoTexto,
           comprobante: `PAGO-${idPago}`,
+          raw: {
+            ...(selectedPago?.raw || {}),
+            facturaDb: selectedPago?.raw?.facturaDb
+              ? { ...selectedPago.raw.facturaDb, estadoFactura: 'Pagada' }
+              : selectedPago?.raw?.facturaDb,
+          },
         };
 
         setPagos((prev) => prev.map((p) => (p.id === selectedPago.id ? pagoActualizado : p)));
@@ -549,6 +588,10 @@ const MyPays = () => {
         generarComprobantePDF(pagoActualizado);
         setPaymentSuccess(true);
         setActiveStep(2);
+
+        // Refrescar desde API para garantizar fecha/metodo
+        setFilterEstado('pagado');
+        setReloadTick((v) => v + 1);
       } catch (err) {
         const msg = err?.response?.data?.message || err?.message || 'No se pudo registrar el pago en la API';
         setLoadError(msg);
