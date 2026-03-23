@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { Container, Row, Col, Form, Button, Card } from 'react-bootstrap';
-import { useNavigate } from 'react-router-dom'; // Importar useNavigate para redirección
+import { Link, useNavigate } from 'react-router-dom'; // Importar useNavigate para redirección
 import 'bootstrap/dist/css/bootstrap.min.css';
+
+import { authAPI } from '../services/api.jsx';
 
 const Login = () => {
   const navigate = useNavigate(); // Hook para navegación
@@ -21,72 +23,37 @@ const Login = () => {
     setError('');
 
     try {
-      // Simular llamada a API de autenticación
-      // En un caso real, aquí harías un fetch a tu backend
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      // SIMULACIÓN DE VALIDACIÓN (esto deberías reemplazarlo con tu lógica real)
-      // Aquí validamos según credenciales de ejemplo
-      if (usuario === 'admin' && password === 'admin123') {
-        // Guardar datos del usuario en localStorage/sessionStorage según rememberMe
-        const userData = {
-          username: usuario,
-          role: 'admin',
-          name: 'Administrador'
-        };
-        
-        if (rememberMe) {
-          localStorage.setItem('user', JSON.stringify(userData));
-        } else {
-          sessionStorage.setItem('user', JSON.stringify(userData));
-        }
-        
-        // Redirigir al dashboard
+      const response = await authAPI.login({ identifier: usuario, password });
+      const data = response?.data || {};
+      const token = data?.token;
+      const user = data?.user;
+
+      if (!token || !user?.username) {
+        throw new Error('Respuesta de login invalida');
+      }
+
+      const userData = {
+        ...user,
+        token,
+        name: user?.name || user?.username,
+      };
+
+      if (rememberMe) {
+        localStorage.setItem('user', JSON.stringify(userData));
+      } else {
+        sessionStorage.setItem('user', JSON.stringify(userData));
+      }
+
+      if (userData.role === 'admin') {
         navigate('/dashboard');
-      } 
-      else if (usuario === 'usuario' && password === 'user123') {
-        // Guardar datos del usuario
-        const userData = {
-          username: usuario,
-          role: 'user',
-          name: 'Usuario Regular'
-        };
-        
-        if (rememberMe) {
-          localStorage.setItem('user', JSON.stringify(userData));
-        } else {
-          sessionStorage.setItem('user', JSON.stringify(userData));
-        }
-        
-        // Redirigir al inicio
+      } else if (userData.role === 'propietario') {
+        navigate('/mis-propiedades');
+      } else {
         navigate('/inicio');
       }
-      // NUEVA VALIDACIÓN PARA PROPIETARIO
-      else if (usuario === 'propietario' && password === 'prop123') {
-        // Guardar datos del propietario
-        const userData = {
-          username: usuario,
-          role: 'propietario',
-          name: 'Propietario',
-          propiedades: ['Torre A - 502', 'Torre B - 305'], // Propiedades que posee
-          idPropietario: 'PROP-001'
-        };
-        
-        if (rememberMe) {
-          localStorage.setItem('user', JSON.stringify(userData));
-        } else {
-          sessionStorage.setItem('user', JSON.stringify(userData));
-        }
-        
-        // Redirigir a la vista de propiedades
-        navigate('/mis-propiedades');
-      }
-      else {
-        // Credenciales inválidas
-        setError('Usuario o contraseña incorrectos');
-      }
     } catch (error) {
-      setError('Error al iniciar sesión. Intente nuevamente.');
+      const msg = (error as any)?.response?.data?.message || (error as any)?.message || 'Error al iniciar sesion. Intente nuevamente.';
+      setError(msg);
       console.error('Login error:', error);
     } finally {
       setIsLoading(false);
@@ -328,7 +295,20 @@ const Login = () => {
                     </>
                   )}
                 </Button>
-               
+
+                <div className="text-center mt-4">
+                  <span className="text-muted" style={{ fontSize: '0.95rem' }}>
+                    ¿No tienes cuenta?{' '}
+                  </span>
+                  <Link
+                    to="/register"
+                    className="text-decoration-none"
+                    style={{ color: primaryColor, fontWeight: 700, fontSize: '0.95rem' }}
+                  >
+                    Regístrate
+                  </Link>
+                </div>
+                
               </Form>
             </Card.Body>
           </Card>

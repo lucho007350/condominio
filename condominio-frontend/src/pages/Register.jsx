@@ -22,6 +22,8 @@ import {
   Select,
   MenuItem,
   Chip,
+  Switch,
+  FormControlLabel,
   Fade,
   LinearProgress,
 } from '@mui/material';
@@ -45,6 +47,8 @@ import {
   Lock as LockIcon,
   LocationCity as LocationCityIcon,
 } from '@mui/icons-material';
+
+import { authAPI } from '../services/api.jsx';
 
 // Colores personalizados
 const colors = {
@@ -125,8 +129,12 @@ const Register = () => {
   const [activeStep, setActiveStep] = useState(0);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [credentialsSent, setCredentialsSent] = useState(false);
+  const [registerMode, setRegisterMode] = useState('');
+  const [emailInfo, setEmailInfo] = useState('');
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [generatePassword, setGeneratePassword] = useState(true);
   
   const [formData, setFormData] = useState({
     // Datos personales
@@ -168,9 +176,12 @@ const Register = () => {
   const validateStep1 = () => {
     if (!formData.condominio) return 'Nombre del condominio es requerido';
     if (!formData.zona) return 'Zona es requerida';
-    if (!formData.password) return 'Contraseña es requerida';
-    if (formData.password.length < 6) return 'La contraseña debe tener al menos 6 caracteres';
-    if (formData.password !== formData.confirmPassword) return 'Las contraseñas no coinciden';
+
+    if (!generatePassword) {
+      if (!formData.password) return 'Contraseña es requerida';
+      if (formData.password.length < 6) return 'La contraseña debe tener al menos 6 caracteres';
+      if (formData.password !== formData.confirmPassword) return 'Las contraseñas no coinciden';
+    }
     return null;
   };
 
@@ -193,11 +204,34 @@ const Register = () => {
     setLoading(true);
     setError('');
 
-    // Simular envío al backend
-    setTimeout(() => {
-      setLoading(false);
+    const payload = {
+      nombre: formData.nombre?.trim(),
+      apellido: formData.apellido?.trim(),
+      tipoDocumento: formData.tipoDocumento,
+      documento: formData.documento?.trim(),
+      email: formData.email?.trim(),
+      correo: formData.email?.trim(),
+      telefono: formData.telefono?.trim(),
+      fechaNacimiento: formData.fechaNacimiento,
+      condominio: formData.condominio?.trim(),
+      zona: formData.zona,
+      rol: formData.rol,
+      role: formData.rol,
+      generatePassword,
+      sendCredentialsEmail: true,
+    };
+
+    if (!generatePassword) payload.password = formData.password;
+
+    try {
+      const { mode, res } = await authAPI.register(payload);
       setSuccess(true);
-      
+      setRegisterMode(mode);
+      const backendEmailSent = res?.data?.emailSent;
+      const backendEmailInfo = res?.data?.emailInfo;
+      setEmailInfo(typeof backendEmailInfo === 'string' ? backendEmailInfo : '');
+      setCredentialsSent(mode === 'auth' && (backendEmailSent === undefined ? true : Boolean(backendEmailSent)));
+
       // Limpiar formulario después de 3 segundos
       setTimeout(() => {
         setFormData({
@@ -214,10 +248,29 @@ const Register = () => {
           password: '',
           confirmPassword: '',
         });
+        setGeneratePassword(true);
         setActiveStep(0);
         setSuccess(false);
+        setCredentialsSent(false);
+        setRegisterMode('');
+        setEmailInfo('');
       }, 3000);
-    }, 2000);
+    } catch (err) {
+      const status = err?.response?.status;
+      const url = err?.config?.url;
+      const baseURL = err?.config?.baseURL;
+      const endpoint = [baseURL, url].filter(Boolean).join('');
+
+      if (status === 404) {
+        setError(`No se encontro el endpoint de registro (404). Verifica tu backend o configura VITE_AUTH_REGISTER_PATH. Intento: ${endpoint || url || 'desconocido'}`);
+        return;
+      }
+
+      const msg = err?.response?.data?.message ?? err?.response?.data?.error ?? err?.message ?? 'No se pudo registrar el usuario';
+      setError(endpoint ? `${msg} (endpoint: ${endpoint})` : msg);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const getStepContent = () => {
@@ -418,51 +471,80 @@ const Register = () => {
                   <Chip label="Credenciales de Acceso" icon={<LockIcon />} />
                 </Divider>
               </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Contraseña"
-                  name="password"
-                  type={showPassword ? 'text' : 'password'}
-                  value={formData.password}
-                  onChange={handleChange}
-                  required
-                  variant="outlined"
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <LockIcon sx={{ color: colors.text.secondary }} />
-                      </InputAdornment>
-                    ),
-                    endAdornment: (
-                      <InputAdornment position="end">
-                        <IconButton onClick={() => setShowPassword(!showPassword)} edge="end">
-                          {showPassword ? <VisibilityOffIcon /> : <VisibilityIcon />}
-                        </IconButton>
-                      </InputAdornment>
-                    ),
+
+              <Grid item xs={12}>
+                <Paper
+                  elevation={0}
+                  sx={{
+                    p: 2,
+                    borderRadius: 2,
+                    bgcolor: alpha(colors.info, 0.06),
+                    border: `1px solid ${alpha(colors.info, 0.15)}`,
                   }}
-                />
+                >
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={generatePassword}
+                        onChange={(e) => setGeneratePassword(e.target.checked)}
+                      />
+                    }
+                    label="Generar contraseña automáticamente y enviarla por correo"
+                  />
+                  <Typography variant="caption" sx={{ display: 'block', color: colors.text.secondary, mt: 0.5 }}>
+                    Si desactivas esta opción, podrás definir la contraseña manualmente.
+                  </Typography>
+                </Paper>
               </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Confirmar Contraseña"
-                  name="confirmPassword"
-                  type={showPassword ? 'text' : 'password'}
-                  value={formData.confirmPassword}
-                  onChange={handleChange}
-                  required
-                  variant="outlined"
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <LockIcon sx={{ color: colors.text.secondary }} />
-                      </InputAdornment>
-                    ),
-                  }}
-                />
-              </Grid>
+              {!generatePassword && (
+                <>
+                  <Grid item xs={12} sm={6}>
+                    <TextField
+                      fullWidth
+                      label="Contraseña"
+                      name="password"
+                      type={showPassword ? 'text' : 'password'}
+                      value={formData.password}
+                      onChange={handleChange}
+                      required
+                      variant="outlined"
+                      InputProps={{
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <LockIcon sx={{ color: colors.text.secondary }} />
+                          </InputAdornment>
+                        ),
+                        endAdornment: (
+                          <InputAdornment position="end">
+                            <IconButton onClick={() => setShowPassword(!showPassword)} edge="end">
+                              {showPassword ? <VisibilityOffIcon /> : <VisibilityIcon />}
+                            </IconButton>
+                          </InputAdornment>
+                        ),
+                      }}
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <TextField
+                      fullWidth
+                      label="Confirmar Contraseña"
+                      name="confirmPassword"
+                      type={showPassword ? 'text' : 'password'}
+                      value={formData.confirmPassword}
+                      onChange={handleChange}
+                      required
+                      variant="outlined"
+                      InputProps={{
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <LockIcon sx={{ color: colors.text.secondary }} />
+                          </InputAdornment>
+                        ),
+                      }}
+                    />
+                  </Grid>
+                </>
+              )}
             </Grid>
           </Box>
         );
@@ -484,14 +566,33 @@ const Register = () => {
                   <Typography variant="h5" sx={{ mb: 2, fontWeight: 600, color: colors.text.primary }}>
                     ¡Registro Exitoso!
                   </Typography>
-                  <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                    Se han enviado las credenciales al correo del usuario
-                  </Typography>
-                  <Paper sx={{ p: 2, bgcolor: alpha(colors.success, 0.1), borderRadius: 2 }}>
-                    <Typography variant="caption" sx={{ color: colors.success }}>
-                      Las credenciales han sido enviadas a: {formData.email}
-                    </Typography>
-                  </Paper>
+                  {credentialsSent ? (
+                    <>
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                        Se han enviado las credenciales al correo del usuario
+                      </Typography>
+                      <Paper sx={{ p: 2, bgcolor: alpha(colors.success, 0.1), borderRadius: 2 }}>
+                        <Typography variant="caption" sx={{ color: colors.success }}>
+                          Las credenciales han sido enviadas a: {formData.email}
+                        </Typography>
+                      </Paper>
+                    </>
+                  ) : (
+                    <>
+                      <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                        {registerMode === 'residentes'
+                          ? 'Residente creado correctamente.'
+                          : 'Registro creado, pero no se pudo enviar el correo de credenciales.'}
+                      </Typography>
+                      <Paper sx={{ p: 2, bgcolor: alpha(colors.warning, 0.12), borderRadius: 2, border: `1px solid ${alpha(colors.warning, 0.25)}` }}>
+                        <Typography variant="caption" sx={{ color: colors.text.primary }}>
+                          {registerMode === 'residentes'
+                            ? 'Nota: se uso el endpoint de residentes (sin credenciales). Para enviar credenciales por correo, usa /api/auth/register en el backend.'
+                            : `SMTP: ${emailInfo || 'no se pudo enviar (ver consola del backend)'}`}
+                        </Typography>
+                      </Paper>
+                    </>
+                  )}
                 </Box>
               </Fade>
             ) : (

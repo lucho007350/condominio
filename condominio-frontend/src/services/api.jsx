@@ -60,8 +60,37 @@ const ensureToken = async () => {
   return _tokenPromise;
 };
 
+const normalizePathname = (url) => {
+  if (!url) return '';
+  try {
+    if (String(url).startsWith('http')) return new URL(String(url)).pathname || '';
+  } catch {
+    // ignore
+  }
+
+  const s = String(url);
+  const withSlash = s.startsWith('/') ? s : `/${s}`;
+  return withSlash.split('?')[0] || '';
+};
+
+const isPublicPath = (pathname) => {
+  const p = normalizePathname(pathname);
+  // Avoid token fetch for public/auth routes.
+  return (
+    p === '/token' ||
+    p === '/login' ||
+    p === '/register' ||
+    p === '/auth/login' ||
+    p === '/auth/register' ||
+    p === '/auth/forgot-password' ||
+    p === '/auth/reset-password'
+  );
+};
+
 api.interceptors.request.use(async (config) => {
   config.headers = config.headers || {};
+
+  if (isPublicPath(config.url)) return config;
 
   const auth = config.headers.Authorization || config.headers.authorization;
   if (auth) return config;
@@ -186,6 +215,52 @@ export const unidadesAPI = {
   update: (id, data) => api.put(`/unidades/${id}`, data),
   delete: (id) => api.delete(`/unidades/${id}`),
   unidades: () => api.get('/unidades'),
+};
+
+// Autenticacion / Registro
+const AUTH_REGISTER_PATH = import.meta.env.VITE_AUTH_REGISTER_PATH || '/auth/register';
+const AUTH_REGISTER_FALLBACK_PATH = import.meta.env.VITE_AUTH_REGISTER_FALLBACK_PATH || '/residentes';
+
+const toTipoResidente = (rol) => {
+  const r = String(rol || '').toLowerCase();
+  if (r === 'propietario' || r === 'owner') return 'Propietario';
+  // Backend actual de /residentes suele manejar Propietario/Arrendatario.
+  return 'Arrendatario';
+};
+
+const buildResidentePayload = (data) => ({
+  nombre: data?.nombre,
+  apellido: data?.apellido,
+  tipoResidente: data?.tipoResidente || toTipoResidente(data?.rol || data?.role),
+  documento: data?.documento,
+  telefono: data?.telefono,
+  correo: data?.correo || data?.email,
+  estado: data?.estado || 'Activo',
+});
+
+export const authAPI = {
+  register: async (data) => {
+    try {
+      const res = await api.post(AUTH_REGISTER_PATH, data);
+      return { res, mode: 'auth' };
+    } catch (err) {
+      const status = err?.response?.status;
+      const is404 = status === 404;
+      const canFallback =
+        is404 &&
+        AUTH_REGISTER_FALLBACK_PATH &&
+        String(AUTH_REGISTER_FALLBACK_PATH) !== String(AUTH_REGISTER_PATH);
+
+      if (!canFallback) throw err;
+
+      // Fallback: backend expone registro como creacion de residente.
+      // Se envia SOLO lo que ese endpoint acepta.
+      const residentePayload = buildResidentePayload(data);
+      const res = await api.post(AUTH_REGISTER_FALLBACK_PATH, residentePayload);
+      return { res, mode: 'residentes' };
+    }
+  },
+  login: (data) => api.post('/auth/login', data),
 };
 
 export default api;

@@ -66,6 +66,9 @@ function App() {
       <Routes>
         {/* Ruta Login - SIN protección */}
         <Route path="/login" element={<Login />} />
+
+        {/* Registro público (sin sesión) */}
+        <Route path="/register" element={<Register />} />
         
         {/* Rutas protegidas con Layout - Nombres en ESPAÑOL como en el Navbar */}
         <Route path="/inicio" element={
@@ -140,7 +143,7 @@ function App() {
           </Layout>
         } />
 
-        <Route path="/register" element={  
+        <Route path="/admin/register" element={
           <Layout>
             <Register />
           </Layout>
@@ -152,7 +155,6 @@ function App() {
         <Route path="/profile" element={<Navigate to="/perfil" />} />
         <Route path="/mypays" element={<Navigate to="/mis-pagos" />} />
         <Route path="/pqr" element={<Navigate to="/pqrs" />} />
-        <Route path="/register" element={<Register />} />
 
         
         {/* Redirigir ruta raíz según sesión y rol */}

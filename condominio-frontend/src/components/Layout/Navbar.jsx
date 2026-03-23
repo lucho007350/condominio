@@ -187,22 +187,22 @@ const Navbar = () => {
         {isAdmin && (
           <>
             {/* REGISTRAR - Botón directo para acceso rápido */}
-            <Button
-              component={Link}
-              to="/register"
-              color="inherit"
-              startIcon={<PersonAddIcon />}
-              sx={{
-                mx: 1,
-                borderBottom: location.pathname === "/register" ? "2px solid #ffffff" : "none",
-                backgroundColor: location.pathname === "/register" ? 'rgba(255,255,255,0.1)' : 'transparent',
-                '&:hover': {
-                  backgroundColor: 'rgba(255,255,255,0.2)',
-                }
-              }}
-            >
-              Registrar
-            </Button>
+             <Button
+               component={Link}
+               to="/admin/register"
+               color="inherit"
+               startIcon={<PersonAddIcon />}
+               sx={{
+                 mx: 1,
+                 borderBottom: location.pathname === "/admin/register" ? "2px solid #ffffff" : "none",
+                 backgroundColor: location.pathname === "/admin/register" ? 'rgba(255,255,255,0.1)' : 'transparent',
+                 '&:hover': {
+                   backgroundColor: 'rgba(255,255,255,0.2)',
+                 }
+               }}
+             >
+               Registrar
+             </Button>
 
             {/* ADMINISTRACIÓN */}
             <Button
@@ -233,14 +233,14 @@ const Navbar = () => {
                 },
               }}
             >
-              <MenuItem
-                component={Link}
-                to="/register"
-                onClick={() => setAnchorAdmin(null)}
-                sx={{ '&:hover': { backgroundColor: 'rgba(255,255,255,0.1)' } }}
-              >
-                <PersonAddIcon sx={{ mr: 1 }} /> Registrar Usuario
-              </MenuItem>
+               <MenuItem
+                 component={Link}
+                 to="/admin/register"
+                 onClick={() => setAnchorAdmin(null)}
+                 sx={{ '&:hover': { backgroundColor: 'rgba(255,255,255,0.1)' } }}
+               >
+                 <PersonAddIcon sx={{ mr: 1 }} /> Registrar Usuario
+               </MenuItem>
               
               <Divider sx={{ backgroundColor: 'rgba(255,255,255,0.2)', my: 1 }} />
               
@@ -394,16 +394,16 @@ const Navbar = () => {
                 </MenuItem>
               )}
 
-              {isAdmin && (
-                <MenuItem 
-                  component={Link}
-                  to="/register"
-                  onClick={() => setAnchorUser(null)}
-                  sx={{ '&:hover': { backgroundColor: 'rgba(255,255,255,0.1)' } }}
-                >
-                  <PersonAddIcon sx={{ mr: 2, fontSize: 20 }} /> Registrar Usuario
-                </MenuItem>
-              )}
+               {isAdmin && (
+                 <MenuItem 
+                   component={Link}
+                   to="/admin/register"
+                   onClick={() => setAnchorUser(null)}
+                   sx={{ '&:hover': { backgroundColor: 'rgba(255,255,255,0.1)' } }}
+                 >
+                   <PersonAddIcon sx={{ mr: 2, fontSize: 20 }} /> Registrar Usuario
+                 </MenuItem>
+               )}
               
               <Divider sx={{ backgroundColor: 'rgba(255,255,255,0.2)' }} />
               

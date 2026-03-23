@@ -29,7 +29,15 @@ router.post(
       res.status(201).json(residente);
     } catch (error) {
       console.error(error);
-      res.status(500).json({ message: "Error al crear el residente" });
+      const code = error?.code;
+      const errno = error?.errno;
+
+      // MySQL duplicate entry
+      if (code === 'ER_DUP_ENTRY' || errno === 1062) {
+        return res.status(409).json({ message: 'Ya existe un residente con ese documento o correo' });
+      }
+
+      res.status(500).json({ message: error?.message || "Error al crear el residente" });
     }
   }
 );
