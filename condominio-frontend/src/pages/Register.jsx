@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   Container,
   Paper,
@@ -48,7 +48,7 @@ import {
   LocationCity as LocationCityIcon,
 } from '@mui/icons-material';
 
-import { authAPI } from '../services/api.jsx';
+import { authAPI, residentesAPI, unidadesAPI } from '../services/api.jsx';
 
 // Colores personalizados
 const colors = {
@@ -135,6 +135,22 @@ const Register = () => {
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [generatePassword, setGeneratePassword] = useState(true);
+
+  const safeParseUser = () => {
+    try {
+      return JSON.parse(localStorage.getItem('user') || sessionStorage.getItem('user') || '{}');
+    } catch {
+      return {};
+    }
+  };
+
+  const sessionUser = useMemo(() => safeParseUser(), []);
+  const isAdmin = String(sessionUser?.role || '').toLowerCase() === 'admin';
+
+  const [unidadesOptions, setUnidadesOptions] = useState([]);
+  const [loadingUnidades, setLoadingUnidades] = useState(false);
+  const [selectedUnidadIds, setSelectedUnidadIds] = useState([]);
+  const [unidadAssignInfo, setUnidadAssignInfo] = useState('');
   
   const [formData, setFormData] = useState({
     // Datos personales
@@ -203,6 +219,7 @@ const Register = () => {
   const handleSubmit = async () => {
     setLoading(true);
     setError('');
+    setUnidadAssignInfo('');
 
     const payload = {
       nombre: formData.nombre?.trim(),
@@ -232,6 +249,25 @@ const Register = () => {
       setEmailInfo(typeof backendEmailInfo === 'string' ? backendEmailInfo : '');
       setCredentialsSent(mode === 'auth' && (backendEmailSent === undefined ? true : Boolean(backendEmailSent)));
 
+      // Asignar unidades (solo admin)
+      if (isAdmin && selectedUnidadIds.length > 0) {
+        const idResidente = res?.data?.idResidente ?? res?.data?.id ?? res?.data?.residenteId;
+        if (!idResidente) {
+          setUnidadAssignInfo('No se pudo asignar unidades: no se recibio idResidente del backend.');
+        } else {
+          const ids = selectedUnidadIds.map((v) => Number(v)).filter((n) => Number.isFinite(n));
+          const results = await Promise.allSettled(ids.map((idUnidad) => residentesAPI.asignarUnidad(idResidente, idUnidad)));
+          const failed = results.filter((r) => r.status === 'rejected');
+          if (failed.length === 0) {
+            setUnidadAssignInfo(`Unidades asignadas: ${ids.length}`);
+          } else {
+            setUnidadAssignInfo(`Se asignaron ${ids.length - failed.length}/${ids.length} unidades. Algunas fallaron (ver consola).`);
+            // eslint-disable-next-line no-console
+            console.error('Unidad assign errors:', failed);
+          }
+        }
+      }
+
       // Limpiar formulario después de 3 segundos
       setTimeout(() => {
         setFormData({
@@ -249,11 +285,13 @@ const Register = () => {
           confirmPassword: '',
         });
         setGeneratePassword(true);
+        setSelectedUnidadIds([]);
         setActiveStep(0);
         setSuccess(false);
         setCredentialsSent(false);
         setRegisterMode('');
         setEmailInfo('');
+        setUnidadAssignInfo('');
       }, 3000);
     } catch (err) {
       const status = err?.response?.status;
@@ -272,6 +310,30 @@ const Register = () => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    let alive = true;
+    const loadUnidades = async () => {
+      if (!isAdmin) return;
+      setLoadingUnidades(true);
+      try {
+        const res = await unidadesAPI.getAll();
+        const list = Array.isArray(res?.data) ? res.data : [];
+        if (!alive) return;
+        setUnidadesOptions(list);
+      } catch (e) {
+        if (!alive) return;
+        setUnidadesOptions([]);
+      } finally {
+        if (alive) setLoadingUnidades(false);
+      }
+    };
+
+    loadUnidades();
+    return () => {
+      alive = false;
+    };
+  }, [isAdmin]);
 
   const getStepContent = () => {
     switch (activeStep) {
@@ -466,6 +528,50 @@ const Register = () => {
                   </Select>
                 </FormControl>
               </Grid>
+
+              {isAdmin && (
+                <Grid item xs={12}>
+                  <Divider sx={{ my: 2 }}>
+                    <Chip label="Asignar Unidades" icon={<HomeIcon />} />
+                  </Divider>
+
+                  <FormControl fullWidth disabled={loadingUnidades}>
+                    <InputLabel>Unidades</InputLabel>
+                    <Select
+                      multiple
+                      label="Unidades"
+                      value={selectedUnidadIds}
+                      onChange={(e) => setSelectedUnidadIds(e.target.value)}
+                      renderValue={(selected) => {
+                        const ids = Array.isArray(selected) ? selected : [];
+                        const labels = ids
+                          .map((id) => {
+                            const found = unidadesOptions.find((u) => String(u.idUnidad ?? u.id) === String(id));
+                            const numero = found?.numero;
+                            return numero ? `Unidad ${numero}` : `Unidad ${id}`;
+                          })
+                          .filter(Boolean);
+                        return labels.join(', ');
+                      }}
+                    >
+                      {unidadesOptions.length === 0 ? (
+                        <MenuItem disabled value="">
+                          {loadingUnidades ? 'Cargando unidades...' : 'No hay unidades disponibles'}
+                        </MenuItem>
+                      ) : (
+                        unidadesOptions.map((u) => (
+                          <MenuItem key={u.idUnidad ?? u.id} value={String(u.idUnidad ?? u.id)}>
+                            {u.numero ? `Unidad ${u.numero}` : `Unidad ${u.idUnidad ?? u.id}`}
+                          </MenuItem>
+                        ))
+                      )}
+                    </Select>
+                  </FormControl>
+                  <Typography variant="caption" sx={{ display: 'block', color: colors.text.secondary, mt: 1 }}>
+                    Solo admin: selecciona una o varias unidades para este residente.
+                  </Typography>
+                </Grid>
+              )}
               <Grid item xs={12}>
                 <Divider sx={{ my: 2 }}>
                   <Chip label="Credenciales de Acceso" icon={<LockIcon />} />
@@ -592,6 +698,16 @@ const Register = () => {
                         </Typography>
                       </Paper>
                     </>
+                  )}
+
+                  {unidadAssignInfo && (
+                    <Box sx={{ mt: 2 }}>
+                      <Paper sx={{ p: 2, bgcolor: alpha(colors.info, 0.06), borderRadius: 2, border: `1px solid ${alpha(colors.info, 0.15)}` }}>
+                        <Typography variant="caption" sx={{ color: colors.text.primary }}>
+                          {unidadAssignInfo}
+                        </Typography>
+                      </Paper>
+                    </Box>
                   )}
                 </Box>
               </Fade>

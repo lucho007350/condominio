@@ -11,7 +11,7 @@ const createResidentePagoSchema = joi.object({
   idResidente: idResidente.required(),
   idPago: idPago.required(),
   montoPagado: montoPagado.required(),
-  fechaPago: fechaPago.required()
+  fechaPago: fechaPago.optional()
 });
 
 // 🔹 Obtener/eliminar por ID

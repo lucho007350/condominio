@@ -101,7 +101,8 @@ const pqrsLocalKey = (username) => `pqrs:mine:${username || 'anon'}`;
 
 const PQRS = () => {
   const user = useMemo(() => safeParseUser(), []);
-  const isUser = user?.role === 'user';
+  const role = String(user?.role || '').toLowerCase();
+  const isUser = role === 'user' || role === 'residente' || role === 'resident';
 
   const [tab, setTab] = useState(0);
   const [loadingOwners, setLoadingOwners] = useState(true);

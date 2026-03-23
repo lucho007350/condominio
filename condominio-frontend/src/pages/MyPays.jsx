@@ -37,6 +37,10 @@ import {
   Step,
   StepLabel,
   CircularProgress,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import {
@@ -63,6 +67,8 @@ import {
 } from '@mui/icons-material';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+
+import { authAPI, facturasAPI, paymentAPI, residentepagosAPI, residentesAPI } from '../services/api.jsx';
 
 // Colores personalizados
 const colors = {
@@ -136,6 +142,12 @@ const BankCard = styled(Paper)(({ selected, bankcolor }) => ({
 // Función para generar PDF
 const generarComprobantePDF = (pago) => {
   const doc = new jsPDF();
+  const fmt = (d) => {
+    if (!d) return '-';
+    const dt = new Date(d);
+    if (Number.isNaN(dt.getTime())) return '-';
+    return dt.toLocaleDateString('es-CO');
+  };
   
   // Header con gradiente
   doc.setFillColor(30, 58, 95);
@@ -164,10 +176,10 @@ const generarComprobantePDF = (pago) => {
     head: [['Concepto', 'Detalle']],
     body: [
       ['Período', pago.periodo],
-      ['Fecha de vencimiento', new Date(pago.fechaVencimiento).toLocaleDateString('es-CO')],
+      ['Fecha de vencimiento', fmt(pago.fechaVencimiento)],
       ['Concepto', pago.concepto],
       ['Método de pago', pago.metodoPago || 'Transferencia Bancaria'],
-      ['Fecha de pago', new Date().toLocaleDateString('es-CO')],
+      ['Fecha de pago', fmt(pago.fechaPago)],
       ['Estado', 'PAGADO'],
       ['Referencia', `REF-${Date.now()}`],
     ],
@@ -222,11 +234,16 @@ const generarComprobantePDF = (pago) => {
 
 const MyPays = () => {
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
+  const [residentId, setResidentId] = useState(null);
+  const [unidades, setUnidades] = useState([]);
+  const [selectedUnidadId, setSelectedUnidadId] = useState('all');
   const [openPagoDialog, setOpenPagoDialog] = useState(false);
   const [openPaymentDialog, setOpenPaymentDialog] = useState(false);
   const [selectedPago, setSelectedPago] = useState(null);
   const [filterEstado, setFilterEstado] = useState('todos');
   const [hoveredRow, setHoveredRow] = useState(null);
+  const [roleBlocked, setRoleBlocked] = useState(false);
   
   // Estados para la pasarela de pagos
   const [activeStep, setActiveStep] = useState(0);
@@ -241,75 +258,178 @@ const MyPays = () => {
   const [processing, setProcessing] = useState(false);
   const [paymentSuccess, setPaymentSuccess] = useState(false);
   
-  const [pagos, setPagos] = useState([
-    {
-      id: 1,
-      periodo: 'Marzo 2026',
-      fechaVencimiento: '2026-03-10',
-      monto: 85000,
-      estado: 'pagado',
-      fechaPago: '2026-03-05',
-      metodoPago: 'Transferencia Bancolombia',
-      comprobante: 'COMP-001-2026',
-      concepto: 'Gastos comunes + Fondo de reserva',
-    },
-    {
-      id: 2,
-      periodo: 'Febrero 2026',
-      fechaVencimiento: '2026-02-10',
-      monto: 85000,
-      estado: 'pagado',
-      fechaPago: '2026-02-08',
-      metodoPago: 'Tarjeta de Crédito',
-      comprobante: 'COMP-002-2026',
-      concepto: 'Gastos comunes',
-    },
-    {
-      id: 3,
-      periodo: 'Enero 2026',
-      fechaVencimiento: '2026-01-10',
-      monto: 85000,
-      estado: 'pagado',
-      fechaPago: '2026-01-07',
-      metodoPago: 'Efectivo',
-      comprobante: 'COMP-003-2026',
-      concepto: 'Gastos comunes',
-    },
-    {
-      id: 4,
-      periodo: 'Abril 2026',
-      fechaVencimiento: '2026-04-10',
-      monto: 87000,
-      estado: 'pendiente',
-      fechaPago: null,
-      metodoPago: null,
-      comprobante: null,
-      concepto: 'Gastos comunes',
-    },
-    {
-      id: 5,
-      periodo: 'Diciembre 2025',
-      fechaVencimiento: '2025-12-10',
-      monto: 82000,
-      estado: 'atrasado',
-      fechaPago: '2025-12-20',
-      metodoPago: 'Transferencia',
-      comprobante: 'COMP-004-2025',
-      concepto: 'Gastos comunes + Intereses',
-    },
-  ]);
+  const [pagos, setPagos] = useState([]);
+
+  const safeParseUser = () => {
+    try {
+      return JSON.parse(localStorage.getItem('user') || sessionStorage.getItem('user') || '{}');
+    } catch {
+      return {};
+    }
+  };
+
+  const normalizeDateStr = (v) => {
+    if (!v) return null;
+    const s = String(v);
+    return s.includes('T') ? s.split('T')[0] : s;
+  };
+
+  const monthYearEs = (dateStr) => {
+    const d = dateStr ? new Date(dateStr) : null;
+    if (!d || Number.isNaN(d.getTime())) return '—';
+    return d.toLocaleDateString('es-CO', { month: 'long', year: 'numeric' });
+  };
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setLoading(false);
-    }, 800);
-    return () => clearTimeout(timer);
+    let alive = true;
+
+    const load = async () => {
+      setLoading(true);
+      setLoadError('');
+      setRoleBlocked(false);
+      setResidentId(null);
+      setUnidades([]);
+      try {
+        const stored = safeParseUser();
+        const role = String(stored?.role || '').toLowerCase();
+        if (role === 'admin') {
+          setRoleBlocked(true);
+          setPagos([]);
+          return;
+        }
+
+        let meUser = null;
+        try {
+          const me = await authAPI.me();
+          meUser = me?.data?.user || null;
+        } catch {
+          // ignore
+        }
+
+        const idResidente = meUser?.idResidente || stored?.idResidente;
+        if (!idResidente) {
+          setLoadError('No se encontro el id del residente en la sesion. Vuelve a iniciar sesion.');
+          setPagos([]);
+          return;
+        }
+
+        setResidentId(idResidente);
+
+        const [unidadesRes, rpRes, pagosRes, factRes] = await Promise.all([
+          residentesAPI.getUnidades(idResidente),
+          residentepagosAPI.getAll(),
+          paymentAPI.getAll(),
+          facturasAPI.getAll(),
+        ]);
+
+        const unidadesList = Array.isArray(unidadesRes?.data) ? unidadesRes.data : [];
+        setUnidades(unidadesList);
+        const unidadIds = new Set(unidadesList.map((u) => u?.idUnidad).filter(Boolean));
+
+        const rps = Array.isArray(rpRes?.data) ? rpRes.data : [];
+        const pagosDb = Array.isArray(pagosRes?.data) ? pagosRes.data : [];
+        const facturasDb = Array.isArray(factRes?.data) ? factRes.data : [];
+
+        const pagosById = new Map(pagosDb.map((p) => [p.idPago ?? p.id, p]));
+        const factById = new Map(facturasDb.map((f) => [f.idFactura ?? f.id, f]));
+
+        const rpsMine = rps.filter((rp) => String(rp?.idResidente) === String(idResidente));
+
+        const paidByFacturaId = new Map();
+        for (const rp of rpsMine) {
+          const idPago = rp?.idPago;
+          const pagoDb = pagosById.get(idPago);
+          const idFactura = pagoDb?.idFactura;
+          if (!idFactura) continue;
+          paidByFacturaId.set(idFactura, {
+            rp,
+            pagoDb,
+            facturaDb: factById.get(idFactura) || null,
+            idPago,
+            fechaPago: normalizeDateStr(rp?.fechaPago || pagoDb?.fechaPago),
+            metodoPago: pagoDb?.metodoPago || '—',
+            montoPagado: Number(rp?.montoPagado ?? pagoDb?.monto ?? 0),
+          });
+        }
+
+        const todayStr = new Date().toISOString().split('T')[0];
+        const estadoFacturaToEstado = (estadoFactura, fechaVenc) => {
+          const e = String(estadoFactura || '').toLowerCase();
+          if (e === 'pagada') return 'pagado';
+          if (e === 'vencida') return 'atrasado';
+          if (fechaVenc && String(fechaVenc) < todayStr) return 'atrasado';
+          return 'pendiente';
+        };
+
+        const facturasMine = facturasDb.filter((f) => unidadIds.has(f?.idUnidad));
+
+        const mine = facturasMine
+          .map((facturaDb) => {
+            const idFactura = facturaDb?.idFactura ?? facturaDb?.id;
+            const fechaVencimiento = normalizeDateStr(facturaDb?.fechaVencimiento);
+            const periodo = facturaDb?.fechaEmision
+              ? monthYearEs(normalizeDateStr(facturaDb.fechaEmision))
+              : '—';
+
+            const paid = paidByFacturaId.get(idFactura);
+            const monto = paid ? paid.montoPagado : Number(facturaDb?.monto ?? 0);
+
+            const estado = paid
+              ? 'pagado'
+              : estadoFacturaToEstado(facturaDb?.estadoFactura, fechaVencimiento);
+
+            return {
+              id: `factura-${idFactura}`,
+              idFactura,
+              idPago: paid?.idPago || null,
+              periodo,
+              fechaVencimiento: fechaVencimiento || null,
+              monto,
+              estado,
+              fechaPago: paid?.fechaPago || null,
+              metodoPago: paid?.metodoPago || null,
+              comprobante: paid?.rp?.id ? `RP-${paid.rp.id}` : paid?.idPago ? `PAGO-${paid.idPago}` : null,
+              concepto: `Factura #${idFactura} - Unidad ${facturaDb?.numeroUnidad ?? facturaDb?.idUnidad ?? '—'}`,
+              raw: { facturaDb, rp: paid?.rp || null, pagoDb: paid?.pagoDb || null },
+            };
+          })
+          .sort((a, b) => {
+            // atrasado primero, luego pendiente, luego pagado
+            const order = { atrasado: 0, pendiente: 1, pagado: 2 };
+            const ao = order[a.estado] ?? 9;
+            const bo = order[b.estado] ?? 9;
+            if (ao !== bo) return ao - bo;
+
+            const ad = a.estado === 'pagado' ? (a.fechaPago || '') : (a.fechaVencimiento || '');
+            const bd = b.estado === 'pagado' ? (b.fechaPago || '') : (b.fechaVencimiento || '');
+            return String(bd).localeCompare(String(ad));
+          });
+
+        if (!alive) return;
+        setPagos(mine);
+      } catch (err) {
+        if (!alive) return;
+        const msg = err?.response?.data?.message || err?.message || 'No se pudieron cargar tus pagos desde la API';
+        setLoadError(msg);
+        setPagos([]);
+      } finally {
+        if (alive) setLoading(false);
+      }
+    };
+
+    load();
+    return () => { alive = false; };
   }, []);
 
-  const calcularEstadisticas = () => {
-    const pagados = pagos.filter(p => p.estado === 'pagado');
-    const pendientes = pagos.filter(p => p.estado === 'pendiente');
-    const atrasados = pagos.filter(p => p.estado === 'atrasado');
+  const pagosUnidad = selectedUnidadId === 'all'
+    ? pagos
+    : pagos.filter((p) => String(p?.raw?.facturaDb?.idUnidad || '') === String(selectedUnidadId));
+
+  const calcularEstadisticas = (items) => {
+    const list = Array.isArray(items) ? items : [];
+    const pagados = list.filter((p) => p.estado === 'pagado');
+    const pendientes = list.filter((p) => p.estado === 'pendiente');
+    const atrasados = list.filter((p) => p.estado === 'atrasado');
     
     const totalPagado = pagados.reduce((sum, p) => sum + p.monto, 0);
     const totalPendiente = [...pendientes, ...atrasados].reduce((sum, p) => sum + p.monto, 0);
@@ -324,7 +444,7 @@ const MyPays = () => {
     };
   };
 
-  const stats = calcularEstadisticas();
+  const stats = calcularEstadisticas(pagosUnidad);
 
   const getEstadoConfig = (estado) => {
     const config = {
@@ -349,7 +469,9 @@ const MyPays = () => {
 
   const formatDate = (dateString) => {
     if (!dateString) return '-';
-    const [year, month, day] = dateString.split('-');
+    const s = String(dateString);
+    const base = s.includes('T') ? s.split('T')[0] : s;
+    const [year, month, day] = base.split('-');
     return `${day}/${month}/${year}`;
   };
 
@@ -365,32 +487,75 @@ const MyPays = () => {
 
   const handleProcessPayment = () => {
     setProcessing(true);
-    
-    setTimeout(() => {
-      setProcessing(false);
-      setPaymentSuccess(true);
-      
-      // Actualizar el pago
-      const metodoTexto = paymentMethod === 'bank' ? `Transferencia - ${selectedBank?.name}` : 
-                          paymentMethod === 'card' ? 'Tarjeta de Crédito' : 'PSE';
-      
-      const pagoActualizado = {
-        ...selectedPago,
-        estado: 'pagado',
-        fechaPago: new Date().toISOString().split('T')[0],
-        metodoPago: metodoTexto,
-        comprobante: `COMP-${Date.now()}`,
-      };
-      
-      setPagos(pagos.map(p => p.id === selectedPago.id ? pagoActualizado : p));
-      setSelectedPago(pagoActualizado);
-      
-      // Generar PDF automáticamente
-      generarComprobantePDF(pagoActualizado);
-      
-      // Avanzar al paso de confirmación
-      setActiveStep(2);
-    }, 2000);
+
+    setTimeout(async () => {
+      const metodoTexto = paymentMethod === 'bank'
+        ? `Transferencia - ${selectedBank?.name}`
+        : paymentMethod === 'card'
+          ? 'Tarjeta de Crédito'
+          : 'PSE';
+
+      const metodoPagoApi = paymentMethod === 'card' ? 'Tarjeta' : 'Transferencia';
+
+      const today = new Date().toISOString().split('T')[0];
+
+      try {
+        const idFactura = selectedPago?.idFactura ?? selectedPago?.raw?.facturaDb?.idFactura ?? null;
+        if (!residentId) throw new Error('No se encontro idResidente en sesion');
+        if (!idFactura) throw new Error('No se encontro idFactura para registrar el pago');
+
+        // 1) Crear pago
+        const pagoRes = await paymentAPI.create({
+          fechaPago: today,
+          monto: Number(selectedPago?.monto ?? 0),
+          metodoPago: metodoPagoApi,
+          estadoPago: 'Procesado',
+          idFactura,
+        });
+        const createdPago = pagoRes?.data || {};
+        const idPago = createdPago?.idPago ?? createdPago?.id;
+        if (!idPago) throw new Error('No se recibio idPago al crear el pago');
+
+        // 2) Asociar pago al residente
+        await residentepagosAPI.create({
+          idResidente: Number(residentId),
+          idPago: Number(idPago),
+          montoPagado: Number(selectedPago?.monto ?? 0),
+        });
+
+        // 3) Marcar factura como Pagada (requiere payload completo)
+        const facturaDb = selectedPago?.raw?.facturaDb;
+        if (facturaDb?.idFactura) {
+          await facturasAPI.update(facturaDb.idFactura, {
+            fechaEmision: facturaDb.fechaEmision,
+            monto: facturaDb.monto,
+            fechaVencimiento: facturaDb.fechaVencimiento,
+            estadoFactura: 'Pagada',
+            idUnidad: facturaDb.idUnidad,
+          });
+        }
+
+        const pagoActualizado = {
+          ...selectedPago,
+          idPago,
+          estado: 'pagado',
+          fechaPago: today,
+          metodoPago: metodoTexto,
+          comprobante: `PAGO-${idPago}`,
+        };
+
+        setPagos((prev) => prev.map((p) => (p.id === selectedPago.id ? pagoActualizado : p)));
+        setSelectedPago(pagoActualizado);
+        generarComprobantePDF(pagoActualizado);
+        setPaymentSuccess(true);
+        setActiveStep(2);
+      } catch (err) {
+        const msg = err?.response?.data?.message || err?.message || 'No se pudo registrar el pago en la API';
+        setLoadError(msg);
+      } finally {
+        setProcessing(false);
+      }
+    }, 1200);
   };
 
   const handleDownloadPDF = (pago) => {
@@ -651,9 +816,9 @@ const MyPays = () => {
     }
   };
 
-  const pagosFiltrados = filterEstado === 'todos' 
-    ? pagos 
-    : pagos.filter(p => p.estado === filterEstado);
+  const pagosFiltrados = filterEstado === 'todos'
+    ? pagosUnidad
+    : pagosUnidad.filter((p) => p.estado === filterEstado);
 
   if (loading) {
     return (
@@ -667,9 +832,26 @@ const MyPays = () => {
     );
   }
 
+  if (roleBlocked) {
+    return (
+      <Box sx={{ backgroundColor: colors.background, minHeight: '100vh', py: 4 }}>
+        <Container maxWidth="xl">
+          <Alert severity="info" sx={{ borderRadius: 2 }}>
+            El apartado "Mis Pagos" esta disponible solo para residentes.
+          </Alert>
+        </Container>
+      </Box>
+    );
+  }
+
   return (
     <Box sx={{ backgroundColor: colors.background, minHeight: '100vh', py: 4 }}>
       <Container maxWidth="xl">
+        {loadError && (
+          <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }}>
+            {loadError}
+          </Alert>
+        )}
         {/* Header */}
         <Box sx={{ mb: 4 }}>
           <Paper elevation={0} sx={{ p: 4, borderRadius: 4, background: `linear-gradient(135deg, ${colors.primary} 0%, ${colors.secondary} 100%)`, color: 'white', position: 'relative', overflow: 'hidden' }}>
@@ -708,6 +890,24 @@ const MyPays = () => {
                 {filtro === 'todos' ? 'Todos' : filtro === 'pagado' ? 'Pagados' : filtro === 'pendiente' ? 'Pendientes' : 'Atrasados'}
               </Button>
             ))}
+
+            <Box sx={{ flex: 1 }} />
+
+            <FormControl size="small" sx={{ minWidth: 220 }}>
+              <InputLabel>Unidad</InputLabel>
+              <Select
+                label="Unidad"
+                value={selectedUnidadId}
+                onChange={(e) => setSelectedUnidadId(e.target.value)}
+              >
+                <MenuItem value="all">Todas</MenuItem>
+                {unidades.map((u) => (
+                  <MenuItem key={u.idUnidad} value={String(u.idUnidad)}>
+                    {u.numero ? `Unidad ${u.numero}` : `Unidad ${u.idUnidad}`}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
           </Paper>
         </Box>
 

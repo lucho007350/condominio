@@ -195,6 +195,9 @@ export const residentesAPI = {
   create: (data) => api.post('/residentes', data),
   update: (id, data) => api.put(`/residentes/${id}`, data),
   delete: (id) => api.delete(`/residentes/${id}`),
+  getUnidades: (idResidente) => api.get(`/residentes/${idResidente}/unidades`),
+  asignarUnidad: (idResidente, idUnidad) => api.post(`/residentes/${idResidente}/unidades`, { idUnidad }),
+  desasignarUnidad: (idResidente, idUnidad) => api.delete(`/residentes/${idResidente}/unidades/${idUnidad}`),
   residentes: () => api.get('/residentes'),
 };
 
@@ -215,6 +218,13 @@ export const unidadesAPI = {
   update: (id, data) => api.put(`/unidades/${id}`, data),
   delete: (id) => api.delete(`/unidades/${id}`),
   unidades: () => api.get('/unidades'),
+};
+
+// Relacion residente <-> pagos
+export const residentepagosAPI = {
+  getAll: () => api.get('/residentepagos'),
+  create: (data) => api.post('/residentepagos', data),
+  delete: (id) => api.delete(`/residentepagos/${id}`),
 };
 
 // Autenticacion / Registro
@@ -261,6 +271,7 @@ export const authAPI = {
     }
   },
   login: (data) => api.post('/auth/login', data),
+  me: () => api.get('/auth/me'),
 };
 
 export default api;

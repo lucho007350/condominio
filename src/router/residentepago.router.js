@@ -21,6 +21,7 @@ router.get("/", authenticateToken, async (req, res) => {
 // 🔹 Crear registro de pago de residente
 router.post(
   "/",
+  authenticateToken,
   validatorHandler(createResidentePagoSchema, "body"),
   async (req, res) => {
     const data = await service.create(req.body);
@@ -31,6 +32,7 @@ router.post(
 // 🔹 Eliminar registro por ID
 router.delete(
   "/:id",
+  authenticateToken,
   validatorHandler(getResidentePagoSchema, "params"),
   async (req, res) => {
     const data = await service.delete(req.params.id);

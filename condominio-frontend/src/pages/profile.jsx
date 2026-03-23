@@ -20,6 +20,10 @@ import {
   ListItem,
   ListItemIcon,
   ListItemText,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
   LinearProgress,
   Zoom,
   Fade,
@@ -49,6 +53,8 @@ import {
   Share as ShareIcon,
   Verified as VerifiedIcon,
 } from '@mui/icons-material';
+
+import { authAPI, residentesAPI } from '../services/api.jsx';
 
 // Colores personalizados
 const colors = {
@@ -121,35 +127,113 @@ const Profile = () => {
   const [user, setUser] = useState(null);
   const [editing, setEditing] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [loadError, setLoadError] = useState('');
+  const [unidades, setUnidades] = useState([]);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
-  const [hoveredCard, setHoveredCard] = useState(null);
   
-  const [userData, setUserData] = useState({
-    nombre: 'Carlos Rodríguez',
-    email: 'carlos.rodriguez@email.com',
-    telefono: '+56 9 1234 5678',
-    unidad: 'Condominio Los Pinos - Unidad 502',
-    rut: '12.345.678-9',
-    fechaIngreso: '15/03/2023',
-    estado: 'Activo',
-    tipoUsuario: 'Residente',
-    emergenciaContacto: 'María Rodríguez',
-    telefonoEmergencia: '+56 9 8765 4321',
-    mascotas: 1,
-    vehiculos: 1,
-    numHabitantes: 3,
-    codigoAcceso: 'CONDO-502-ADMIN',
-  });
+  const emptyProfile = {
+    nombre: '',
+    apellido: '',
+    tipoResidente: '',
+    documento: '',
+    telefono: '',
+    correo: '',
+    estado: '',
+  };
 
-  const [editForm, setEditForm] = useState({ ...userData });
+  const [userData, setUserData] = useState(emptyProfile);
+  const [editForm, setEditForm] = useState(emptyProfile);
+
+  const fullName = [userData.nombre, userData.apellido].filter(Boolean).join(' ') || user?.name || user?.username || 'Perfil';
+
+  const setStoredUser = (nextUser) => {
+    try {
+      const local = localStorage.getItem('user');
+      const session = sessionStorage.getItem('user');
+      if (local) localStorage.setItem('user', JSON.stringify(nextUser));
+      else if (session) sessionStorage.setItem('user', JSON.stringify(nextUser));
+    } catch {
+      // ignore
+    }
+  };
 
   useEffect(() => {
+    let alive = true;
     const storedUser = JSON.parse(localStorage.getItem('user') || sessionStorage.getItem('user') || '{}');
-    
-    setTimeout(() => {
-      setUser(storedUser);
-      setLoading(false);
-    }, 800);
+    setUser(storedUser);
+
+    const load = async () => {
+      setLoading(true);
+      setLoadError('');
+      try {
+        // Prefer /auth/me (fuente de verdad segun el token)
+        let r = null;
+        let refreshedUser = null;
+        try {
+          const me = await authAPI.me();
+          refreshedUser = me?.data?.user || null;
+          r = me?.data?.residente || null;
+        } catch {
+          // ignore and fallback
+        }
+
+        const residentId = refreshedUser?.idResidente || storedUser?.idResidente;
+        if (!r && residentId) {
+          const res = await residentesAPI.getById(residentId);
+          r = res?.data || null;
+        }
+
+        if (!r) {
+          setLoadError('No se pudo resolver el residente de la sesion. Vuelve a iniciar sesion.');
+          return;
+        }
+
+        const resolvedResidentId = r?.idResidente || residentId;
+        if (resolvedResidentId) {
+          try {
+            const ures = await residentesAPI.getUnidades(resolvedResidentId);
+            const list = Array.isArray(ures?.data) ? ures.data : [];
+            if (alive) setUnidades(list);
+          } catch {
+            if (alive) setUnidades([]);
+          }
+        }
+
+        const next = {
+          nombre: r?.nombre || '',
+          apellido: r?.apellido || '',
+          tipoResidente: r?.tipoResidente || '',
+          documento: r?.documento || '',
+          telefono: r?.telefono || '',
+          correo: r?.correo || '',
+          estado: r?.estado || '',
+        };
+
+        if (!alive) return;
+        setUserData(next);
+        setEditForm(next);
+
+        // actualizar datos basicos en storage (avatar/nombre)
+        const merged = {
+          ...storedUser,
+          ...(refreshedUser ? refreshedUser : null),
+          name: [next.nombre, next.apellido].filter(Boolean).join(' ') || storedUser?.name,
+          email: next.correo || storedUser?.email,
+          correo: next.correo || storedUser?.correo,
+        };
+        setStoredUser(merged);
+      } catch (err) {
+        if (!alive) return;
+        const msg = err?.response?.data?.message || err?.message || 'No se pudo cargar el perfil desde la API';
+        setLoadError(msg);
+      } finally {
+        if (alive) setLoading(false);
+      }
+    };
+
+    load();
+    return () => { alive = false; };
   }, []);
 
   const handleEditToggle = () => {
@@ -164,14 +248,54 @@ const Profile = () => {
     setEditForm(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSave = () => {
-    setUserData(editForm);
-    setEditing(false);
-    setSnackbar({
-      open: true,
-      message: 'Perfil actualizado correctamente',
-      severity: 'success'
-    });
+  const handleSave = async () => {
+    const required = ['nombre', 'apellido', 'tipoResidente', 'documento', 'telefono', 'correo', 'estado'];
+    for (const k of required) {
+      if (!String(editForm?.[k] || '').trim()) {
+        setSnackbar({ open: true, message: 'Complete todos los campos obligatorios', severity: 'error' });
+        return;
+      }
+    }
+
+    if (!user?.idResidente) {
+      setSnackbar({ open: true, message: 'No se encontro idResidente en sesion', severity: 'error' });
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const payload = {
+        nombre: String(editForm.nombre).trim(),
+        apellido: String(editForm.apellido).trim(),
+        tipoResidente: editForm.tipoResidente,
+        documento: String(editForm.documento).trim(),
+        telefono: String(editForm.telefono).trim(),
+        correo: String(editForm.correo).trim(),
+        estado: editForm.estado,
+      };
+
+      const res = await residentesAPI.update(user.idResidente, payload);
+      const updated = res?.data || payload;
+
+      setUserData(updated);
+      setEditForm(updated);
+      setEditing(false);
+      setSnackbar({ open: true, message: 'Perfil actualizado correctamente', severity: 'success' });
+
+      const storedUser = JSON.parse(localStorage.getItem('user') || sessionStorage.getItem('user') || '{}');
+      const merged = {
+        ...storedUser,
+        name: [updated.nombre, updated.apellido].filter(Boolean).join(' ') || storedUser?.name,
+        email: updated.correo || storedUser?.email,
+        correo: updated.correo || storedUser?.correo,
+      };
+      setStoredUser(merged);
+    } catch (err) {
+      const msg = err?.response?.data?.message || err?.message || 'No se pudo actualizar el perfil';
+      setSnackbar({ open: true, message: msg, severity: 'error' });
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleCloseSnackbar = () => {
@@ -217,6 +341,11 @@ const Profile = () => {
   return (
     <Box sx={{ backgroundColor: colors.background, minHeight: '100vh', py: 4 }}>
       <Container maxWidth="xl"> {/* Cambiado de lg a xl para más ancho */}
+        {loadError && (
+          <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }}>
+            {loadError}
+          </Alert>
+        )}
         {/* Header con bienvenida personalizada */}
         <Box sx={{ ...fadeIn, mb: 4 }}>
           <Paper
@@ -257,7 +386,7 @@ const Profile = () => {
                   Bienvenido de vuelta
                 </Typography>
                 <Typography variant="h3" sx={{ fontWeight: 800, mb: 1 }}>
-                  {userData.nombre}
+                  {fullName}
                 </Typography>
                 <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
                   <Chip
@@ -267,8 +396,8 @@ const Profile = () => {
                     sx={{ backgroundColor: 'rgba(255,255,255,0.2)', color: 'white' }}
                   />
                   <Chip
-                    icon={<HomeIcon />}
-                    label={userData.unidad}
+                    icon={<EmailIcon />}
+                    label={userData.correo || user?.email || user?.username || '—'}
                     size="small"
                     sx={{ backgroundColor: 'rgba(255,255,255,0.2)', color: 'white' }}
                   />
@@ -302,50 +431,28 @@ const Profile = () => {
                         },
                       }}
                     >
-                      {userData.nombre.charAt(0)}
+                      {(userData.nombre || fullName || 'U').charAt(0)}
                     </Avatar>
                     <Typography variant="h5" sx={{ fontWeight: 700, color: colors.text.primary, mb: 1 }}>
-                      {userData.nombre}
+                      {fullName}
                     </Typography>
                     <InfoChip
                       icon={<CheckCircleIcon />}
-                      label={userData.tipoUsuario}
+                      label={userData.tipoResidente || 'Residente'}
                       chipcolor={colors.success}
                       size="small"
                       sx={{ mb: 2 }}
                     />
-                    
-                    {/* Código QR simulado */}
-                    <Paper
-                      elevation={0}
-                      sx={{
-                        p: 2,
-                        bgcolor: alpha(colors.primary, 0.02),
-                        borderRadius: 3,
-                        border: `1px dashed ${alpha(colors.primary, 0.3)}`,
-                        width: '100%',
-                        textAlign: 'center',
-                        mb: 2,
-                      }}
-                    >
-                      <QrCodeIcon sx={{ fontSize: 60, color: colors.primary, mb: 1 }} />
-                      <Typography variant="caption" sx={{ color: colors.text.secondary, display: 'block' }}>
-                        Código de acceso
-                      </Typography>
-                      <Typography variant="body2" sx={{ fontWeight: 600, color: colors.primary }}>
-                        {userData.codigoAcceso}
-                      </Typography>
-                    </Paper>
                   </Box>
 
                   <Divider sx={{ my: 2 }} />
 
                   <List sx={{ width: '100%' }}>
                     {[
-                      { icon: <HomeIcon />, primary: 'Unidad', secondary: userData.unidad },
-                      { icon: <BadgeIcon />, primary: 'RUT', secondary: userData.rut },
-                      { icon: <CalendarIcon />, primary: 'Fecha de ingreso', secondary: userData.fechaIngreso },
-                      { icon: <KeyIcon />, primary: 'Parqueadero', secondary: userData.espacioParqueadero },
+                      { icon: <EmailIcon />, primary: 'Correo', secondary: userData.correo || '—' },
+                      { icon: <PhoneIcon />, primary: 'Teléfono', secondary: userData.telefono || '—' },
+                      { icon: <BadgeIcon />, primary: 'Documento', secondary: userData.documento || '—' },
+                      { icon: <CheckCircleIcon />, primary: 'Estado', secondary: userData.estado || '—' },
                     ].map((item, index) => (
                       <ListItem 
                         key={index}
@@ -370,62 +477,34 @@ const Profile = () => {
                       </ListItem>
                     ))}
                   </List>
-                </CardContent>
-              </GlassCard>
-            </Zoom>
 
-            {/* Tarjeta de información adicional mejorada */}
-            <Zoom in timeout={400}>
-              <GlassCard sx={{ mt: 3 }}>
-                <CardContent sx={{ p: 3 }}>
-                  <Typography variant="subtitle1" sx={{ color: colors.primary, fontWeight: 700, mb: 2 }}>
-                    Información del Hogar
+                  <Divider sx={{ my: 2 }} />
+
+                  <Typography variant="subtitle2" sx={{ fontWeight: 800, color: colors.text.primary, mb: 1 }}>
+                    Mis unidades
                   </Typography>
-                  <Grid container spacing={2}>
-                    {[
-                      { icon: <PersonIcon />, label: 'Habitantes', value: userData.numHabitantes, color: colors.info },
-                      { icon: <PetsIcon />, label: 'Mascotas', value: userData.mascotas, color: colors.success },
-                      { icon: <DirectionsCarIcon />, label: 'Vehículos', value: userData.vehiculos, color: colors.warning },
-                      { icon: <SecurityIcon />, label: 'Seguridad', value: '24/7', color: colors.primary },
-                    ].map((item, index) => (
-                      <Grid item xs={6} key={index}>
-                        <Paper
-                          elevation={0}
+                  {unidades.length === 0 ? (
+                    <Typography variant="body2" sx={{ color: colors.text.secondary }}>
+                      No tienes unidades asignadas.
+                    </Typography>
+                  ) : (
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                      {unidades.map((u) => (
+                        <Chip
+                          key={u.idUnidad}
+                          icon={<HomeIcon />}
+                          label={u.numero ? `Unidad ${u.numero}` : `Unidad ${u.idUnidad}`}
+                          size="small"
                           sx={{
-                            p: 2,
-                            bgcolor: alpha(item.color, 0.05),
-                            borderRadius: 3,
-                            border: `1px solid ${alpha(item.color, 0.2)}`,
-                            textAlign: 'center',
-                            transition: 'transform 0.2s ease',
-                            '&:hover': {
-                              transform: 'scale(1.02)',
-                            },
+                            backgroundColor: alpha(colors.primary, 0.06),
+                            border: `1px solid ${alpha(colors.primary, 0.18)}`,
+                            color: colors.primary,
+                            fontWeight: 700,
                           }}
-                          onMouseEnter={() => setHoveredCard(index)}
-                          onMouseLeave={() => setHoveredCard(null)}
-                        >
-                          <Avatar
-                            sx={{
-                              bgcolor: alpha(item.color, 0.1),
-                              color: item.color,
-                              width: 40,
-                              height: 40,
-                              margin: '0 auto 8px',
-                            }}
-                          >
-                            {item.icon}
-                          </Avatar>
-                          <Typography variant="h6" sx={{ color: item.color, fontWeight: 700 }}>
-                            {item.value}
-                          </Typography>
-                          <Typography variant="caption" sx={{ color: colors.text.secondary }}>
-                            {item.label}
-                          </Typography>
-                        </Paper>
-                      </Grid>
-                    ))}
-                  </Grid>
+                        />
+                      ))}
+                    </Box>
+                  )}
                 </CardContent>
               </GlassCard>
             </Zoom>
@@ -449,6 +528,7 @@ const Profile = () => {
                       <GradientButton
                         startIcon={<EditIcon />}
                         onClick={handleEditToggle}
+                        disabled={Boolean(loadError) || saving}
                         bgcolor={colors.primary}
                       >
                         Editar Perfil
@@ -458,6 +538,7 @@ const Profile = () => {
                         <Tooltip title="Guardar cambios">
                           <IconButton 
                             onClick={handleSave}
+                            disabled={saving}
                             sx={{ 
                               color: colors.success,
                               bgcolor: alpha(colors.success, 0.1),
@@ -470,6 +551,7 @@ const Profile = () => {
                         <Tooltip title="Cancelar">
                           <IconButton 
                             onClick={handleEditToggle}
+                            disabled={saving}
                             sx={{ 
                               color: colors.error,
                               bgcolor: alpha(colors.error, 0.1),
@@ -487,7 +569,7 @@ const Profile = () => {
                     <Grid item xs={12} sm={6}>
                       <TextField
                         fullWidth
-                        label="Nombre completo"
+                        label="Nombre"
                         name="nombre"
                         value={editing ? editForm.nombre : userData.nombre}
                         onChange={handleInputChange}
@@ -508,9 +590,27 @@ const Profile = () => {
                     <Grid item xs={12} sm={6}>
                       <TextField
                         fullWidth
-                        label="Email"
-                        name="email"
-                        value={editing ? editForm.email : userData.email}
+                        label="Apellido"
+                        name="apellido"
+                        value={editing ? editForm.apellido : userData.apellido}
+                        onChange={handleInputChange}
+                        disabled={!editing}
+                        variant="outlined"
+                        InputProps={{
+                          sx: { 
+                            borderRadius: 3,
+                            bgcolor: alpha(colors.primary, 0.02),
+                          },
+                          startAdornment: <PersonIcon sx={{ mr: 1, color: colors.text.disabled, fontSize: 20 }} />,
+                        }}
+                      />
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
+                      <TextField
+                        fullWidth
+                        label="Correo"
+                        name="correo"
+                        value={editing ? editForm.correo : userData.correo}
                         onChange={handleInputChange}
                         disabled={!editing}
                         variant="outlined"
@@ -544,37 +644,50 @@ const Profile = () => {
                     <Grid item xs={12} sm={6}>
                       <TextField
                         fullWidth
-                        label="Teléfono de emergencia"
-                        name="telefonoEmergencia"
-                        value={editing ? editForm.telefonoEmergencia : userData.telefonoEmergencia}
+                        label="Documento"
+                        name="documento"
+                        value={editing ? editForm.documento : userData.documento}
                         onChange={handleInputChange}
                         disabled={!editing}
                         variant="outlined"
                         InputProps={{
-                          sx: { 
+                          sx: {
                             borderRadius: 3,
                             bgcolor: alpha(colors.primary, 0.02),
                           },
-                          startAdornment: <PhoneInTalkIcon sx={{ mr: 1, color: colors.text.disabled, fontSize: 20 }} />,
+                          startAdornment: <BadgeIcon sx={{ mr: 1, color: colors.text.disabled, fontSize: 20 }} />,
                         }}
                       />
                     </Grid>
-                    <Grid item xs={12}>
-                      <TextField
-                        fullWidth
-                        label="Contacto de emergencia"
-                        name="emergenciaContacto"
-                        value={editing ? editForm.emergenciaContacto : userData.emergenciaContacto}
-                        onChange={handleInputChange}
-                        disabled={!editing}
-                        variant="outlined"
-                        InputProps={{
-                          sx: { 
-                            borderRadius: 3,
-                            bgcolor: alpha(colors.primary, 0.02),
-                          },
-                        }}
-                      />
+                    <Grid item xs={12} sm={6}>
+                      <FormControl fullWidth disabled={!editing}>
+                        <InputLabel>Tipo</InputLabel>
+                        <Select
+                          name="tipoResidente"
+                          value={editing ? editForm.tipoResidente : userData.tipoResidente}
+                          label="Tipo"
+                          onChange={handleInputChange}
+                          sx={{ borderRadius: 3, bgcolor: alpha(colors.primary, 0.02) }}
+                        >
+                          <MenuItem value="Propietario">Propietario</MenuItem>
+                          <MenuItem value="Arrendatario">Arrendatario</MenuItem>
+                        </Select>
+                      </FormControl>
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
+                      <FormControl fullWidth disabled={!editing}>
+                        <InputLabel>Estado</InputLabel>
+                        <Select
+                          name="estado"
+                          value={editing ? editForm.estado : userData.estado}
+                          label="Estado"
+                          onChange={handleInputChange}
+                          sx={{ borderRadius: 3, bgcolor: alpha(colors.primary, 0.02) }}
+                        >
+                          <MenuItem value="Activo">Activo</MenuItem>
+                          <MenuItem value="Inactivo">Inactivo</MenuItem>
+                        </Select>
+                      </FormControl>
                     </Grid>
                   </Grid>
 

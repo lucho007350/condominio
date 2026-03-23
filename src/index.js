@@ -8,7 +8,12 @@ const nodemailer = require('nodemailer');
 const crypto = require('crypto');
 
 const getConnection = require('./libs/mysql');
+const authenticateToken = require('./middlewares/authenticateToken.js');
 const setUpRoutes = require('./router'); // Archivo que contiene las rutas de residentes y unidad habitacional
+
+// Admin fijo (como al inicio): no depende de BD.
+const ADMIN_USER = process.env.ADMIN_USER || 'admin';
+const ADMIN_PASS = process.env.ADMIN_PASS || 'admin123';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -130,6 +135,32 @@ const ensureUsuariosTable = async () => {
     }
 };
 
+const ensureResidenteUnidadTable = async () => {
+    const conn = await getConnection();
+    const sql = `
+      CREATE TABLE IF NOT EXISTS residente_unidad (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        idResidente INT NOT NULL,
+        idUnidad INT NOT NULL,
+        fechaInicio DATE NOT NULL,
+        fechaFin DATE NULL,
+        createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `;
+
+    await conn.execute(sql);
+    try {
+        await conn.execute('CREATE INDEX idx_res_unidad_residente ON residente_unidad (idResidente)');
+    } catch {
+        // ignore (index may already exist)
+    }
+    try {
+        await conn.execute('CREATE INDEX idx_res_unidad_unidad ON residente_unidad (idUnidad)');
+    } catch {
+        // ignore (index may already exist)
+    }
+};
+
 // ==========================
 // 🔹 CORS (para frontend en Vite)
 // ==========================
@@ -222,6 +253,11 @@ app.post('/api/auth/register', async (req, res) => {
     const estado = body?.estado === 'Inactivo' ? 'Inactivo' : 'Activo';
     const tipoResidente = normalizeTipoResidente(body);
     const role = normalizeRole(body, tipoResidente);
+
+    // Seguridad: no permitir que cualquiera se asigne rol admin desde /register.
+    if (role === 'admin') {
+        return res.status(403).json({ message: 'No esta permitido crear administradores desde este endpoint' });
+    }
     const shouldGenerate = body?.generatePassword !== undefined ? Boolean(body.generatePassword) : true;
     const shouldEmail = body?.sendCredentialsEmail !== undefined ? Boolean(body.sendCredentialsEmail) : true;
 
@@ -301,6 +337,34 @@ app.post('/api/auth/login', async (req, res) => {
     const password = String(req.body.password || '');
 
     try {
+        // Admin fijo (configuracion inicial)
+        if (identifier === String(ADMIN_USER).trim().toLowerCase()) {
+            if (password !== String(ADMIN_PASS)) {
+                return res.status(401).json({ message: 'Credenciales invalidas' });
+            }
+
+            const expiresIn = process.env.TOKEN_TTL || '2h';
+            const token = jwt.sign(
+                {
+                    username: ADMIN_USER,
+                    role: 'admin',
+                },
+                secret,
+                { subject: String(ADMIN_USER), expiresIn }
+            );
+
+            return res.status(200).json({
+                token,
+                user: {
+                    idUsuario: null,
+                    idResidente: null,
+                    username: ADMIN_USER,
+                    email: null,
+                    role: 'admin',
+                },
+            });
+        }
+
         await ensureUsuariosTable();
         const conn = await getConnection();
         const [rows] = await conn.execute(
@@ -351,6 +415,75 @@ app.post('/api/auth/login', async (req, res) => {
     }
 });
 
+app.get('/api/auth/me', authenticateToken, async (req, res) => {
+    try {
+        await ensureUsuariosTable();
+        const conn = await getConnection();
+
+        const idUsuario = req.user?.idUsuario;
+        const usernameFromToken = String(req.user?.username || req.user?.sub || '').trim().toLowerCase();
+        const emailFromToken = String(req.user?.email || '').trim().toLowerCase();
+
+        if (String(req.user?.role || '').toLowerCase() === 'admin' && !idUsuario) {
+            return res.status(200).json({
+                user: {
+                    idUsuario: null,
+                    idResidente: null,
+                    username: usernameFromToken || String(ADMIN_USER).trim().toLowerCase(),
+                    email: null,
+                    role: 'admin',
+                },
+                residente: null,
+            });
+        }
+
+        let userRow = null;
+
+        if (idUsuario) {
+            const [rows] = await conn.execute(
+                'SELECT idUsuario, idResidente, username, email, role, estado FROM usuarios WHERE idUsuario = ? LIMIT 1',
+                [idUsuario]
+            );
+            userRow = rows?.[0] || null;
+        }
+
+        if (!userRow && (usernameFromToken || emailFromToken)) {
+            const [rows] = await conn.execute(
+                'SELECT idUsuario, idResidente, username, email, role, estado FROM usuarios WHERE username = ? OR email = ? LIMIT 1',
+                [usernameFromToken || emailFromToken, emailFromToken || usernameFromToken]
+            );
+            userRow = rows?.[0] || null;
+        }
+
+        if (!userRow) {
+            return res.status(404).json({ message: 'Usuario no encontrado' });
+        }
+
+        let residente = null;
+        if (userRow.idResidente) {
+            const [rrows] = await conn.execute(
+                'SELECT idResidente, nombre, apellido, tipoResidente, documento, telefono, correo, estado FROM residentes WHERE idResidente = ? LIMIT 1',
+                [userRow.idResidente]
+            );
+            residente = rrows?.[0] || null;
+        }
+
+        return res.status(200).json({
+            user: {
+                idUsuario: userRow.idUsuario,
+                idResidente: userRow.idResidente,
+                username: userRow.username,
+                email: userRow.email,
+                role: userRow.role,
+            },
+            residente,
+        });
+    } catch (e) {
+        console.error(e);
+        return res.status(500).json({ message: 'Error al obtener perfil' });
+    }
+});
+
 // ==========================
 // 🔹 RUTA PÚBLICA
 // ==========================
@@ -391,6 +524,12 @@ setUpRoutes(app);
         await ensureUsuariosTable();
     } catch (e) {
         console.error('No se pudo asegurar tabla usuarios:', e?.message || e);
+    }
+
+    try {
+        await ensureResidenteUnidadTable();
+    } catch (e) {
+        console.error('No se pudo asegurar tabla residente_unidad:', e?.message || e);
     }
 
     try {
