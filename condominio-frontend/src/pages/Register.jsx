@@ -240,6 +240,11 @@ const Register = () => {
 
     if (!generatePassword) payload.password = formData.password;
 
+    // Enviar la primera unidad seleccionada en el registro (el backend la asignará)
+    if (selectedUnidadIds.length > 0) {
+      payload.idUnidad = Number(selectedUnidadIds[0]);
+    }
+
     try {
       const { mode, res } = await authAPI.register(payload);
       setSuccess(true);
@@ -249,23 +254,21 @@ const Register = () => {
       setEmailInfo(typeof backendEmailInfo === 'string' ? backendEmailInfo : '');
       setCredentialsSent(mode === 'auth' && (backendEmailSent === undefined ? true : Boolean(backendEmailSent)));
 
-      // Asignar unidades (solo admin)
-      if (isAdmin && selectedUnidadIds.length > 0) {
+      // Si hay más unidades, intentar asignarlas después del registro
+      if (selectedUnidadIds.length > 1) {
         const idResidente = res?.data?.idResidente ?? res?.data?.id ?? res?.data?.residenteId;
-        if (!idResidente) {
-          setUnidadAssignInfo('No se pudo asignar unidades: no se recibio idResidente del backend.');
-        } else {
-          const ids = selectedUnidadIds.map((v) => Number(v)).filter((n) => Number.isFinite(n));
+        if (idResidente) {
+          const ids = selectedUnidadIds.slice(1).map((v) => Number(v)).filter((n) => Number.isFinite(n));
           const results = await Promise.allSettled(ids.map((idUnidad) => residentesAPI.asignarUnidad(idResidente, idUnidad)));
           const failed = results.filter((r) => r.status === 'rejected');
           if (failed.length === 0) {
-            setUnidadAssignInfo(`Unidades asignadas: ${ids.length}`);
+            setUnidadAssignInfo(`Unidades asignadas: ${selectedUnidadIds.length}`);
           } else {
-            setUnidadAssignInfo(`Se asignaron ${ids.length - failed.length}/${ids.length} unidades. Algunas fallaron (ver consola).`);
-            // eslint-disable-next-line no-console
-            console.error('Unidad assign errors:', failed);
+            setUnidadAssignInfo(`Se asignaron ${selectedUnidadIds.length - failed.length}/${selectedUnidadIds.length} unidades.`);
           }
         }
+      } else if (selectedUnidadIds.length === 1) {
+        setUnidadAssignInfo('Unidad asignada correctamente');
       }
 
       // Limpiar formulario después de 3 segundos
@@ -311,10 +314,12 @@ const Register = () => {
     }
   };
 
+  const showUnidadesSelector = formData.rol === 'residente';
+
   useEffect(() => {
     let alive = true;
     const loadUnidades = async () => {
-      if (!isAdmin) return;
+      if (!showUnidadesSelector) return;
       setLoadingUnidades(true);
       try {
         const res = await unidadesAPI.getAll();
@@ -333,7 +338,7 @@ const Register = () => {
     return () => {
       alive = false;
     };
-  }, [isAdmin]);
+  }, [showUnidadesSelector]);
 
   const getStepContent = () => {
     switch (activeStep) {
@@ -529,17 +534,17 @@ const Register = () => {
                 </FormControl>
               </Grid>
 
-              {isAdmin && (
+              {showUnidadesSelector && (
                 <Grid item xs={12}>
                   <Divider sx={{ my: 2 }}>
-                    <Chip label="Asignar Unidades" icon={<HomeIcon />} />
+                    <Chip label="Seleccionar Unidad" icon={<HomeIcon />} />
                   </Divider>
 
                   <FormControl fullWidth disabled={loadingUnidades}>
-                    <InputLabel>Unidades</InputLabel>
+                    <InputLabel>Unidades Disponibles</InputLabel>
                     <Select
                       multiple
-                      label="Unidades"
+                      label="Unidades Disponibles"
                       value={selectedUnidadIds}
                       onChange={(e) => setSelectedUnidadIds(e.target.value)}
                       renderValue={(selected) => {
@@ -568,7 +573,7 @@ const Register = () => {
                     </Select>
                   </FormControl>
                   <Typography variant="caption" sx={{ display: 'block', color: colors.text.secondary, mt: 1 }}>
-                    Solo admin: selecciona una o varias unidades para este residente.
+                    Selecciona una o varias unidades para este residente.
                   </Typography>
                 </Grid>
               )}

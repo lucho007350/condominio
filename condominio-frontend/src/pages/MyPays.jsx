@@ -307,7 +307,7 @@ const MyPays = () => {
           // ignore
         }
 
-        const idResidente = meUser?.idResidente || stored?.idResidente;
+        const idResidente = meUser?.idResidente || stored?.idResidente || meUser?.id || stored?.id;
         if (!idResidente) {
           setLoadError('No se encontro el id del residente en la sesion. Vuelve a iniciar sesion.');
           setPagos([]);
@@ -316,6 +316,9 @@ const MyPays = () => {
 
         setResidentId(idResidente);
 
+        // eslint-disable-next-line no-console
+        console.log('MyPays - idResidente:', idResidente);
+
         const [unidadesRes, rpRes, pagosRes, factRes] = await Promise.all([
           residentesAPI.getUnidades(idResidente),
           residentepagosAPI.getAll(),
@@ -323,13 +326,31 @@ const MyPays = () => {
           facturasAPI.getAll(),
         ]);
 
-        const unidadesList = Array.isArray(unidadesRes?.data) ? unidadesRes.data : [];
+        // eslint-disable-next-line no-console
+        console.log('MyPays - unidadesRes:', unidadesRes);
+
+        const unidadesList = Array.isArray(unidadesRes?.data) ? unidadesRes.data : (Array.isArray(unidadesRes) ? unidadesRes : []);
+        // eslint-disable-next-line no-console
+        console.log('MyPays - unidadesList:', unidadesList);
+        
         setUnidades(unidadesList);
         const unidadIds = new Set(unidadesList.map((u) => u?.idUnidad).filter(Boolean));
+        // eslint-disable-next-line no-console
+        console.log('MyPays - unidadIds:', Array.from(unidadIds));
+
+        if (unidadesList.length === 0) {
+          setLoadError('No tienes unidades asignadas. Contacta al administrador para asignarte una unidad.');
+          setPagos([]);
+          setLoading(false);
+          return;
+        }
 
         const rps = Array.isArray(rpRes?.data) ? rpRes.data : [];
         const pagosDb = Array.isArray(pagosRes?.data) ? pagosRes.data : [];
         const facturasDb = Array.isArray(factRes?.data) ? factRes.data : [];
+        
+        // eslint-disable-next-line no-console
+        console.log('MyPays - facturasDb:', facturasDb);
 
         const pagosById = new Map(pagosDb.map((p) => [p.idPago ?? p.id, p]));
         const factById = new Map(facturasDb.map((f) => [f.idFactura ?? f.id, f]));
@@ -384,6 +405,10 @@ const MyPays = () => {
         };
 
         const facturasMine = facturasDb.filter((f) => unidadIds.has(f?.idUnidad));
+
+        if (facturasMine.length === 0 && !loadError) {
+          setLoadError('No hay facturas para tus unidades aún. Las facturas se mostrarán cuando el administrador las registre.');
+        }
 
         const mine = facturasMine
           .map((facturaDb) => {
@@ -704,7 +729,7 @@ const MyPays = () => {
                 </Typography>
                 <Grid container spacing={2}>
                   {bancosColombia.map((banco) => (
-                    <Grid item xs={6} sm={4} key={banco.id}>
+                    <Grid xs={6} sm={4} key={banco.id}>
                       <BankCard
                         selected={selectedBank?.id === banco.id}
                         bankcolor={banco.color}
@@ -748,7 +773,7 @@ const MyPays = () => {
                   sx={{ mb: 2 }}
                 />
                 <Grid container spacing={2}>
-                  <Grid item xs={6}>
+                  <Grid xs={6}>
                     <TextField
                       fullWidth
                       label="Fecha expiración"
@@ -757,7 +782,7 @@ const MyPays = () => {
                       onChange={(e) => setCardData({ ...cardData, expiry: e.target.value })}
                     />
                   </Grid>
-                  <Grid item xs={6}>
+                  <Grid xs={6}>
                     <TextField
                       fullWidth
                       label="CVV"
@@ -891,7 +916,7 @@ const MyPays = () => {
     <Box sx={{ backgroundColor: colors.background, minHeight: '100vh', py: 4 }}>
       <Container maxWidth="xl">
         {loadError && (
-          <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }}>
+          <Alert severity={loadError.includes('Contacta') || loadError.includes('administrador') ? 'info' : 'warning'} sx={{ mb: 3, borderRadius: 2 }}>
             {loadError}
           </Alert>
         )}
@@ -956,7 +981,7 @@ const MyPays = () => {
 
         {/* Estadísticas */}
         <Grid container spacing={3} sx={{ mb: 4 }}>
-          <Grid item xs={12} sm={6} md={3}>
+          <Grid xs={12} sm={6} md={3}>
             <Paper elevation={0} sx={{ p: 3, borderRadius: 3, bgcolor: colors.surface, border: `1px solid ${colors.border}` }}>
               <Avatar sx={{ bgcolor: alpha(colors.success, 0.1), color: colors.success, width: 48, height: 48, borderRadius: 3, mb: 2 }}>
                 <AccountBalanceIcon />
@@ -969,7 +994,7 @@ const MyPays = () => {
               </Typography>
             </Paper>
           </Grid>
-          <Grid item xs={12} sm={6} md={3}>
+          <Grid xs={12} sm={6} md={3}>
             <Paper elevation={0} sx={{ p: 3, borderRadius: 3, bgcolor: colors.surface, border: `1px solid ${colors.border}` }}>
               <Avatar sx={{ bgcolor: alpha(colors.warning, 0.1), color: colors.warning, width: 48, height: 48, borderRadius: 3, mb: 2 }}>
                 <ScheduleIcon />
@@ -982,7 +1007,7 @@ const MyPays = () => {
               </Typography>
             </Paper>
           </Grid>
-          <Grid item xs={12} sm={6} md={3}>
+          <Grid xs={12} sm={6} md={3}>
             <Paper elevation={0} sx={{ p: 3, borderRadius: 3, bgcolor: colors.surface, border: `1px solid ${colors.border}` }}>
               <Avatar sx={{ bgcolor: alpha(colors.info, 0.1), color: colors.info, width: 48, height: 48, borderRadius: 3, mb: 2 }}>
                 <TrendingUpIcon />
@@ -995,7 +1020,7 @@ const MyPays = () => {
               </Typography>
             </Paper>
           </Grid>
-          <Grid item xs={12} sm={6} md={3}>
+          <Grid xs={12} sm={6} md={3}>
             <Paper elevation={0} sx={{ p: 3, borderRadius: 3, bgcolor: colors.surface, border: `1px solid ${colors.border}` }}>
               <Avatar sx={{ bgcolor: alpha(colors.primary, 0.1), color: colors.primary, width: 48, height: 48, borderRadius: 3, mb: 2 }}>
                 <CheckCircleOutlineIcon />
@@ -1031,7 +1056,6 @@ const MyPays = () => {
                   <TableCell><Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Estado</Typography></TableCell>
                   <TableCell><Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Fecha Pago</Typography></TableCell>
                   <TableCell><Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Método</Typography></TableCell>
-                  <TableCell align="center"><Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Acciones</Typography></TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -1062,27 +1086,6 @@ const MyPays = () => {
                       <TableCell>
                         {pago.metodoPago || '-'}
                       </TableCell>
-                      <TableCell align="center">
-                        <Tooltip title="Ver detalle" arrow>
-                          <IconButton size="small" onClick={() => { setSelectedPago(pago); setOpenPagoDialog(true); }} sx={{ color: colors.primary }}>
-                            <VisibilityIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                        {pago.estado === 'pagado' && (
-                          <Tooltip title="Descargar comprobante" arrow>
-                            <IconButton size="small" onClick={() => handleDownloadPDF(pago)} sx={{ color: colors.success }}>
-                              <DownloadIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
-                        )}
-                        {pago.estado !== 'pagado' && (
-                          <Tooltip title="Pagar ahora" arrow>
-                            <GradientButton size="small" startIcon={<PaymentIcon />} onClick={() => handleOpenPayment(pago)} sx={{ ml: 1, py: 0.5, px: 2 }}>
-                              Pagar
-                            </GradientButton>
-                          </Tooltip>
-                        )}
-                      </TableCell>
                     </TableRow>
                   );
                 })}
@@ -1106,7 +1109,7 @@ const MyPays = () => {
               </DialogTitle>
               <DialogContent sx={{ p: 3 }}>
                 <Grid container spacing={3}>
-                  <Grid item xs={12}>
+                  <Grid xs={12}>
                     <Paper sx={{ p: 2, bgcolor: alpha(colors.primary, 0.02), borderRadius: 2 }}>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                         {selectedPago.estado === 'pagado' ? <CheckCircleIcon sx={{ color: colors.success, fontSize: 40 }} /> :
@@ -1121,24 +1124,24 @@ const MyPays = () => {
                       </Box>
                     </Paper>
                   </Grid>
-                  <Grid item xs={12}>
+                  <Grid xs={12}>
                     <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 2 }}>Información General</Typography>
                     <Grid container spacing={2}>
-                      <Grid item xs={6}><Typography variant="caption">Período</Typography><Typography variant="body2" fontWeight={500}>{selectedPago.periodo}</Typography></Grid>
-                      <Grid item xs={6}><Typography variant="caption">Vencimiento</Typography><Typography variant="body2" fontWeight={500}>{formatDate(selectedPago.fechaVencimiento)}</Typography></Grid>
-                      <Grid item xs={12}><Divider /></Grid>
-                      <Grid item xs={6}><Typography variant="caption">Monto</Typography><Typography variant="h6" sx={{ color: colors.primary, fontWeight: 700 }}>${selectedPago.monto.toLocaleString()}</Typography></Grid>
-                      <Grid item xs={6}><Typography variant="caption">Estado</Typography><StatusChip icon={getEstadoConfig(selectedPago.estado).icon} label={getEstadoConfig(selectedPago.estado).label} statuscolor={getEstadoConfig(selectedPago.estado).color} size="small" sx={{ mt: 1 }} /></Grid>
+                      <Grid xs={6}><Typography variant="caption">Período</Typography><Typography variant="body2" fontWeight={500}>{selectedPago.periodo}</Typography></Grid>
+                      <Grid xs={6}><Typography variant="caption">Vencimiento</Typography><Typography variant="body2" fontWeight={500}>{formatDate(selectedPago.fechaVencimiento)}</Typography></Grid>
+                      <Grid xs={12}><Divider /></Grid>
+                      <Grid xs={6}><Typography variant="caption">Monto</Typography><Typography variant="h6" sx={{ color: colors.primary, fontWeight: 700 }}>${selectedPago.monto.toLocaleString()}</Typography></Grid>
+                      <Grid xs={6}><Typography variant="caption">Estado</Typography><StatusChip icon={getEstadoConfig(selectedPago.estado).icon} label={getEstadoConfig(selectedPago.estado).label} statuscolor={getEstadoConfig(selectedPago.estado).color} size="small" sx={{ mt: 1 }} /></Grid>
                     </Grid>
                   </Grid>
                   {selectedPago.estado === 'pagado' && (
-                    <Grid item xs={12}>
+                    <Grid xs={12}>
                       <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 2 }}>Detalles del Pago</Typography>
                       <Paper sx={{ p: 2, bgcolor: alpha(colors.success, 0.02), borderRadius: 2 }}>
                         <Grid container spacing={2}>
-                          <Grid item xs={6}><Typography variant="caption">Fecha de pago</Typography><Typography variant="body2">{formatDate(selectedPago.fechaPago)}</Typography></Grid>
-                          <Grid item xs={6}><Typography variant="caption">Método de pago</Typography><Typography variant="body2">{selectedPago.metodoPago}</Typography></Grid>
-                          <Grid item xs={12}><Typography variant="caption">Comprobante</Typography><Typography variant="body2">{selectedPago.comprobante}</Typography></Grid>
+                          <Grid xs={6}><Typography variant="caption">Fecha de pago</Typography><Typography variant="body2">{formatDate(selectedPago.fechaPago)}</Typography></Grid>
+                          <Grid xs={6}><Typography variant="caption">Método de pago</Typography><Typography variant="body2">{selectedPago.metodoPago}</Typography></Grid>
+                          <Grid xs={12}><Typography variant="caption">Comprobante</Typography><Typography variant="body2">{selectedPago.comprobante}</Typography></Grid>
                         </Grid>
                       </Paper>
                     </Grid>

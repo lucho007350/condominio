@@ -312,6 +312,19 @@ app.post('/api/auth/register', async (req, res) => {
 
         const mail = shouldEmail ? await sendCredentialsEmail({ to: email, username, password: plainPassword }) : { emailSent: false };
 
+        // Asignar unidad si se especifica en el registro
+        const idUnidad = body?.idUnidad;
+        if (idUnidad && idResidente) {
+            try {
+                await conn.execute(
+                    'INSERT INTO residente_unidad (idResidente, idUnidad, fechaInicio) VALUES (?, ?, CURDATE())',
+                    [idResidente, Number(idUnidad)]
+                );
+            } catch (assignErr) {
+                console.error('Error al asignar unidad durante registro:', assignErr);
+            }
+        }
+
         return res.status(201).json({
             idUsuario: insertUser.insertId,
             idResidente,

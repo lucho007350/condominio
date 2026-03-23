@@ -29,9 +29,46 @@ router.get("/", authenticateToken, async (req, res) => {
     res.status(200).json(residentes);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "Error al obtener los residentes" });
+    res.status(500).json({ message: 'Error al obtener residentes' });
   }
 });
+
+// 🔹 Obtener unidades de un residente (privado)
+router.get(
+  "/:id/unidades",
+  authenticateToken,
+  validatorHandler(residenteIdParamsSchema, "params"),
+  async (req, res) => {
+    try {
+      const { id } = req.params;
+      const role = String(req.user?.role || '').toLowerCase();
+      const isAdmin = role === 'admin';
+      const isSelf = req.user?.idResidente && String(req.user.idResidente) === String(id);
+      
+      if (!isAdmin && !isSelf) {
+        return res.status(403).json({ message: 'No autorizado para ver unidades' });
+      }
+
+      const conn = await getConnection();
+      const [rows] = await conn.execute(
+        `
+          SELECT ru.id, ru.idResidente, ru.idUnidad, ru.fechaInicio, ru.fechaFin,
+                 u.numero, u.tipoUnidad, u.estado, u.area, u.valorCuota
+          FROM residente_unidad ru
+          INNER JOIN unidades_habitacionales u ON ru.idUnidad = u.idUnidad
+          WHERE ru.idResidente = ? AND ru.fechaFin IS NULL
+          ORDER BY u.numero
+        `,
+        [id]
+      );
+
+      res.status(200).json(rows);
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: 'Error al obtener unidades del residente' });
+    }
+  }
+);
 
 // 🔹 Crear un residente
 router.post(
@@ -65,51 +102,13 @@ router.get(
     try {
       const { id } = req.params;
       const residente = await residenteService.getById(id);
-
       if (!residente) {
-        return res.status(404).json({ message: "Residente no encontrado" });
+        return res.status(404).json({ message: 'Residente no encontrado' });
       }
-
       res.status(200).json(residente);
     } catch (error) {
       console.error(error);
-      res.status(500).json({ message: "Error al obtener el residente" });
-    }
-  }
-);
-
-// 🔹 Unidades asignadas a un residente (privado: admin o el mismo residente)
-router.get(
-  '/:id/unidades',
-  authenticateToken,
-  validatorHandler(residenteIdParamsSchema, 'params'),
-  async (req, res) => {
-    try {
-      const { id } = req.params;
-      const role = String(req.user?.role || '').toLowerCase();
-      const isAdmin = role === 'admin';
-      const isSelf = req.user?.idResidente && String(req.user.idResidente) === String(id);
-      if (!isAdmin && !isSelf) {
-        return res.status(403).json({ message: 'No autorizado' });
-      }
-
-      const conn = await getConnection();
-      const [rows] = await conn.execute(
-        `
-          SELECT ru.id, ru.idResidente, ru.idUnidad, ru.fechaInicio, ru.fechaFin,
-                 u.numero, u.tipoUnidad, u.estado, u.area, u.valorCuota
-          FROM residente_unidad ru
-          INNER JOIN unidades_habitacionales u ON ru.idUnidad = u.idUnidad
-          WHERE ru.idResidente = ? AND ru.fechaFin IS NULL
-          ORDER BY u.numero
-        `,
-        [id]
-      );
-
-      res.status(200).json(rows);
-    } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Error al obtener unidades del residente' });
+      res.status(500).json({ message: 'Error al obtener el residente' });
     }
   }
 );
@@ -122,13 +121,16 @@ router.post(
   validatorHandler(assignUnidadSchema, 'body'),
   async (req, res) => {
     try {
-      const role = String(req.user?.role || '').toLowerCase();
-      if (role !== 'admin') {
-        return res.status(403).json({ message: 'Solo admin puede asignar unidades' });
-      }
-
       const { id } = req.params;
       const { idUnidad } = req.body;
+      const role = String(req.user?.role || '').toLowerCase();
+      const isAdmin = role === 'admin';
+      const isSelf = req.user?.idResidente && String(req.user.idResidente) === String(id);
+      
+      if (!isAdmin && !isSelf) {
+        return res.status(403).json({ message: 'No autorizado para asignar unidades' });
+      }
+
       const conn = await getConnection();
 
       const [existing] = await conn.execute(
