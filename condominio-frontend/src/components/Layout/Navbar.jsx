@@ -318,6 +318,15 @@ const Navbar = () => {
               >
                 <PaymentIcon sx={{ mr: 1 }} /> Pagos
               </MenuItem>
+
+              <MenuItem
+                component={Link}
+                to="/admin/pqrs"
+                onClick={() => setAnchorGestion(null)}
+                sx={{ '&:hover': { backgroundColor: 'rgba(255,255,255,0.1)' } }}
+              >
+                <PqrsIcon sx={{ mr: 1 }} /> PQRS
+              </MenuItem>
             </Menu>
           </>
         )}

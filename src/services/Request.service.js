@@ -42,16 +42,16 @@ class RequestService {
     const request = await this.#repository.getById(id);
     if (!request) return null;
 
-    request.setTipo(tipo);
-    request.setAsunto(asunto);
-    request.setDescripcion(descripcion);
-    request.setPrioridad(prioridad);
-    request.setEstado(estado);
-    request.setFecha(fecha);
-    request.setPropietarioId(propietarioId);
-    request.setPropietarioNombre(propietarioNombre);
-    request.setRemitenteUsuario(remitenteUsuario);
-    request.setRemitenteNombre(remitenteNombre);
+    request.setTipo(tipo ?? null);
+    request.setAsunto(asunto ?? null);
+    request.setDescripcion(descripcion ?? null);
+    request.setPrioridad(prioridad ?? null);
+    request.setEstado(estado ?? null);
+    request.setFecha(fecha ?? null);
+    request.setPropietarioId(propietarioId ?? null);
+    request.setPropietarioNombre(propietarioNombre ?? null);
+    request.setRemitenteUsuario(remitenteUsuario ?? null);
+    request.setRemitenteNombre(remitenteNombre ?? null);
 
     const updated = await this.#repository.update(request);
     return updated.getValues();

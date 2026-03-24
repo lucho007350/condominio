@@ -173,7 +173,9 @@ export const ingresosAPI = {
 
 export const requestAPI = {
   getAll: () => api.get('/requests'),
+  getById: (id) => api.get(`/requests/${id}`),
   create: (data) => api.post('/requests', data),
+  update: (id, data) => api.put(`/requests/${id}`, data),
   updateStatus: (id, status) => api.put(`/requests/${id}/status`, { status }),
   delete: (id) => api.delete(`/requests/${id}`),
 };

@@ -18,6 +18,7 @@ import Perfil from "./pages/profile"; // Solo una importación
 import Comunicacion from "./pages/comunicacion";
 import Propietarios from "./pages/Propietarios";
 import PQRS from "./pages/PQRS";
+import AdminPQRS from "./pages/AdminPQRS";
 import Register from './pages/Register';
 
 
@@ -146,6 +147,12 @@ function App() {
         <Route path="/admin/register" element={
           <Layout>
             <Register />
+          </Layout>
+        } />
+
+        <Route path="/admin/pqrs" element={
+          <Layout>
+            <AdminPQRS />
           </Layout>
         } />
 
