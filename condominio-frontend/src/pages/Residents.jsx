@@ -138,15 +138,39 @@ const Residents = () => {
   };
 
   const handleConfirmDelete = async () => {
-    if (!residentToDelete?.idResidente) return;
+    console.log('===== DELETE BUTTON CLICKED =====');
+    console.log('residentToDelete:', residentToDelete);
+    if (!residentToDelete?.idResidente) {
+      console.log('No hay idResidente');
+      return;
+    }
     setSaving(true);
+    const isPropietario = String(residentToDelete.tipoResidente || '').toLowerCase() === 'propietario';
+    console.log('isPropietario:', isPropietario);
+    
     try {
+      console.log('Llamando API delete para id:', residentToDelete.idResidente);
       await residentesAPI.delete(residentToDelete.idResidente);
+      console.log('API delete completada');
       setResidents((prev) => prev.filter((r) => r.idResidente !== residentToDelete.idResidente));
       handleCloseDeleteConfirm();
-      setSnackbar({ open: true, message: 'Residente eliminado correctamente', severity: 'success' });
+      
+      let msg = isPropietario
+        ? 'Propietario eliminado correctamente'
+        : 'Residente eliminado correctamente';
+      
+      const storedUser = JSON.parse(localStorage.getItem('user') || sessionStorage.getItem('user') || '{}');
+      if (storedUser.idResidente === residentToDelete.idResidente) {
+        localStorage.removeItem('user');
+        sessionStorage.removeItem('user');
+        window.location.href = '/login';
+        return;
+      }
+      
+      setSnackbar({ open: true, message: msg, severity: 'success' });
       window.dispatchEvent(new Event('dashboard:refresh'));
     } catch (err) {
+      console.error('Error al eliminar:', err);
       const msg = err?.response?.data?.message ?? err?.message ?? 'Error al eliminar';
       setSnackbar({ open: true, message: msg, severity: 'error' });
     } finally {

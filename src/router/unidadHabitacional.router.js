@@ -7,6 +7,7 @@ const {
 } = require('../schemas/UnidadHabitacional.schema.js');
 const validatorHandler = require('../middlewares/validator.handle.js');
 const authenticateToken = require('../middlewares/authenticateToken.js');
+const getConnection = require('../libs/mysql');
 
 const router = Router();
 const unidadHabitacionalService = new UnidadHabitacionalService();
@@ -19,6 +20,24 @@ router.get("/", authenticateToken, async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Error al obtener las unidades habitacionales" });
+  }
+});
+
+// 🔹 Obtener solo las unidades disponibles (sin residente activo)
+router.get("/disponibles", authenticateToken, async (req, res) => {
+  try {
+    const conn = await getConnection();
+    const [rows] = await conn.execute(`
+      SELECT u.* FROM unidades_habitacionales u
+      WHERE u.idUnidad NOT IN (
+        SELECT idUnidad FROM residente_unidad WHERE fechaFin IS NULL
+      )
+      ORDER BY u.numero
+    `);
+    res.status(200).json(rows);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Error al obtener las unidades disponibles" });
   }
 });
 

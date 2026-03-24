@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Container,
   Paper,
@@ -86,7 +86,7 @@ const slideIn = {
 };
 
 // Componentes estilizados
-const GlassCard = styled(Card)(({ theme }) => ({
+  const GlassCard = styled(Card)(() => ({
   background: `linear-gradient(135deg, ${alpha(colors.surface, 0.95)} 0%, ${alpha(colors.surface, 0.98)} 100%)`,
   backdropFilter: 'blur(10px)',
   border: `1px solid ${alpha(colors.border, 0.5)}`,
@@ -135,17 +135,6 @@ const Register = () => {
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [generatePassword, setGeneratePassword] = useState(true);
-
-  const safeParseUser = () => {
-    try {
-      return JSON.parse(localStorage.getItem('user') || sessionStorage.getItem('user') || '{}');
-    } catch {
-      return {};
-    }
-  };
-
-  const sessionUser = useMemo(() => safeParseUser(), []);
-  const isAdmin = String(sessionUser?.role || '').toLowerCase() === 'admin';
 
   const [unidadesOptions, setUnidadesOptions] = useState([]);
   const [loadingUnidades, setLoadingUnidades] = useState(false);
@@ -256,7 +245,13 @@ const Register = () => {
 
       // Si hay más unidades, intentar asignarlas después del registro
       if (selectedUnidadIds.length > 1) {
-        const idResidente = res?.data?.idResidente ?? res?.data?.id ?? res?.data?.residenteId;
+         const idResidente =
+           res?.data?.idResidente ??
+           res?.data?.residenteId ??
+           res?.data?.id ??
+           res?.data?.user?.idResidente ??
+           res?.data?.user?.id ??
+           res?.data?.userId;
         if (idResidente) {
           const ids = selectedUnidadIds.slice(1).map((v) => Number(v)).filter((n) => Number.isFinite(n));
           const results = await Promise.allSettled(ids.map((idUnidad) => residentesAPI.asignarUnidad(idResidente, idUnidad)));
@@ -314,7 +309,7 @@ const Register = () => {
     }
   };
 
-  const showUnidadesSelector = formData.rol === 'residente';
+  const showUnidadesSelector = formData.rol === 'residente' || formData.rol === 'propietario';
 
   useEffect(() => {
     let alive = true;
@@ -326,7 +321,7 @@ const Register = () => {
         const list = Array.isArray(res?.data) ? res.data : [];
         if (!alive) return;
         setUnidadesOptions(list);
-      } catch (e) {
+      } catch {
         if (!alive) return;
         setUnidadesOptions([]);
       } finally {
@@ -534,11 +529,14 @@ const Register = () => {
                 </FormControl>
               </Grid>
 
-              {showUnidadesSelector && (
-                <Grid item xs={12}>
-                  <Divider sx={{ my: 2 }}>
-                    <Chip label="Seleccionar Unidad" icon={<HomeIcon />} />
-                  </Divider>
+               {showUnidadesSelector && (
+                 <Grid item xs={12}>
+                   <Divider sx={{ my: 2 }}>
+                     <Chip
+                       label={formData.rol === 'propietario' ? 'Propiedades en custodia' : 'Seleccionar Unidad'}
+                       icon={<HomeIcon />}
+                     />
+                   </Divider>
 
                   <FormControl fullWidth disabled={loadingUnidades}>
                     <InputLabel>Unidades Disponibles</InputLabel>
@@ -572,11 +570,13 @@ const Register = () => {
                       )}
                     </Select>
                   </FormControl>
-                  <Typography variant="caption" sx={{ display: 'block', color: colors.text.secondary, mt: 1 }}>
-                    Selecciona una o varias unidades para este residente.
-                  </Typography>
-                </Grid>
-              )}
+                    <Typography variant="caption" sx={{ display: 'block', color: colors.text.secondary, mt: 1 }}>
+                      {formData.rol === 'propietario'
+                        ? 'Selecciona una o varias unidades que quedaran en custodia de este propietario.'
+                        : 'Selecciona una o varias unidades para este residente.'}
+                    </Typography>
+                 </Grid>
+               )}
               <Grid item xs={12}>
                 <Divider sx={{ my: 2 }}>
                   <Chip label="Credenciales de Acceso" icon={<LockIcon />} />
@@ -739,7 +739,11 @@ const Register = () => {
                       <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
                         <StatusChip label={formData.condominio} icon={<ApartmentIcon />} statuscolor={colors.info} />
                         <StatusChip label={`Zona ${formData.zona}`} icon={<LocationCityIcon />} statuscolor={colors.info} />
-                        <StatusChip label={formData.rol === 'residente' ? 'Residente' : formData.rol === 'guardia' ? 'Guardia' : 'Administrador'} icon={<PeopleIcon />} statuscolor={colors.info} />
+                        <StatusChip
+                          label={formData.rol === 'residente' ? 'Residente' : formData.rol === 'propietario' ? 'Propietario' : formData.rol === 'guardia' ? 'Guardia' : 'Administrador'}
+                          icon={<PeopleIcon />}
+                          statuscolor={colors.info}
+                        />
                       </Box>
                     </Paper>
                   </Grid>

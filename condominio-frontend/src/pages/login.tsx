@@ -26,16 +26,34 @@ const Login = () => {
       const response = await authAPI.login({ identifier: usuario, password });
       const data = response?.data || {};
       const token = data?.token;
-      const user = data?.user;
+      let user = data?.user;
 
       if (!token || !user?.username) {
         throw new Error('Respuesta de login invalida');
       }
 
+      // Obtener datos completos del usuario
+      try {
+        const meResponse = await authAPI.me();
+        const fullData = meResponse?.data || {};
+        user = { ...user, ...fullData };
+        
+        // Extraer nombre y apellido del residente si existe
+        const residente = fullData?.residente;
+        if (residente) {
+          user.nombre = residente.nombre || '';
+          user.apellido = residente.apellido || '';
+        }
+      } catch (meError) {
+        console.warn('No se pudo obtener datos adicionales del usuario:', meError);
+      }
+
       const userData = {
         ...user,
         token,
-        name: user?.name || user?.username,
+        name: user?.nombre && user?.apellido 
+          ? `${user.nombre} ${user.apellido}` 
+          : user?.name || user?.username || '',
       };
 
       if (rememberMe) {

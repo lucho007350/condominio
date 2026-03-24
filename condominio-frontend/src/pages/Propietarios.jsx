@@ -16,6 +16,7 @@ import {
   Fade,
   Divider,
   LinearProgress,
+  Alert,
   alpha,
   Tab,
   Tabs,
@@ -65,6 +66,8 @@ import {
   History as HistoryIcon,
 } from '@mui/icons-material';
 
+import { authAPI, facturasAPI, paymentAPI, residentepagosAPI, residentesAPI } from '../services/api.jsx';
+
 // Colores personalizados
 const colors = {
   primary: '#1e3a5f',
@@ -85,7 +88,7 @@ const colors = {
 };
 
 // Componentes estilizados
-const GlassCard = styled(Card)(({ theme }) => ({
+const GlassCard = styled(Card)(() => ({
   background: `linear-gradient(135deg, ${alpha(colors.surface, 0.95)} 0%, ${alpha(colors.surface, 0.98)} 100%)`,
   backdropFilter: 'blur(10px)',
   border: `1px solid ${alpha(colors.border, 0.5)}`,
@@ -101,6 +104,15 @@ const GlassCard = styled(Card)(({ theme }) => ({
 
 const PropertyCard = ({ propiedad, onVerDetalle }) => {
   const [hovered, setHovered] = useState(false);
+
+  const residentes = Array.isArray(propiedad?.residentes) ? propiedad.residentes : [];
+  const pagosEstado = String(propiedad?.pagos?.estado || '').toLowerCase();
+  const pagosConfig =
+    pagosEstado === 'al_dia'
+      ? { icon: <CheckCircleIcon />, label: 'Al día', color: colors.success }
+      : pagosEstado === 'con_deuda'
+        ? { icon: <WarningIcon />, label: 'Con deuda', color: colors.warning }
+        : { icon: <InfoIcon />, label: 'Sin info', color: colors.info };
 
   return (
     <GlassCard
@@ -129,7 +141,7 @@ const PropertyCard = ({ propiedad, onVerDetalle }) => {
               </Typography>
               <Chip
                 icon={<LocationIcon sx={{ fontSize: 14 }} />}
-                label={propiedad.ubicacion}
+                label={propiedad.ubicacion || '—'}
                 size="small"
                 sx={{
                   backgroundColor: alpha(colors.info, 0.1),
@@ -140,12 +152,12 @@ const PropertyCard = ({ propiedad, onVerDetalle }) => {
             </Box>
           </Box>
           <Chip
-            icon={propiedad.pagos.estado === 'al_dia' ? <CheckCircleIcon /> : <WarningIcon />}
-            label={propiedad.pagos.estado === 'al_dia' ? 'Al día' : 'Con deuda'}
+            icon={pagosConfig.icon}
+            label={pagosConfig.label}
             size="small"
             sx={{
-              backgroundColor: alpha(propiedad.pagos.estado === 'al_dia' ? colors.success : colors.warning, 0.1),
-              color: propiedad.pagos.estado === 'al_dia' ? colors.success : colors.warning,
+              backgroundColor: alpha(pagosConfig.color, 0.1),
+              color: pagosConfig.color,
             }}
           />
         </Box>
@@ -156,22 +168,22 @@ const PropertyCard = ({ propiedad, onVerDetalle }) => {
         <Box sx={{ display: 'flex', justifyContent: 'space-around', mb: 2 }}>
           <Box sx={{ textAlign: 'center' }}>
             <RoomIcon sx={{ color: colors.primary, fontSize: 20 }} />
-            <Typography variant="body2" sx={{ fontWeight: 600 }}>{propiedad.habitaciones}</Typography>
+            <Typography variant="body2" sx={{ fontWeight: 600 }}>{propiedad.habitaciones ?? '—'}</Typography>
             <Typography variant="caption" sx={{ color: colors.text.secondary }}>Hab.</Typography>
           </Box>
           <Box sx={{ textAlign: 'center' }}>
             <BathIcon sx={{ color: colors.primary, fontSize: 20 }} />
-            <Typography variant="body2" sx={{ fontWeight: 600 }}>{propiedad.banos}</Typography>
+            <Typography variant="body2" sx={{ fontWeight: 600 }}>{propiedad.banos ?? '—'}</Typography>
             <Typography variant="caption" sx={{ color: colors.text.secondary }}>Baños</Typography>
           </Box>
           <Box sx={{ textAlign: 'center' }}>
             <CarIcon sx={{ color: colors.primary, fontSize: 20 }} />
-            <Typography variant="body2" sx={{ fontWeight: 600 }}>{propiedad.parqueaderos}</Typography>
+            <Typography variant="body2" sx={{ fontWeight: 600 }}>{propiedad.parqueaderos ?? '—'}</Typography>
             <Typography variant="caption" sx={{ color: colors.text.secondary }}>Parq.</Typography>
           </Box>
           <Box sx={{ textAlign: 'center' }}>
             <AreaIcon sx={{ color: colors.primary, fontSize: 20 }} />
-            <Typography variant="body2" sx={{ fontWeight: 600 }}>{propiedad.area}</Typography>
+            <Typography variant="body2" sx={{ fontWeight: 600 }}>{propiedad.area ?? '—'}</Typography>
             <Typography variant="caption" sx={{ color: colors.text.secondary }}>Área</Typography>
           </Box>
         </Box>
@@ -180,10 +192,10 @@ const PropertyCard = ({ propiedad, onVerDetalle }) => {
 
         {/* Información de residentes (solo primeros 2) */}
         <Typography variant="subtitle2" sx={{ color: colors.text.primary, fontWeight: 600, mb: 1 }}>
-          Residentes ({propiedad.residentes.length})
+          Residentes ({residentes.length})
         </Typography>
         
-        {propiedad.residentes.slice(0, 2).map((residente, index) => (
+        {residentes.slice(0, 2).map((residente, index) => (
           <Box
             key={index}
             sx={{
@@ -191,7 +203,7 @@ const PropertyCard = ({ propiedad, onVerDetalle }) => {
               alignItems: 'center',
               justifyContent: 'space-between',
               py: 1,
-              borderBottom: index < Math.min(propiedad.residentes.length, 2) - 1 ? `1px solid ${alpha(colors.border, 0.5)}` : 'none',
+              borderBottom: index < Math.min(residentes.length, 2) - 1 ? `1px solid ${alpha(colors.border, 0.5)}` : 'none',
             }}
           >
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -210,9 +222,9 @@ const PropertyCard = ({ propiedad, onVerDetalle }) => {
           </Box>
         ))}
 
-        {propiedad.residentes.length > 2 && (
+        {residentes.length > 2 && (
           <Typography variant="caption" sx={{ color: colors.text.secondary, display: 'block', textAlign: 'center', mt: 1 }}>
-            +{propiedad.residentes.length - 2} residentes más
+            +{residentes.length - 2} residentes más
           </Typography>
         )}
 
@@ -225,7 +237,7 @@ const PropertyCard = ({ propiedad, onVerDetalle }) => {
               Último pago
             </Typography>
             <Typography variant="body2" sx={{ fontWeight: 600 }}>
-              {propiedad.pagos.ultimoPago}
+              {propiedad?.pagos?.ultimoPago || '—'}
             </Typography>
           </Box>
           <Box>
@@ -233,7 +245,7 @@ const PropertyCard = ({ propiedad, onVerDetalle }) => {
               Próximo vencimiento
             </Typography>
             <Typography variant="body2" sx={{ fontWeight: 600, color: colors.warning }}>
-              {propiedad.pagos.proximoVencimiento}
+              {propiedad?.pagos?.proximoVencimiento || '—'}
             </Typography>
           </Box>
         </Box>
@@ -264,6 +276,22 @@ const PropertyCard = ({ propiedad, onVerDetalle }) => {
 // Componente de diálogo de detalles
 const DetallePropiedadDialog = ({ open, propiedad, onClose }) => {
   if (!propiedad) return null;
+
+  const residentes = Array.isArray(propiedad?.residentes) ? propiedad.residentes : [];
+  const historial = Array.isArray(propiedad?.pagos?.historial) ? propiedad.pagos.historial : [];
+  const documentos = Array.isArray(propiedad?.documentos) ? propiedad.documentos : [];
+
+  const gastosComunes = Number(propiedad?.gastosComunes);
+  const valorComercial = Number(propiedad?.valorComercial);
+  const fmtMoney = (n) => (Number.isFinite(n) ? `$${Math.round(n).toLocaleString()}` : '—');
+
+  const pagosEstado = String(propiedad?.pagos?.estado || '').toLowerCase();
+  const pagosConfig =
+    pagosEstado === 'al_dia'
+      ? { icon: <CheckCircleIcon />, label: 'Al día', color: colors.success }
+      : pagosEstado === 'con_deuda'
+        ? { icon: <WarningIcon />, label: 'Con deuda', color: colors.warning }
+        : { icon: <InfoIcon />, label: 'Sin info', color: colors.info };
 
   return (
     <Dialog
@@ -322,12 +350,12 @@ const DetallePropiedadDialog = ({ open, propiedad, onClose }) => {
                   </Typography>
                 </Box>
                 <Chip
-                  icon={propiedad.pagos.estado === 'al_dia' ? <CheckCircleIcon /> : <WarningIcon />}
-                  label={propiedad.pagos.estado === 'al_dia' ? 'Al día' : 'Con deuda'}
+                  icon={pagosConfig.icon}
+                  label={pagosConfig.label}
                   sx={{
                     ml: 'auto',
-                    backgroundColor: alpha(propiedad.pagos.estado === 'al_dia' ? colors.success : colors.warning, 0.1),
-                    color: propiedad.pagos.estado === 'al_dia' ? colors.success : colors.warning,
+                    backgroundColor: alpha(pagosConfig.color, 0.1),
+                    color: pagosConfig.color,
                   }}
                 />
               </Box>
@@ -342,28 +370,28 @@ const DetallePropiedadDialog = ({ open, propiedad, onClose }) => {
                 <Grid item xs={6} sm={3}>
                   <Box sx={{ textAlign: 'center', p: 1 }}>
                     <RoomIcon sx={{ color: colors.primary, fontSize: 30 }} />
-                    <Typography variant="h6" sx={{ color: colors.text.primary }}>{propiedad.habitaciones}</Typography>
+                    <Typography variant="h6" sx={{ color: colors.text.primary }}>{propiedad.habitaciones ?? '—'}</Typography>
                     <Typography variant="caption" sx={{ color: colors.text.secondary }}>Habitaciones</Typography>
                   </Box>
                 </Grid>
                 <Grid item xs={6} sm={3}>
                   <Box sx={{ textAlign: 'center', p: 1 }}>
                     <BathIcon sx={{ color: colors.primary, fontSize: 30 }} />
-                    <Typography variant="h6" sx={{ color: colors.text.primary }}>{propiedad.banos}</Typography>
+                    <Typography variant="h6" sx={{ color: colors.text.primary }}>{propiedad.banos ?? '—'}</Typography>
                     <Typography variant="caption" sx={{ color: colors.text.secondary }}>Baños</Typography>
                   </Box>
                 </Grid>
                 <Grid item xs={6} sm={3}>
                   <Box sx={{ textAlign: 'center', p: 1 }}>
                     <CarIcon sx={{ color: colors.primary, fontSize: 30 }} />
-                    <Typography variant="h6" sx={{ color: colors.text.primary }}>{propiedad.parqueaderos}</Typography>
+                    <Typography variant="h6" sx={{ color: colors.text.primary }}>{propiedad.parqueaderos ?? '—'}</Typography>
                     <Typography variant="caption" sx={{ color: colors.text.secondary }}>Parqueaderos</Typography>
                   </Box>
                 </Grid>
                 <Grid item xs={6} sm={3}>
                   <Box sx={{ textAlign: 'center', p: 1 }}>
                     <AreaIcon sx={{ color: colors.primary, fontSize: 30 }} />
-                    <Typography variant="h6" sx={{ color: colors.text.primary }}>{propiedad.area}</Typography>
+                    <Typography variant="h6" sx={{ color: colors.text.primary }}>{propiedad.area ?? '—'}</Typography>
                     <Typography variant="caption" sx={{ color: colors.text.secondary }}>Área</Typography>
                   </Box>
                 </Grid>
@@ -393,8 +421,8 @@ const DetallePropiedadDialog = ({ open, propiedad, onClose }) => {
                   </ListItemIcon>
                   <ListItemText
                     primary="Valor comercial"
-                    secondary={`$${propiedad.valorComercial.toLocaleString()}`}
-                    secondaryTypographyProps={{ sx: { fontWeight: 600, color: colors.success } }}
+                    secondary={fmtMoney(valorComercial)}
+                    secondaryTypographyProps={{ sx: { fontWeight: 600, color: Number.isFinite(valorComercial) ? colors.success : colors.text.secondary } }}
                   />
                 </ListItem>
                 <ListItem>
@@ -403,8 +431,8 @@ const DetallePropiedadDialog = ({ open, propiedad, onClose }) => {
                   </ListItemIcon>
                   <ListItemText
                     primary="Gastos comunes mensuales"
-                    secondary={`$${propiedad.gastosComunes.toLocaleString()}`}
-                    secondaryTypographyProps={{ sx: { fontWeight: 600, color: colors.warning } }}
+                    secondary={fmtMoney(gastosComunes)}
+                    secondaryTypographyProps={{ sx: { fontWeight: 600, color: Number.isFinite(gastosComunes) ? colors.warning : colors.text.secondary } }}
                   />
                 </ListItem>
                 <ListItem>
@@ -413,7 +441,7 @@ const DetallePropiedadDialog = ({ open, propiedad, onClose }) => {
                   </ListItemIcon>
                   <ListItemText
                     primary="Último pago"
-                    secondary={propiedad.pagos.ultimoPago}
+                    secondary={propiedad?.pagos?.ultimoPago || '—'}
                     secondaryTypographyProps={{ sx: { fontWeight: 600 } }}
                   />
                 </ListItem>
@@ -423,7 +451,7 @@ const DetallePropiedadDialog = ({ open, propiedad, onClose }) => {
                   </ListItemIcon>
                   <ListItemText
                     primary="Próximo vencimiento"
-                    secondary={propiedad.pagos.proximoVencimiento}
+                    secondary={propiedad?.pagos?.proximoVencimiento || '—'}
                     secondaryTypographyProps={{ sx: { fontWeight: 600, color: colors.warning } }}
                   />
                 </ListItem>
@@ -443,10 +471,14 @@ const DetallePropiedadDialog = ({ open, propiedad, onClose }) => {
               }}
             >
               <Typography variant="subtitle1" sx={{ fontWeight: 600, color: colors.text.primary, mb: 2 }}>
-                Residentes ({propiedad.residentes.length})
+                Residentes ({residentes.length})
               </Typography>
               
-              {propiedad.residentes.map((residente, index) => (
+              {residentes.length === 0 ? (
+                <Typography variant="body2" sx={{ color: colors.text.secondary }}>
+                  No hay residentes asociados en la API para esta unidad.
+                </Typography>
+              ) : residentes.map((residente, index) => (
                 <Box key={index} sx={{ mb: 2 }}>
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
                     <Avatar sx={{ bgcolor: alpha(colors.info, 0.1), color: colors.info }}>
@@ -471,7 +503,7 @@ const DetallePropiedadDialog = ({ open, propiedad, onClose }) => {
                       <Typography variant="caption">{residente.email}</Typography>
                     </Box>
                   </Box>
-                  {index < propiedad.residentes.length - 1 && <Divider sx={{ my: 1 }} />}
+                  {index < residentes.length - 1 && <Divider sx={{ my: 1 }} />}
                 </Box>
               ))}
             </Paper>
@@ -502,19 +534,25 @@ const DetallePropiedadDialog = ({ open, propiedad, onClose }) => {
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {propiedad.pagos.historial.map((pago, index) => (
+                    {historial.length === 0 ? (
+                      <TableRow hover>
+                        <TableCell colSpan={4} sx={{ color: colors.text.secondary }}>
+                          Sin historial de pagos
+                        </TableCell>
+                      </TableRow>
+                    ) : historial.map((pago, index) => (
                       <TableRow key={index} hover>
-                        <TableCell>{pago.mes}</TableCell>
-                        <TableCell align="right">${pago.monto.toLocaleString()}</TableCell>
-                        <TableCell>{pago.fecha}</TableCell>
+                        <TableCell>{pago.mes || '—'}</TableCell>
+                        <TableCell align="right">{fmtMoney(Number(pago.monto))}</TableCell>
+                        <TableCell>{pago.fecha || '—'}</TableCell>
                         <TableCell>
                           <Chip
-                            icon={pago.estado === 'pagado' ? <CheckCircleIcon /> : <WarningIcon />}
-                            label={pago.estado === 'pagado' ? 'Pagado' : 'Pendiente'}
+                            icon={String(pago.estado || '').toLowerCase() === 'pagado' ? <CheckCircleIcon /> : <WarningIcon />}
+                            label={String(pago.estado || '').toLowerCase() === 'pagado' ? 'Pagado' : 'Pendiente'}
                             size="small"
                             sx={{
-                              backgroundColor: alpha(pago.estado === 'pagado' ? colors.success : colors.warning, 0.1),
-                              color: pago.estado === 'pagado' ? colors.success : colors.warning,
+                              backgroundColor: alpha(String(pago.estado || '').toLowerCase() === 'pagado' ? colors.success : colors.warning, 0.1),
+                              color: String(pago.estado || '').toLowerCase() === 'pagado' ? colors.success : colors.warning,
                             }}
                           />
                         </TableCell>
@@ -541,7 +579,13 @@ const DetallePropiedadDialog = ({ open, propiedad, onClose }) => {
               </Typography>
               
               <Grid container spacing={2}>
-                {propiedad.documentos.map((doc, index) => (
+                {documentos.length === 0 ? (
+                  <Grid item xs={12}>
+                    <Typography variant="body2" sx={{ color: colors.text.secondary }}>
+                      Sin documentos registrados
+                    </Typography>
+                  </Grid>
+                ) : documentos.map((doc, index) => (
                   <Grid item xs={12} sm={6} key={index}>
                     <Paper
                       elevation={0}
@@ -558,10 +602,10 @@ const DetallePropiedadDialog = ({ open, propiedad, onClose }) => {
                         <DocumentIcon sx={{ color: colors.primary }} />
                         <Box>
                           <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                            {doc.nombre}
+                            {doc.nombre || 'Documento'}
                           </Typography>
                           <Typography variant="caption" sx={{ color: colors.text.secondary }}>
-                            {doc.fecha}
+                            {doc.fecha || '—'}
                           </Typography>
                         </Box>
                       </Box>
@@ -613,102 +657,250 @@ const MisPropiedades = () => {
   const [tabValue, setTabValue] = useState(0);
   const [selectedProperty, setSelectedProperty] = useState(null);
   const [openDialog, setOpenDialog] = useState(false);
+  const [loadError, setLoadError] = useState('');
 
   useEffect(() => {
-    // Obtener datos del usuario
-    const userData = JSON.parse(localStorage.getItem('user') || sessionStorage.getItem('user') || '{}');
-    setPropietario(userData);
+    let alive = true;
 
-    // Datos de ejemplo para propiedades
-    const mockPropiedades = [
-      {
-        id: 1,
-        nombre: 'Casa Num. 12 ',
-        ubicacion: 'Piso 5, Torre A',
-        area: '85 m²',
-        habitaciones: 3,
-        banos: 2,
-        parqueaderos: 1,
-        valorComercial: 180000000,
-        gastosComunes: 85000,
-        residentes: [
-          { nombre: 'Carlos Rodríguez', tipo: 'Arrendatario', telefono: '+56 9 1234 5678', email: 'carlos@email.com' },
-          { nombre: 'María González', tipo: 'Familiar', telefono: '+56 9 8765 4321', email: 'maria@email.com' },
-        ],
-        pagos: {
-          ultimoPago: '05/03/2026',
-          estado: 'al_dia',
-          proximoVencimiento: '10/04/2026',
-          historial: [
-            { mes: 'Marzo 2026', monto: 85000, fecha: '05/03/2026', estado: 'pagado' },
-            { mes: 'Febrero 2026', monto: 85000, fecha: '08/02/2026', estado: 'pagado' },
-            { mes: 'Enero 2026', monto: 85000, fecha: '07/01/2026', estado: 'pagado' },
-          ]
-        },
-        documentos: [
-          { nombre: 'Escritura', fecha: '15/03/2023' },
-          { nombre: 'Certificado de avalúo', fecha: '20/12/2025' },
-        ]
-      },
-      {
-        id: 2,
-        nombre: 'Casa Num. 34',
-        ubicacion: 'Piso 3, Torre B',
-        area: '72 m²',
-        habitaciones: 2,
-        banos: 2,
-        parqueaderos: 1,
-        valorComercial: 155000000,
-        gastosComunes: 78000,
-        residentes: [
-          { nombre: 'Ana Martínez', tipo: 'Arrendataria', telefono: '+56 9 2345 6789', email: 'ana@email.com' },
-        ],
-        pagos: {
-          ultimoPago: '02/03/2026',
-          estado: 'al_dia',
-          proximoVencimiento: '10/04/2026',
-          historial: [
-            { mes: 'Marzo 2026', monto: 78000, fecha: '02/03/2026', estado: 'pagado' },
-            { mes: 'Febrero 2026', monto: 78000, fecha: '05/02/2026', estado: 'pagado' },
-          ]
-        },
-        documentos: [
-          { nombre: 'Escritura', fecha: '20/06/2022' },
-        ]
-      },
-      {
-        id: 3,
-        nombre: 'Casa Num. 56',
-        ubicacion: 'Primer piso, Torre A',
-        area: '120 m²',
-        habitaciones: 0,
-        banos: 1,
-        parqueaderos: 2,
-        valorComercial: 250000000,
-        gastosComunes: 120000,
-        residentes: [
-          { nombre: 'Comercial SpA', tipo: 'Arrendatario', telefono: '+56 9 3456 7890', email: 'comercial@email.com' },
-        ],
-        pagos: {
-          ultimoPago: '01/03/2026',
-          estado: 'al_dia',
-          proximoVencimiento: '10/04/2026',
-          historial: [
-            { mes: 'Marzo 2026', monto: 120000, fecha: '01/03/2026', estado: 'pagado' },
-          ]
-        },
-        documentos: [
-          { nombre: 'Escritura', fecha: '10/01/2024' },
-          { nombre: 'Contrato arriendo', fecha: '15/01/2024' },
-        ]
-      },
-    ];
+    const safeParseUser = () => {
+      try {
+        return JSON.parse(localStorage.getItem('user') || sessionStorage.getItem('user') || '{}');
+      } catch {
+        return {};
+      }
+    };
 
-    setTimeout(() => {
-      setPropiedades(mockPropiedades);
-      setLoading(false);
-    }, 1000);
+    const normalizeDateStr = (v) => {
+      if (!v) return null;
+      const s = String(v);
+      return s.includes('T') ? s.split('T')[0] : s;
+    };
+
+    const fmtDate = (dateStr) => {
+      const d = dateStr ? new Date(dateStr) : null;
+      if (!d || Number.isNaN(d.getTime())) return '—';
+      return d.toLocaleDateString('es-CO');
+    };
+
+    const monthYearEs = (dateStr) => {
+      const d = dateStr ? new Date(dateStr) : null;
+      if (!d || Number.isNaN(d.getTime())) return '—';
+      return d.toLocaleDateString('es-CO', { month: 'long', year: 'numeric' });
+    };
+
+    const load = async () => {
+      setLoading(true);
+      setLoadError('');
+      setPropiedades([]);
+
+      const stored = safeParseUser();
+      setPropietario(stored);
+
+      let meUser = null;
+      try {
+        const me = await authAPI.me();
+        const fullData = me?.data || {};
+        meUser = fullData?.user || fullData?.residente || fullData;
+        
+        // Si tiene residente, usarlo para nombre/apellido
+        if (fullData?.residente) {
+          meUser.nombre = fullData.residente.nombre || meUser.nombre;
+          meUser.apellido = fullData.residente.apellido || meUser.apellido;
+        }
+      } catch {
+        // ignore
+      }
+
+      // Combinar datos: stored + meUser
+      const mergedUser = { ...stored, ...meUser };
+      
+      // Preferir datos reales de /auth/me para nombre/apellido.
+      if (mergedUser && alive) {
+        setPropietario(mergedUser);
+      }
+
+      const idResidente = mergedUser?.idResidente || mergedUser?.id || stored?.idResidente || stored?.id;
+      if (!idResidente) {
+        if (!alive) return;
+        setLoadError('No se encontró el id del propietario en la sesión. Vuelve a iniciar sesión.');
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const [unidadesRes, rpRes, pagosRes, factRes] = await Promise.all([
+          residentesAPI.getUnidades(idResidente),
+          residentepagosAPI.getAll(),
+          paymentAPI.getAll(),
+          facturasAPI.getAll(),
+        ]);
+
+        const unidadesList = Array.isArray(unidadesRes?.data)
+          ? unidadesRes.data
+          : Array.isArray(unidadesRes)
+            ? unidadesRes
+            : [];
+
+        if (!alive) return;
+
+        if (unidadesList.length === 0) {
+          setLoadError('No tienes propiedades/unidades en custodia asignadas. Contacta al administrador.');
+          setPropiedades([]);
+          setLoading(false);
+          return;
+        }
+
+        const rps = Array.isArray(rpRes?.data) ? rpRes.data : [];
+        const pagosDb = Array.isArray(pagosRes?.data) ? pagosRes.data : [];
+        const facturasDb = Array.isArray(factRes?.data) ? factRes.data : [];
+
+        const pagosById = new Map(pagosDb.map((p) => [String(p.idPago ?? p.id), p]));
+        const rpsMine = rps.filter((rp) => String(rp?.idResidente) === String(idResidente));
+
+        const latestPagoByFacturaId = new Map();
+        for (const p of pagosDb) {
+          const idFactura = p?.idFactura;
+          const idPago = p?.idPago ?? p?.id;
+          if (!idFactura || !idPago) continue;
+          const estadoPago = String(p?.estadoPago || p?.estado || '').toLowerCase();
+          if (estadoPago !== 'procesado') continue;
+          const fechaPago = normalizeDateStr(p?.fechaPago);
+          const prev = latestPagoByFacturaId.get(String(idFactura));
+          if (!prev || String(fechaPago || '') > String(prev.fechaPago || '')) {
+            latestPagoByFacturaId.set(String(idFactura), { idPago, fechaPago });
+          }
+        }
+
+        const paidByFacturaId = new Map();
+        for (const rp of rpsMine) {
+          const idPago = rp?.idPago;
+          const pagoDb = idPago != null ? pagosById.get(String(idPago)) : null;
+          const idFactura = pagoDb?.idFactura ?? rp?.idFactura;
+          if (!idFactura) continue;
+          const fechaPago = normalizeDateStr(rp?.fechaPago || pagoDb?.fechaPago);
+          const prev = paidByFacturaId.get(String(idFactura));
+          if (!prev || String(fechaPago || '') > String(prev.fechaPago || '')) {
+            paidByFacturaId.set(String(idFactura), { fechaPago, idPago });
+          }
+        }
+
+        const todayStr = new Date().toISOString().split('T')[0];
+
+        const computePagosForUnidad = (idUnidad) => {
+          const list = facturasDb.filter((f) => String(f?.idUnidad) === String(idUnidad));
+          if (list.length === 0) {
+            return { estado: 'sin_info', ultimoPago: '—', proximoVencimiento: '—', historial: [] };
+          }
+
+          const enriched = list.map((facturaDb) => {
+            const idFactura = facturaDb?.idFactura ?? facturaDb?.id;
+            const fechaVenc = normalizeDateStr(facturaDb?.fechaVencimiento);
+
+            const paid = paidByFacturaId.get(String(idFactura));
+            const paidFallback = !paid ? latestPagoByFacturaId.get(String(idFactura)) : null;
+            const isPaid = Boolean(paid || paidFallback);
+
+            const estado = isPaid
+              ? 'pagado'
+              : fechaVenc && String(fechaVenc) < todayStr
+                ? 'atrasado'
+                : 'pendiente';
+
+            return {
+              idFactura,
+              fechaVenc,
+              fechaEmision: normalizeDateStr(facturaDb?.fechaEmision),
+              monto: Number(facturaDb?.monto ?? 0),
+              estado,
+              fechaPago: paid?.fechaPago || paidFallback?.fechaPago || null,
+            };
+          });
+
+          const unpaid = enriched.filter((x) => x.estado !== 'pagado');
+          const paidList = enriched.filter((x) => x.estado === 'pagado');
+
+          const ultimoPago = paidList
+            .map((x) => x.fechaPago)
+            .filter(Boolean)
+            .sort((a, b) => String(b).localeCompare(String(a)))[0];
+
+          const proximoVenc = unpaid
+            .map((x) => x.fechaVenc)
+            .filter(Boolean)
+            .sort((a, b) => String(a).localeCompare(String(b)))[0];
+
+          const estadoUnidad = unpaid.length === 0 ? 'al_dia' : 'con_deuda';
+
+          const historial = enriched
+            .slice()
+            .sort((a, b) => String(b.fechaVenc || '').localeCompare(String(a.fechaVenc || '')))
+            .slice(0, 6)
+            .map((x) => ({
+              mes: monthYearEs(x.fechaEmision || x.fechaVenc),
+              monto: x.monto,
+              fecha: x.estado === 'pagado' ? fmtDate(x.fechaPago) : fmtDate(x.fechaVenc),
+              estado: x.estado === 'pagado' ? 'pagado' : 'pendiente',
+            }));
+
+          return {
+            estado: estadoUnidad,
+            ultimoPago: ultimoPago ? fmtDate(ultimoPago) : '—',
+            proximoVencimiento: proximoVenc ? fmtDate(proximoVenc) : '—',
+            historial,
+          };
+        };
+
+        const mapped = unidadesList.map((u) => {
+          const idUnidad = u?.idUnidad ?? u?.id;
+          const numero = u?.numero ?? u?.number ?? idUnidad;
+          const tipo = u?.tipoUnidad ?? u?.tipo ?? '';
+          const areaNum = u?.area;
+          const cuotaNum = Number(u?.valorCuota ?? u?.cuota);
+          const pagos = computePagosForUnidad(idUnidad);
+
+          return {
+            id: idUnidad,
+            nombre: numero != null ? `Unidad ${numero}` : 'Unidad',
+            ubicacion: tipo || '—',
+            area: areaNum != null && areaNum !== '' ? `${areaNum} m²` : '—',
+            habitaciones: u?.habitaciones ?? u?.cuartos ?? '—',
+            banos: u?.banos ?? u?.baños ?? '—',
+            parqueaderos: u?.parqueaderos ?? '—',
+            valorComercial: u?.valorComercial ?? null,
+            gastosComunes: Number.isFinite(cuotaNum) ? cuotaNum : null,
+            residentes: [],
+            pagos,
+            documentos: [],
+            rawUnidad: u,
+          };
+        });
+
+        setPropiedades(mapped);
+      } catch (err) {
+        if (!alive) return;
+        const msg = err?.response?.data?.message ?? err?.message ?? 'No se pudieron cargar tus propiedades desde la API';
+        setLoadError(msg);
+        setPropiedades([]);
+      } finally {
+        if (alive) setLoading(false);
+      }
+    };
+
+    load();
+    return () => { alive = false; };
   }, []);
+
+  const displayOwnerName = (u) => {
+    const nombre = String(u?.nombre || u?.firstName || '').trim();
+    const apellido = String(u?.apellido || u?.lastName || '').trim();
+    const full = [nombre, apellido].filter(Boolean).join(' ').trim();
+    if (full) return full;
+    const name = String(u?.name || '').trim();
+    if (name && !name.includes('@')) return name;
+    const username = String(u?.username || '').trim();
+    if (username && !username.includes('@')) return username;
+    return 'Bienvenido';
+  };
 
   const handleVerDetalle = (propiedad) => {
     setSelectedProperty(propiedad);
@@ -723,13 +915,20 @@ const MisPropiedades = () => {
     setTabValue(newValue);
   };
 
-  const filteredPropiedades = tabValue === 0 
-    ? propiedades 
-    : tabValue === 1 
-      ? propiedades.filter(p => p.habitaciones > 0) // Residenciales
+  const classifyTipo = (propiedad) => {
+    const tipo = String(propiedad?.rawUnidad?.tipoUnidad ?? propiedad?.rawUnidad?.tipo ?? propiedad?.ubicacion ?? '').toLowerCase();
+    if (tipo.includes('parqueadero') || tipo.includes('estacionamiento')) return 'estacionamiento';
+    if (tipo.includes('comercial') || tipo.includes('local')) return 'comercial';
+    return 'residencial';
+  };
+
+  const filteredPropiedades = tabValue === 0
+    ? propiedades
+    : tabValue === 1
+      ? propiedades.filter((p) => classifyTipo(p) === 'residencial')
       : tabValue === 2
-        ? propiedades.filter(p => p.habitaciones === 0) // Comerciales
-        : propiedades.filter(p => p.parqueaderos > 1); // Estacionamientos (ejemplo)
+        ? propiedades.filter((p) => classifyTipo(p) === 'comercial')
+        : propiedades.filter((p) => classifyTipo(p) === 'estacionamiento');
 
   if (loading) {
     return (
@@ -770,6 +969,11 @@ const MisPropiedades = () => {
   return (
     <Box sx={{ backgroundColor: colors.background, minHeight: '100vh', py: 4 }}>
       <Container maxWidth="xl">
+        {loadError && (
+          <Alert severity="warning" sx={{ mb: 3, borderRadius: 3 }}>
+            {loadError}
+          </Alert>
+        )}
         {/* Header */}
         <Paper
           elevation={0}
@@ -809,7 +1013,7 @@ const MisPropiedades = () => {
                 Bienvenido
               </Typography>
               <Typography variant="h3" sx={{ fontWeight: 800, mb: 1 }}>
-                {propietario?.name || 'Propietario'}
+                {displayOwnerName(propietario)}
               </Typography>
               <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
                 <Chip
@@ -831,9 +1035,9 @@ const MisPropiedades = () => {
         <Grid container spacing={3} sx={{ mb: 4 }}>
           {[
             { label: 'Propiedades', value: propiedades.length, icon: <BuildingIcon />, color: colors.primary },
-            { label: 'Residentes', value: propiedades.reduce((acc, p) => acc + p.residentes.length, 0), icon: <PersonIcon />, color: colors.info },
-            { label: 'Valor total', value: `$${propiedades.reduce((acc, p) => acc + p.valorComercial, 0).toLocaleString()}`, icon: <MoneyIcon />, color: colors.success },
-            { label: 'Gastos comunes', value: `$${propiedades.reduce((acc, p) => acc + p.gastosComunes, 0).toLocaleString()}/mes`, icon: <ReceiptIcon />, color: colors.warning },
+            { label: 'Al día', value: propiedades.filter((p) => String(p?.pagos?.estado || '').toLowerCase() === 'al_dia').length, icon: <CheckCircleIcon />, color: colors.success },
+            { label: 'Con deuda', value: propiedades.filter((p) => String(p?.pagos?.estado || '').toLowerCase() === 'con_deuda').length, icon: <WarningIcon />, color: colors.warning },
+            { label: 'Cuota total', value: `$${propiedades.reduce((acc, p) => acc + (Number(p?.gastosComunes) || 0), 0).toLocaleString()}/mes`, icon: <ReceiptIcon />, color: colors.info },
           ].map((stat, index) => (
             <Grid item xs={12} sm={6} md={3} key={index}>
               <Zoom in timeout={300} style={{ transitionDelay: `${index * 50}ms` }}>
@@ -910,7 +1114,7 @@ const MisPropiedades = () => {
 
         {/* Grid de propiedades */}
         <Grid container spacing={3}>
-          {filteredPropiedades.map((propiedad, index) => (
+          {filteredPropiedades.map((propiedad) => (
             <Grid item xs={12} md={6} lg={4} key={propiedad.id}>
               <PropertyCard propiedad={propiedad} onVerDetalle={handleVerDetalle} />
             </Grid>

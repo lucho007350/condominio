@@ -218,6 +218,7 @@ router.delete(
   "/:id",
   validatorHandler(getResidenteSchema, "params"),
   async (req, res) => {
+    console.log('=== PETICION DELETE RESIDENTE ===', req.params.id);
     try {
       const { id } = req.params;
       const result = await residenteService.delete(id);
@@ -228,7 +229,7 @@ router.delete(
 
       res.status(200).json({ message: "Residente eliminado correctamente" });
     } catch (error) {
-      console.error(error);
+      console.error('ERROR AL ELIMINAR:', error);
       res.status(500).json({ message: "Error al eliminar el residente" });
     }
   }
