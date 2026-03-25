@@ -616,11 +616,7 @@ const MyPays = () => {
       const facturaDb = selectedPago?.raw?.facturaDb;
       if (facturaDb?.idFactura) {
         const updateData = {
-          fechaEmision: facturaDb.fechaEmision,
-          monto: facturaDb.monto,
-          fechaVencimiento: facturaDb.fechaVencimiento,
-          estadoFactura: 'Pagada',
-          idUnidad: facturaDb.idUnidad,
+          estadoFactura: 'Pagada'
         };
         
         console.log('Actualizando factura:', facturaDb.idFactura, updateData);
@@ -659,6 +655,9 @@ const MyPays = () => {
         message: '¡Pago realizado exitosamente!',
         severity: 'success'
       });
+
+      // Actualizar otras vistas (facturas del admin)
+      window.dispatchEvent(new Event('dashboard:refresh'));
 
       // Recargar datos después de 2 segundos
       setTimeout(() => {

@@ -78,6 +78,12 @@ const Facturas = () => {
   }, []);
 
   useEffect(() => {
+    const handler = () => cargarFacturas();
+    window.addEventListener('dashboard:refresh', handler);
+    return () => window.removeEventListener('dashboard:refresh', handler);
+  }, []);
+
+  useEffect(() => {
     const cargarUnidades = async () => {
       try {
         const { data } = await unidadesAPI.getAll();
@@ -227,7 +233,7 @@ const Facturas = () => {
           { label: 'Pendientes', value: facturas.filter(f => (f.estadoFactura ?? f.estado) === 'Pendiente').length, icon: <PendienteIcon />, color: '#FF9800' },
           { label: 'Vencidas', value: facturas.filter(f => (f.estadoFactura ?? f.estado) === 'Vencida').length, icon: <VencidaIcon />, color: '#f44336' }
         ].map((item, i) => (
-          <Grid item xs={12} sm={6} md={3} key={i}>
+          <Grid item size={{ xs: 12, sm: 6, md: 3 }} key={i}>
             <Paper sx={{ p: 3, borderRadius: 3, display: 'flex', alignItems: 'center', gap: 2 }}>
               <Box
                 sx={{
@@ -321,7 +327,7 @@ const Facturas = () => {
         <DialogTitle>{facturaEdit ? 'Editar factura' : 'Nueva factura'}</DialogTitle>
         <DialogContent>
           <Grid container spacing={2} sx={{ mt: 0.5 }}>
-            <Grid item xs={12} sm={6}>
+            <Grid item size={{ xs: 12, sm: 6 }}>
               <TextField
                 fullWidth
                 label="Fecha emisión"
@@ -332,7 +338,7 @@ const Facturas = () => {
                 InputLabelProps={{ shrink: true }}
               />
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid item size={{ xs: 12, sm: 6 }}>
               <TextField
                 fullWidth
                 label="Fecha vencimiento"
@@ -343,7 +349,7 @@ const Facturas = () => {
                 InputLabelProps={{ shrink: true }}
               />
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid item size={{ xs: 12, sm: 6 }}>
               <TextField
                 fullWidth
                 label="Monto"
@@ -354,7 +360,7 @@ const Facturas = () => {
                 inputProps={{ min: 0, step: 1000 }}
               />
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid item size={{ xs: 12, sm: 6 }}>
               <FormControl fullWidth>
                 <InputLabel>Estado</InputLabel>
                 <Select
@@ -369,7 +375,7 @@ const Facturas = () => {
                 </Select>
               </FormControl>
             </Grid>
-            <Grid item xs={12}>
+            <Grid item size={12}>
               <FormControl fullWidth>
                 <InputLabel>Unidad</InputLabel>
                 <Select

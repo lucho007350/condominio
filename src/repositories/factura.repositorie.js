@@ -55,21 +55,38 @@ class FacturaRepository {
   
 
   async update(idFactura, data) {
-    const query = `
-      UPDATE facturas
-      SET fechaEmision = ?, monto = ?, fechaVencimiento = ?, estadoFactura = ?, idUnidad = ?
-      WHERE idFactura = ?
-    `;
-  
-    const values = [
-      data.fechaEmision,
-      data.monto,
-      data.fechaVencimiento,
-      data.estadoFactura,
-      data.idUnidad,
-      idFactura
-    ];
-  
+    const fields = [];
+    const values = [];
+    
+    if (data.fechaEmision !== undefined) {
+      fields.push("fechaEmision = ?");
+      values.push(data.fechaEmision);
+    }
+    if (data.monto !== undefined) {
+      fields.push("monto = ?");
+      values.push(data.monto);
+    }
+    if (data.fechaVencimiento !== undefined) {
+      fields.push("fechaVencimiento = ?");
+      values.push(data.fechaVencimiento);
+    }
+    if (data.estadoFactura !== undefined) {
+      fields.push("estadoFactura = ?");
+      values.push(data.estadoFactura);
+    }
+    if (data.idUnidad !== undefined) {
+      fields.push("idUnidad = ?");
+      values.push(data.idUnidad);
+    }
+    
+    if (fields.length === 0) {
+      return { idFactura, message: "No hay campos para actualizar" };
+    }
+    
+    values.push(idFactura);
+    
+    const query = `UPDATE facturas SET ${fields.join(", ")} WHERE idFactura = ?`;
+    
     await this.#connection.execute(query, values);
   
     return {

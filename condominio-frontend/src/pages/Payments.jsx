@@ -275,6 +275,18 @@ const Payments = () => {
       } else {
         await paymentAPI.create(payload);
       }
+
+      const idFactura = Number(formData.idFactura);
+      if (formData.estadoPago === 'Procesado' && idFactura && !isNaN(idFactura)) {
+        try {
+          await facturasAPI.update(idFactura, {
+            estadoFactura: 'Pagada'
+          });
+        } catch (facturaErr) {
+          console.error('Error al actualizar factura:', facturaErr);
+        }
+      }
+
       handleCloseDialog();
       await fetchPayments();
       window.dispatchEvent(new Event('dashboard:refresh'));
@@ -309,6 +321,18 @@ const Payments = () => {
         idFactura: payment.idFactura,
       };
       await paymentAPI.update(payment.idPago ?? payment.id, payload);
+      
+      const idFacturaPago = Number(payment.idFactura);
+      if (idFacturaPago && !isNaN(idFacturaPago)) {
+        try {
+          await facturasAPI.update(idFacturaPago, {
+            estadoFactura: 'Pagada'
+          });
+        } catch (facturaErr) {
+          console.error('Error al actualizar factura:', facturaErr);
+        }
+      }
+      
       await fetchPayments();
       window.dispatchEvent(new Event('dashboard:refresh'));
     } catch (err) {
