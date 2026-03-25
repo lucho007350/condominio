@@ -181,7 +181,7 @@ const Residents = () => {
   const handleCloseSnackbar = () => setSnackbar((s) => ({ ...s, open: false }));
 
   return (
-    <Box>
+    <Box sx={{ width: '100%' }}>
       {/* Header */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
         <Box>

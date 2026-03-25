@@ -129,7 +129,7 @@ const MainLayout = ({ children }) => {
   const navItems = getNavItems();
 
   return (
-    <Box sx={{ minHeight: '0vh', backgroundColor: '#f0f2f5' }}>
+    <Box sx={{ minHeight: '100vh', backgroundColor: '#f0f2f5' }}>
       <Drawer
         variant="permanent"
         sx={{
@@ -145,6 +145,7 @@ const MainLayout = ({ children }) => {
             borderRight: 'none',
             top: 0,
             height: '100vh',
+            zIndex: (theme) => theme.zIndex.drawer + 1,
           },
         }}
       >
@@ -231,11 +232,15 @@ const MainLayout = ({ children }) => {
         </List>
       </Drawer>
 
-      <Box sx={{ flexGrow: 1 }}>
+      <Box sx={{ flexGrow: 1, ml: open ? `${drawerWidth}px` : `${collapsedDrawerWidth}px`, transition: 'margin 0.2s ease', minHeight: '100vh' }}>
           <AppBar
             position="fixed"
             sx={{
               backgroundColor: '#ffffff',
+              width: `calc(100% - ${open ? drawerWidth : collapsedDrawerWidth}px)`,
+              ml: open ? `${drawerWidth}px` : `${collapsedDrawerWidth}px`,
+              transition: 'width 0.2s ease, margin 0.2s ease',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
               '& .MuiToolbar-root': {
                 minHeight: 48,
               },
@@ -243,7 +248,6 @@ const MainLayout = ({ children }) => {
           >
           <Toolbar sx={{ justifyContent: 'flex-end' }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-              {/* Botón Registrar - solo para admin con colores del navbar lateral */}
               {isAdmin && (
                 <Button
                   variant="contained"
@@ -316,7 +320,7 @@ const MainLayout = ({ children }) => {
           </Toolbar>
         </AppBar>
         
-        <Box sx={{ p: 3 }}>
+        <Box sx={{ pt: '56px', px: 3, pb: 3, width: '100%', boxSizing: 'border-box' }}>
           {children}
         </Box>
       </Box>

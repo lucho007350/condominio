@@ -32,7 +32,8 @@ import {
   Zoom,
   InputAdornment,
   Stack,
-  ListItemText,  
+  ListItemText,
+  ListItemIcon,
   Menu,
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
@@ -383,7 +384,6 @@ const Comunicacion = () => {
         contenido: nuevoComunicado.contenido,
         fechaPublicacion: new Date().toISOString(),
         tipo: mapUiTipoToBackend(nuevoComunicado.tipo),
-        destinatarios: nuevoComunicado.destinatarios,
       };
 
       const response = await communicationAPI.create(payload);
@@ -476,14 +476,10 @@ const Comunicacion = () => {
   };
 
   return (
-    <Box sx={{ backgroundColor: colors.background, minHeight: '100vh', pt: 0 }}>
+    <Box sx={{ backgroundColor: colors.background }}>
      <Container 
-      maxWidth={false}
-      sx={{
-        py: 0,
-        px: { md: 7 },
-        ml: { md: '40px' },
-      }}
+      maxWidth="xl"
+      sx={{ py: 2 }}
     >
         {/* Header */}
         <Paper

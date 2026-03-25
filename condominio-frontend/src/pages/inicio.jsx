@@ -63,7 +63,7 @@ const Inicio = () => {
   }, [loadingStats, residentsCount, unitsCount]);
 
   return (
-    <Box sx={{ position: 'relative', width: '100%', minHeight: '100vh', overflow: 'hidden', backgroundColor: '#000' }}>
+    <Box sx={{ position: 'relative', width: '100%', minHeight: 'calc(100vh - 56px)', overflow: 'hidden', backgroundColor: '#000' }}>
       {/* Video de fondo - OCUPA TODA LA PANTALLA */}
       <video
         autoPlay

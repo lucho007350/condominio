@@ -231,7 +231,7 @@ const UnidadesHabitacionales = () => {
   }
 
   return (
-    <Box>
+    <Box sx={{ width: '100%' }}>
       {/* Header */}
       <Box display="flex" justifyContent="space-between" mb={4}>
         <Box>

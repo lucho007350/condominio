@@ -704,7 +704,7 @@ const Dashboard = () => {
   }
 
   return (
-    <Box sx={{ backgroundColor: colors.background, minHeight: '100vh', py: 4 }}>
+    <Box sx={{ backgroundColor: colors.background }}>
       <Container maxWidth="xl">
         {error && (
           <Paper elevation={0} sx={{ p: 2, mb: 3, borderRadius: 3, border: `1px solid ${alpha(colors.error, 0.25)}`, backgroundColor: alpha(colors.error, 0.06) }}>

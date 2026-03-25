@@ -453,14 +453,10 @@ const AdminPQRS = () => {
   ];
 
   return (
-    <Box sx={{ backgroundColor: colors.background, minHeight: '100vh', pt: 0 }}>
+    <Box sx={{ backgroundColor: colors.background }}>
       <Container 
-        maxWidth={false}
-        sx={{
-          py: 2,
-          px: { md: 7 },
-          ml: { md: '40px' },
-        }}
+        maxWidth="xl"
+        sx={{ py: 2 }}
       >
         {/* Header */}
         <Box sx={{ ...fadeInUp, mb: 3 }}>

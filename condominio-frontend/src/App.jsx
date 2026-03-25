@@ -1,9 +1,7 @@
 import React from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
-import { Container } from "@mui/material";
 
-import Navbar from "./components/Layout/Navbar";
-import Footer from "./components/Footer";
+import MainLayout from "./components/Layout/Navbar";
 
 import Login from "./pages/login";
 import Inicio from "./pages/inicio";
@@ -14,7 +12,7 @@ import UnidadesHabitacionales from "./pages/UnidadesHabitacionales";
 import Empleados from "./pages/Empleados";
 import Facturas from "./pages/facturas";
 import MyPays from "./pages/MyPays";
-import Perfil from "./pages/profile"; // Solo una importación
+import Perfil from "./pages/profile";
 import Comunicacion from "./pages/comunicacion";
 import Propietarios from "./pages/Propietarios";
 import PQRS from "./pages/PQRS";
@@ -22,25 +20,12 @@ import AdminPQRS from "./pages/AdminPQRS";
 import Register from './pages/Register';
 
 
-
-// Componente para Layout con Navbar y Footer
-const Layout = ({ children }) => {
+const PrivateRoute = ({ children }) => {
   const user = JSON.parse(localStorage.getItem('user') || sessionStorage.getItem('user') || '{}');
-  
-  // Si no hay usuario, redirigir al login
   if (!user || !user.username) {
     return <Navigate to="/login" />;
   }
-
-  return (
-    <>
-      <Navbar />
-      <Container maxWidth="xl" sx={{ mt: 4, mb: 4, minHeight: 'calc(100vh - 128px)' }}>
-        {children}
-      </Container>
-      <Footer />
-    </>
-  );
+  return <MainLayout>{children}</MainLayout>;
 };
 
 const RootRedirect = () => {
@@ -71,89 +56,88 @@ function App() {
         {/* Registro público (sin sesión) */}
         <Route path="/register" element={<Register />} />
         
-        {/* Rutas protegidas con Layout - Nombres en ESPAÑOL como en el Navbar */}
+        {/* Rutas protegidas con MainLayout */}
         <Route path="/inicio" element={
-          <Layout>
+          <PrivateRoute>
             <Inicio />
-          </Layout>
+          </PrivateRoute>
         } />
         
         <Route path="/dashboard" element={
-          <Layout>
+          <PrivateRoute>
             <Dashboard />
-          </Layout>
+          </PrivateRoute>
         } />
         
         <Route path="/residents" element={
-          <Layout>
+          <PrivateRoute>
             <Residents />
-          </Layout>
+          </PrivateRoute>
         } />
         
         <Route path="/payments" element={
-          <Layout>
+          <PrivateRoute>
             <Payments />
-          </Layout>
+          </PrivateRoute>
         } />
         
         <Route path="/units" element={
-          <Layout>
+          <PrivateRoute>
             <UnidadesHabitacionales />
-          </Layout>
+          </PrivateRoute>
         } />
         
         <Route path="/employees" element={
-          <Layout>
+          <PrivateRoute>
             <Empleados />
-          </Layout>
+          </PrivateRoute>
         } />
         
         <Route path="/facturas" element={
-          <Layout>
+          <PrivateRoute>
             <Facturas />
-          </Layout>
+          </PrivateRoute>
         } />
         
         <Route path="/comunicacion" element={
-          <Layout>
+          <PrivateRoute>
             <Comunicacion />
-          </Layout>
+          </PrivateRoute>
         } />
         
-        {/* Rutas en ESPAÑOL para usuarios - ¡ESTAS SON LAS QUE FALTABAN! */}
-        <Route path="/perfil" element={  // Cambiado de "/profile" a "/perfil"
-          <Layout>
+        <Route path="/perfil" element={
+          <PrivateRoute>
             <Perfil />
-          </Layout>
+          </PrivateRoute>
         } />
         
-        <Route path="/mis-pagos" element={  // Cambiado de "/mypays" a "/mis-pagos"
-          <Layout>
+        <Route path="/mis-pagos" element={
+          <PrivateRoute>
             <MyPays />
-          </Layout>
+          </PrivateRoute>
         } />
 
         <Route path="/pqrs" element={
-          <Layout>
+          <PrivateRoute>
             <PQRS />
-          </Layout>
+          </PrivateRoute>
         } />
-        <Route path="/mis-propiedades" element={  // Cambiado de "/mypays" a "/mis-pagos"
-          <Layout>
+        <Route path="/mis-propiedades" element={
+          <PrivateRoute>
             <Propietarios />
-          </Layout>
+          </PrivateRoute>
         } />
 
         <Route path="/admin/register" element={
-          <Layout>
+          <PrivateRoute>
             <Register />
-          </Layout>
+          </PrivateRoute>
         } />
 
         <Route path="/admin/pqrs" element={
-          <Layout>
+          <PrivateRoute>
             <AdminPQRS />
-          </Layout>
+          </PrivateRoute>
         } />
 
         
