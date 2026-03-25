@@ -20,6 +20,7 @@ class RequestRepository {
         new Request(
           r.idRequest,
           r.tipo,
+          r.respuesta,
           r.asunto,
           r.descripcion,
           r.prioridad,
@@ -73,6 +74,7 @@ class RequestRepository {
     return new Request(
       r.idRequest,
       r.tipo,
+      r.respuesta,
       r.asunto,
       r.descripcion,
       r.prioridad,
@@ -92,6 +94,7 @@ class RequestRepository {
       request.getDescripcion(),
       request.getPrioridad(),
       request.getEstado(),
+      request.getRespuesta(),
       request.getFecha() ? new Date(request.getFecha()).toISOString().slice(0, 19).replace('T', ' ') : null,
       request.getPropietarioId(),
       request.getPropietarioNombre(),
@@ -103,12 +106,12 @@ class RequestRepository {
     const query = `
       UPDATE requests 
       SET tipo = ?, asunto = ?, descripcion = ?, prioridad = ?, estado = ?, 
-          fecha = ?, propietarioId = ?, propietarioNombre = ?, remitenteUsuario = ?, remitenteNombre = ?
+          respuesta = ?, fecha = ?, propietarioId = ?, 
+          propietarioNombre = ?, remitenteUsuario = ?, remitenteNombre = ?
       WHERE idRequest = ?
     `;
 
     await this.#connection.execute(query, values);
-
     return request;
   }
 

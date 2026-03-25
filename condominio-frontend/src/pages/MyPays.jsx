@@ -41,6 +41,7 @@ import {
   InputLabel,
   Select,
   MenuItem,
+  Snackbar,
 } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import {
@@ -70,10 +71,10 @@ import autoTable from 'jspdf-autotable';
 
 import { authAPI, facturasAPI, paymentAPI, residentepagosAPI, residentesAPI } from '../services/api.jsx';
 
-// Colores personalizados
+// Colores personalizados - AZUL OSCURO
 const colors = {
-  primary: '#1e3a5f',
-  secondary: '#2a4a7a',
+  primary: '#0f2a3a',
+  secondary: '#1d3e52',
   success: '#10b981',
   warning: '#f59e0b',
   error: '#ef4444',
@@ -149,8 +150,7 @@ const generarComprobantePDF = (pago) => {
     return dt.toLocaleDateString('es-CO');
   };
   
-  // Header con gradiente
-  doc.setFillColor(30, 58, 95);
+  doc.setFillColor(15, 42, 58);
   doc.rect(0, 0, doc.internal.pageSize.width, 45, 'F');
   
   doc.setTextColor(255, 255, 255);
@@ -158,19 +158,16 @@ const generarComprobantePDF = (pago) => {
   doc.setFont('helvetica', 'bold');
   doc.text('COMPROBANTE DE PAGO', doc.internal.pageSize.width / 2, 28, { align: 'center' });
   
-  // Información del comprobante
-  doc.setTextColor(30, 58, 95);
+  doc.setTextColor(15, 42, 58);
   doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');
   doc.text(`N° Comprobante: ${pago.comprobante || `COMP-${Date.now()}`}`, 20, 60);
   doc.text(`Fecha: ${new Date().toLocaleDateString('es-CO')}`, 20, 67);
   doc.text(`Hora: ${new Date().toLocaleTimeString('es-CO')}`, 20, 74);
   
-  // Línea separadora
   doc.setDrawColor(226, 232, 240);
   doc.line(20, 85, doc.internal.pageSize.width - 20, 85);
   
-  // Tabla de detalles
   autoTable(doc, {
     startY: 95,
     head: [['Concepto', 'Detalle']],
@@ -185,7 +182,7 @@ const generarComprobantePDF = (pago) => {
     ],
     theme: 'striped',
     headStyles: {
-      fillColor: [30, 58, 95],
+      fillColor: [15, 42, 58],
       textColor: 255,
       fontStyle: 'bold',
       fontSize: 10,
@@ -202,27 +199,24 @@ const generarComprobantePDF = (pago) => {
   
   const finalY = doc.lastAutoTable.finalY + 10;
   
-  // Monto total
   doc.setFillColor(248, 250, 252);
   doc.rect(20, finalY, doc.internal.pageSize.width - 40, 30, 'F');
   
   doc.setFontSize(12);
   doc.setFont('helvetica', 'bold');
-  doc.setTextColor(30, 58, 95);
+  doc.setTextColor(15, 42, 58);
   doc.text('TOTAL PAGADO:', 30, finalY + 18);
   
   doc.setFontSize(16);
   doc.setTextColor(16, 185, 129);
   doc.text(`$${pago.monto.toLocaleString()} COP`, doc.internal.pageSize.width - 40, finalY + 18, { align: 'right' });
   
-  // Mensaje de confirmación
   doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(100, 116, 139);
   doc.text('Este documento certifica que el pago ha sido realizado exitosamente.', 20, finalY + 48);
   doc.text('Gracias por tu pago puntual.', 20, finalY + 55);
   
-  // Código de verificación
   doc.setDrawColor(226, 232, 240);
   doc.roundedRect(doc.internal.pageSize.width - 55, finalY + 42, 35, 25, 3, 3);
   doc.setFontSize(7);
@@ -245,6 +239,7 @@ const MyPays = () => {
   const [filterEstado, setFilterEstado] = useState('todos');
   const [hoveredRow, setHoveredRow] = useState(null);
   const [roleBlocked, setRoleBlocked] = useState(false);
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
   
   // Estados para la pasarela de pagos
   const [activeStep, setActiveStep] = useState(0);
@@ -296,6 +291,7 @@ const MyPays = () => {
         if (role === 'admin') {
           setRoleBlocked(true);
           setPagos([]);
+          setLoading(false);
           return;
         }
 
@@ -303,40 +299,64 @@ const MyPays = () => {
         try {
           const me = await authAPI.me();
           meUser = me?.data?.user || null;
-        } catch {
-          // ignore
+          console.log('Usuario autenticado:', meUser);
+        } catch (error) {
+          console.error('Error al obtener usuario de API:', error);
         }
 
         const idResidente = meUser?.idResidente || stored?.idResidente || meUser?.id || stored?.id;
+        console.log('ID Residente:', idResidente);
+        
         if (!idResidente) {
           setLoadError('No se encontro el id del residente en la sesion. Vuelve a iniciar sesion.');
           setPagos([]);
+          setLoading(false);
           return;
         }
 
         setResidentId(idResidente);
 
-        // eslint-disable-next-line no-console
-        console.log('MyPays - idResidente:', idResidente);
+        // Obtener datos en paralelo con manejo de errores individual
+        let unidadesList = [];
+        let rps = [];
+        let pagosDb = [];
+        let facturasDb = [];
 
-        const [unidadesRes, rpRes, pagosRes, factRes] = await Promise.all([
-          residentesAPI.getUnidades(idResidente),
-          residentepagosAPI.getAll(),
-          paymentAPI.getAll(),
-          facturasAPI.getAll(),
-        ]);
+        try {
+          const unidadesRes = await residentesAPI.getUnidades(idResidente);
+          unidadesList = Array.isArray(unidadesRes?.data) ? unidadesRes.data : (Array.isArray(unidadesRes) ? unidadesRes : []);
+          console.log('Unidades cargadas:', unidadesList);
+        } catch (error) {
+          console.error('Error al cargar unidades:', error);
+          setLoadError('Error al cargar las unidades asignadas');
+        }
 
-        // eslint-disable-next-line no-console
-        console.log('MyPays - unidadesRes:', unidadesRes);
+        try {
+          const rpRes = await residentepagosAPI.getAll();
+          rps = Array.isArray(rpRes?.data) ? rpRes.data : [];
+          console.log('Residente pagos cargados:', rps.length);
+        } catch (error) {
+          console.error('Error al cargar residente pagos:', error);
+        }
 
-        const unidadesList = Array.isArray(unidadesRes?.data) ? unidadesRes.data : (Array.isArray(unidadesRes) ? unidadesRes : []);
-        // eslint-disable-next-line no-console
-        console.log('MyPays - unidadesList:', unidadesList);
+        try {
+          const pagosRes = await paymentAPI.getAll();
+          pagosDb = Array.isArray(pagosRes?.data) ? pagosRes.data : [];
+          console.log('Pagos cargados:', pagosDb.length);
+        } catch (error) {
+          console.error('Error al cargar pagos:', error);
+        }
+
+        try {
+          const factRes = await facturasAPI.getAll();
+          facturasDb = Array.isArray(factRes?.data) ? factRes.data : [];
+          console.log('Facturas cargadas:', facturasDb.length);
+        } catch (error) {
+          console.error('Error al cargar facturas:', error);
+        }
         
         setUnidades(unidadesList);
         const unidadIds = new Set(unidadesList.map((u) => u?.idUnidad).filter(Boolean));
-        // eslint-disable-next-line no-console
-        console.log('MyPays - unidadIds:', Array.from(unidadIds));
 
         if (unidadesList.length === 0) {
           setLoadError('No tienes unidades asignadas. Contacta al administrador para asignarte una unidad.');
@@ -345,19 +365,12 @@ const MyPays = () => {
           return;
         }
 
-        const rps = Array.isArray(rpRes?.data) ? rpRes.data : [];
-        const pagosDb = Array.isArray(pagosRes?.data) ? pagosRes.data : [];
-        const facturasDb = Array.isArray(factRes?.data) ? factRes.data : [];
-        
-        // eslint-disable-next-line no-console
-        console.log('MyPays - facturasDb:', facturasDb);
-
         const pagosById = new Map(pagosDb.map((p) => [p.idPago ?? p.id, p]));
         const factById = new Map(facturasDb.map((f) => [f.idFactura ?? f.id, f]));
 
         const rpsMine = rps.filter((rp) => String(rp?.idResidente) === String(idResidente));
 
-        // Fallback: ultimo pago PROCESADO por factura (por si falta residente_pago)
+        // Fallback: ultimo pago PROCESADO por factura
         const latestPagoByFacturaId = new Map();
         for (const p of pagosDb) {
           const idFactura = p?.idFactura;
@@ -439,7 +452,6 @@ const MyPays = () => {
               estado,
               fechaPago: paid?.fechaPago || paidFallback?.fechaPago || null,
               metodoPago: paid?.metodoPago || paidFallback?.metodoPago || null,
-              // si el pago viene de residente_pago o solo de pagos
               comprobante: paid?.rp?.id
                 ? `RP-${paid.rp.id}`
                 : paid?.idPago
@@ -452,12 +464,10 @@ const MyPays = () => {
             };
           })
           .sort((a, b) => {
-            // atrasado primero, luego pendiente, luego pagado
             const order = { atrasado: 0, pendiente: 1, pagado: 2 };
             const ao = order[a.estado] ?? 9;
             const bo = order[b.estado] ?? 9;
             if (ao !== bo) return ao - bo;
-
             const ad = a.estado === 'pagado' ? (a.fechaPago || '') : (a.fechaVencimiento || '');
             const bd = b.estado === 'pagado' ? (b.fechaPago || '') : (b.fechaVencimiento || '');
             return String(bd).localeCompare(String(ad));
@@ -467,6 +477,7 @@ const MyPays = () => {
         setPagos(mine);
       } catch (err) {
         if (!alive) return;
+        console.error('Error general en load:', err);
         const msg = err?.response?.data?.message || err?.message || 'No se pudieron cargar tus pagos desde la API';
         setLoadError(msg);
         setPagos([]);
@@ -543,87 +554,134 @@ const MyPays = () => {
     setOpenPaymentDialog(true);
   };
 
-  const handleProcessPayment = () => {
+  const handleProcessPayment = async () => {
     setProcessing(true);
 
-    setTimeout(async () => {
-      const metodoTexto = paymentMethod === 'bank'
-        ? `Transferencia - ${selectedBank?.name}`
-        : paymentMethod === 'card'
-          ? 'Tarjeta de Crédito'
-          : 'PSE';
+    const metodoTexto = paymentMethod === 'bank'
+      ? `Transferencia - ${selectedBank?.name}`
+      : paymentMethod === 'card'
+        ? 'Tarjeta de Crédito'
+        : 'PSE';
 
-      const metodoPagoApi = paymentMethod === 'card' ? 'Tarjeta' : 'Transferencia';
+    const metodoPagoApi = paymentMethod === 'card' ? 'Tarjeta' : 'Transferencia';
 
-      const today = new Date().toISOString().split('T')[0];
+    const today = new Date().toISOString().split('T')[0];
 
-      try {
-        const idFactura = selectedPago?.idFactura ?? selectedPago?.raw?.facturaDb?.idFactura ?? null;
-        if (!residentId) throw new Error('No se encontro idResidente en sesion');
-        if (!idFactura) throw new Error('No se encontro idFactura para registrar el pago');
+    try {
+      const idFactura = selectedPago?.idFactura ?? selectedPago?.raw?.facturaDb?.idFactura ?? null;
+      
+      console.log('=== PROCESANDO PAGO ===');
+      console.log('idFactura:', idFactura);
+      console.log('residentId:', residentId);
+      console.log('monto:', selectedPago?.monto);
+      console.log('metodoPagoApi:', metodoPagoApi);
+      console.log('metodoTexto:', metodoTexto);
 
-        // 1) Crear pago
-        const pagoRes = await paymentAPI.create({
-          fechaPago: today,
-          monto: Number(selectedPago?.monto ?? 0),
-          metodoPago: metodoPagoApi,
-          estadoPago: 'Procesado',
-          idFactura,
-        });
-        const createdPago = pagoRes?.data || {};
-        const idPago = createdPago?.idPago ?? createdPago?.id;
-        if (!idPago) throw new Error('No se recibio idPago al crear el pago');
+      if (!residentId) throw new Error('No se encontro idResidente en sesion');
+      if (!idFactura) throw new Error('No se encontro idFactura para registrar el pago');
 
-        // 2) Asociar pago al residente
-        await residentepagosAPI.create({
-          idResidente: Number(residentId),
-          idPago: Number(idPago),
-          montoPagado: Number(selectedPago?.monto ?? 0),
-        });
+      // 1) Crear pago
+      const pagoData = {
+        fechaPago: today,
+        monto: Number(selectedPago?.monto ?? 0),
+        metodoPago: metodoPagoApi,
+        estadoPago: 'Procesado',
+        idFactura: Number(idFactura),
+      };
+      
+      console.log('Enviando a paymentAPI.create:', pagoData);
+      
+      const pagoRes = await paymentAPI.create(pagoData);
+      console.log('Respuesta pagoRes:', pagoRes);
+      
+      const createdPago = pagoRes?.data || {};
+      const idPago = createdPago?.idPago ?? createdPago?.id;
+      
+      if (!idPago) throw new Error('No se recibio idPago al crear el pago');
+      console.log('idPago creado:', idPago);
 
-        // 3) Marcar factura como Pagada (requiere payload completo)
-        const facturaDb = selectedPago?.raw?.facturaDb;
-        if (facturaDb?.idFactura) {
-          await facturasAPI.update(facturaDb.idFactura, {
-            fechaEmision: facturaDb.fechaEmision,
-            monto: facturaDb.monto,
-            fechaVencimiento: facturaDb.fechaVencimiento,
-            estadoFactura: 'Pagada',
-            idUnidad: facturaDb.idUnidad,
-          });
-        }
+      // 2) Asociar pago al residente
+      const residentePagoData = {
+        idResidente: Number(residentId),
+        idPago: Number(idPago),
+        montoPagado: Number(selectedPago?.monto ?? 0),
+      };
+      
+      console.log('Asociando residente-pago:', residentePagoData);
+      
+      const residentePagoRes = await residentepagosAPI.create(residentePagoData);
+      console.log('Respuesta residentePagoRes:', residentePagoRes);
 
-        const pagoActualizado = {
-          ...selectedPago,
-          idPago,
-          estado: 'pagado',
-          fechaPago: today,
-          metodoPago: metodoTexto,
-          comprobante: `PAGO-${idPago}`,
-          raw: {
-            ...(selectedPago?.raw || {}),
-            facturaDb: selectedPago?.raw?.facturaDb
-              ? { ...selectedPago.raw.facturaDb, estadoFactura: 'Pagada' }
-              : selectedPago?.raw?.facturaDb,
-          },
+      // 3) Marcar factura como Pagada
+      const facturaDb = selectedPago?.raw?.facturaDb;
+      if (facturaDb?.idFactura) {
+        const updateData = {
+          fechaEmision: facturaDb.fechaEmision,
+          monto: facturaDb.monto,
+          fechaVencimiento: facturaDb.fechaVencimiento,
+          estadoFactura: 'Pagada',
+          idUnidad: facturaDb.idUnidad,
         };
+        
+        console.log('Actualizando factura:', facturaDb.idFactura, updateData);
+        
+        const updateRes = await facturasAPI.update(facturaDb.idFactura, updateData);
+        console.log('Respuesta updateRes:', updateRes);
+      }
 
-        setPagos((prev) => prev.map((p) => (p.id === selectedPago.id ? pagoActualizado : p)));
-        setSelectedPago(pagoActualizado);
-        generarComprobantePDF(pagoActualizado);
-        setPaymentSuccess(true);
-        setActiveStep(2);
+      // Actualizar estado local
+      const pagoActualizado = {
+        ...selectedPago,
+        idPago,
+        estado: 'pagado',
+        fechaPago: today,
+        metodoPago: metodoTexto,
+        comprobante: `PAGO-${idPago}`,
+        raw: {
+          ...(selectedPago?.raw || {}),
+          facturaDb: selectedPago?.raw?.facturaDb
+            ? { ...selectedPago.raw.facturaDb, estadoFactura: 'Pagada' }
+            : selectedPago?.raw?.facturaDb,
+        },
+      };
 
-        // Refrescar desde API para garantizar fecha/metodo
+      setPagos((prev) => prev.map((p) => (p.id === selectedPago.id ? pagoActualizado : p)));
+      setSelectedPago(pagoActualizado);
+      
+      // Generar PDF
+      generarComprobantePDF(pagoActualizado);
+      
+      setPaymentSuccess(true);
+      setActiveStep(2);
+      
+      setSnackbar({
+        open: true,
+        message: '¡Pago realizado exitosamente!',
+        severity: 'success'
+      });
+
+      // Recargar datos después de 2 segundos
+      setTimeout(() => {
         setFilterEstado('pagado');
         setReloadTick((v) => v + 1);
-      } catch (err) {
-        const msg = err?.response?.data?.message || err?.message || 'No se pudo registrar el pago en la API';
-        setLoadError(msg);
-      } finally {
-        setProcessing(false);
-      }
-    }, 1200);
+      }, 2000);
+      
+    } catch (err) {
+      console.error('=== ERROR EN PROCESO DE PAGO ===');
+      console.error('Error completo:', err);
+      console.error('Response:', err?.response);
+      console.error('Response data:', err?.response?.data);
+      
+      const msg = err?.response?.data?.message || err?.message || 'No se pudo registrar el pago en la API';
+      setLoadError(msg);
+      setSnackbar({
+        open: true,
+        message: `Error: ${msg}`,
+        severity: 'error'
+      });
+    } finally {
+      setProcessing(false);
+    }
   };
 
   const handleDownloadPDF = (pago) => {
@@ -636,6 +694,10 @@ const MyPays = () => {
       setActiveStep(0);
       setPaymentSuccess(false);
     }
+  };
+
+  const handleCloseSnackbar = () => {
+    setSnackbar({ ...snackbar, open: false });
   };
 
   const steps = ['Método de pago', 'Confirmar', 'Completado'];
@@ -729,7 +791,7 @@ const MyPays = () => {
                 </Typography>
                 <Grid container spacing={2}>
                   {bancosColombia.map((banco) => (
-                    <Grid xs={6} sm={4} key={banco.id}>
+                    <Grid size={{ xs: 6, sm: 4 }} key={banco.id}>
                       <BankCard
                         selected={selectedBank?.id === banco.id}
                         bankcolor={banco.color}
@@ -773,7 +835,7 @@ const MyPays = () => {
                   sx={{ mb: 2 }}
                 />
                 <Grid container spacing={2}>
-                  <Grid xs={6}>
+                  <Grid size={{ xs: 6 }}>
                     <TextField
                       fullWidth
                       label="Fecha expiración"
@@ -782,7 +844,7 @@ const MyPays = () => {
                       onChange={(e) => setCardData({ ...cardData, expiry: e.target.value })}
                     />
                   </Grid>
-                  <Grid xs={6}>
+                  <Grid size={{ xs: 6 }}>
                     <TextField
                       fullWidth
                       label="CVV"
@@ -804,7 +866,6 @@ const MyPays = () => {
               <Typography variant="body2">
                 Tu pago será procesado de forma segura.
               </Typography>
-
             </Alert>
           </Box>
         );
@@ -914,12 +975,20 @@ const MyPays = () => {
 
   return (
     <Box sx={{ backgroundColor: colors.background, minHeight: '100vh', py: 4 }}>
-      <Container maxWidth="xl">
+      <Container 
+        maxWidth={false}
+        sx={{
+          py: 2,
+          px: { md: 7 },
+          ml: { md: '40px' },
+        }}
+      >
         {loadError && (
           <Alert severity={loadError.includes('Contacta') || loadError.includes('administrador') ? 'info' : 'warning'} sx={{ mb: 3, borderRadius: 2 }}>
             {loadError}
           </Alert>
         )}
+        
         {/* Header */}
         <Box sx={{ mb: 4 }}>
           <Paper elevation={0} sx={{ p: 4, borderRadius: 4, background: `linear-gradient(135deg, ${colors.primary} 0%, ${colors.secondary} 100%)`, color: 'white', position: 'relative', overflow: 'hidden' }}>
@@ -981,7 +1050,7 @@ const MyPays = () => {
 
         {/* Estadísticas */}
         <Grid container spacing={3} sx={{ mb: 4 }}>
-          <Grid xs={12} sm={6} md={3}>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
             <Paper elevation={0} sx={{ p: 3, borderRadius: 3, bgcolor: colors.surface, border: `1px solid ${colors.border}` }}>
               <Avatar sx={{ bgcolor: alpha(colors.success, 0.1), color: colors.success, width: 48, height: 48, borderRadius: 3, mb: 2 }}>
                 <AccountBalanceIcon />
@@ -994,7 +1063,7 @@ const MyPays = () => {
               </Typography>
             </Paper>
           </Grid>
-          <Grid xs={12} sm={6} md={3}>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
             <Paper elevation={0} sx={{ p: 3, borderRadius: 3, bgcolor: colors.surface, border: `1px solid ${colors.border}` }}>
               <Avatar sx={{ bgcolor: alpha(colors.warning, 0.1), color: colors.warning, width: 48, height: 48, borderRadius: 3, mb: 2 }}>
                 <ScheduleIcon />
@@ -1007,7 +1076,7 @@ const MyPays = () => {
               </Typography>
             </Paper>
           </Grid>
-          <Grid xs={12} sm={6} md={3}>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
             <Paper elevation={0} sx={{ p: 3, borderRadius: 3, bgcolor: colors.surface, border: `1px solid ${colors.border}` }}>
               <Avatar sx={{ bgcolor: alpha(colors.info, 0.1), color: colors.info, width: 48, height: 48, borderRadius: 3, mb: 2 }}>
                 <TrendingUpIcon />
@@ -1020,7 +1089,7 @@ const MyPays = () => {
               </Typography>
             </Paper>
           </Grid>
-          <Grid xs={12} sm={6} md={3}>
+          <Grid size={{ xs: 12, sm: 6, md: 3 }}>
             <Paper elevation={0} sx={{ p: 3, borderRadius: 3, bgcolor: colors.surface, border: `1px solid ${colors.border}` }}>
               <Avatar sx={{ bgcolor: alpha(colors.primary, 0.1), color: colors.primary, width: 48, height: 48, borderRadius: 3, mb: 2 }}>
                 <CheckCircleOutlineIcon />
@@ -1056,11 +1125,13 @@ const MyPays = () => {
                   <TableCell><Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Estado</Typography></TableCell>
                   <TableCell><Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Fecha Pago</Typography></TableCell>
                   <TableCell><Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Método</Typography></TableCell>
+                  <TableCell align="center"><Typography variant="subtitle2" sx={{ fontWeight: 600 }}>Acciones</Typography></TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {pagosFiltrados.map((pago) => {
                   const estado = getEstadoConfig(pago.estado);
+                  const isPagado = pago.estado === 'pagado';
                   
                   return (
                     <TableRow key={pago.id} hover onMouseEnter={() => setHoveredRow(pago.id)} onMouseLeave={() => setHoveredRow(null)}>
@@ -1086,12 +1157,72 @@ const MyPays = () => {
                       <TableCell>
                         {pago.metodoPago || '-'}
                       </TableCell>
+                      <TableCell align="center">
+                        <Tooltip title="Ver detalle" arrow>
+                          <IconButton
+                            size="small"
+                            onClick={() => {
+                              setSelectedPago(pago);
+                              setOpenPagoDialog(true);
+                            }}
+                            sx={{
+                              color: colors.primary,
+                              transition: 'all 0.2s ease',
+                              transform: hoveredRow === pago.id ? 'scale(1.1)' : 'scale(1)',
+                            }}
+                          >
+                            <VisibilityIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                        {isPagado && (
+                          <Tooltip title="Descargar comprobante" arrow>
+                            <IconButton
+                              size="small"
+                              onClick={() => handleDownloadPDF(pago)}
+                              sx={{
+                                color: colors.success,
+                                transition: 'all 0.2s ease',
+                                transform: hoveredRow === pago.id ? 'scale(1.1)' : 'scale(1)',
+                              }}
+                            >
+                              <DownloadIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                        )}
+                        {!isPagado && (
+                          <Tooltip title="Pagar ahora" arrow>
+                            <GradientButton
+                              size="small"
+                              startIcon={<PaymentIcon />}
+                              onClick={() => {
+                                setSelectedPago(pago);
+                                handleOpenPayment(pago);
+                              }}
+                              sx={{ ml: 1, py: 0.5, px: 2 }}
+                            >
+                              Pagar
+                            </GradientButton>
+                          </Tooltip>
+                        )}
+                      </TableCell>
                     </TableRow>
                   );
                 })}
               </TableBody>
             </Table>
           </TableContainer>
+
+          {pagosFiltrados.length === 0 && (
+            <Box sx={{ textAlign: 'center', py: 8 }}>
+              <ReceiptIcon sx={{ fontSize: 60, color: colors.text.disabled, mb: 2 }} />
+              <Typography variant="h6" sx={{ color: colors.text.secondary }}>
+                No hay pagos para mostrar
+              </Typography>
+              <Typography variant="body2" sx={{ color: colors.text.disabled, mt: 1 }}>
+                Prueba con otros filtros
+              </Typography>
+            </Box>
+          )}
         </Paper>
 
         {/* Diálogo de detalle */}
@@ -1109,7 +1240,7 @@ const MyPays = () => {
               </DialogTitle>
               <DialogContent sx={{ p: 3 }}>
                 <Grid container spacing={3}>
-                  <Grid xs={12}>
+                  <Grid size={{ xs: 12 }}>
                     <Paper sx={{ p: 2, bgcolor: alpha(colors.primary, 0.02), borderRadius: 2 }}>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                         {selectedPago.estado === 'pagado' ? <CheckCircleIcon sx={{ color: colors.success, fontSize: 40 }} /> :
@@ -1124,24 +1255,24 @@ const MyPays = () => {
                       </Box>
                     </Paper>
                   </Grid>
-                  <Grid xs={12}>
+                  <Grid size={{ xs: 12 }}>
                     <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 2 }}>Información General</Typography>
                     <Grid container spacing={2}>
-                      <Grid xs={6}><Typography variant="caption">Período</Typography><Typography variant="body2" fontWeight={500}>{selectedPago.periodo}</Typography></Grid>
-                      <Grid xs={6}><Typography variant="caption">Vencimiento</Typography><Typography variant="body2" fontWeight={500}>{formatDate(selectedPago.fechaVencimiento)}</Typography></Grid>
-                      <Grid xs={12}><Divider /></Grid>
-                      <Grid xs={6}><Typography variant="caption">Monto</Typography><Typography variant="h6" sx={{ color: colors.primary, fontWeight: 700 }}>${selectedPago.monto.toLocaleString()}</Typography></Grid>
-                      <Grid xs={6}><Typography variant="caption">Estado</Typography><StatusChip icon={getEstadoConfig(selectedPago.estado).icon} label={getEstadoConfig(selectedPago.estado).label} statuscolor={getEstadoConfig(selectedPago.estado).color} size="small" sx={{ mt: 1 }} /></Grid>
+                      <Grid size={{ xs: 6 }}><Typography variant="caption">Período</Typography><Typography variant="body2" fontWeight={500}>{selectedPago.periodo}</Typography></Grid>
+                      <Grid size={{ xs: 6 }}><Typography variant="caption">Vencimiento</Typography><Typography variant="body2" fontWeight={500}>{formatDate(selectedPago.fechaVencimiento)}</Typography></Grid>
+                      <Grid size={{ xs: 12 }}><Divider /></Grid>
+                      <Grid size={{ xs: 6 }}><Typography variant="caption">Monto</Typography><Typography variant="h6" sx={{ color: colors.primary, fontWeight: 700 }}>${selectedPago.monto.toLocaleString()}</Typography></Grid>
+                      <Grid size={{ xs: 6 }}><Typography variant="caption">Estado</Typography><StatusChip icon={getEstadoConfig(selectedPago.estado).icon} label={getEstadoConfig(selectedPago.estado).label} statuscolor={getEstadoConfig(selectedPago.estado).color} size="small" sx={{ mt: 1 }} /></Grid>
                     </Grid>
                   </Grid>
                   {selectedPago.estado === 'pagado' && (
-                    <Grid xs={12}>
+                    <Grid size={{ xs: 12 }}>
                       <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 2 }}>Detalles del Pago</Typography>
                       <Paper sx={{ p: 2, bgcolor: alpha(colors.success, 0.02), borderRadius: 2 }}>
                         <Grid container spacing={2}>
-                          <Grid xs={6}><Typography variant="caption">Fecha de pago</Typography><Typography variant="body2">{formatDate(selectedPago.fechaPago)}</Typography></Grid>
-                          <Grid xs={6}><Typography variant="caption">Método de pago</Typography><Typography variant="body2">{selectedPago.metodoPago}</Typography></Grid>
-                          <Grid xs={12}><Typography variant="caption">Comprobante</Typography><Typography variant="body2">{selectedPago.comprobante}</Typography></Grid>
+                          <Grid size={{ xs: 6 }}><Typography variant="caption">Fecha de pago</Typography><Typography variant="body2">{formatDate(selectedPago.fechaPago)}</Typography></Grid>
+                          <Grid size={{ xs: 6 }}><Typography variant="caption">Método de pago</Typography><Typography variant="body2">{selectedPago.metodoPago}</Typography></Grid>
+                          <Grid size={{ xs: 12 }}><Typography variant="caption">Comprobante</Typography><Typography variant="body2">{selectedPago.comprobante}</Typography></Grid>
                         </Grid>
                       </Paper>
                     </Grid>
@@ -1213,6 +1344,18 @@ const MyPays = () => {
             )}
           </DialogActions>
         </Dialog>
+
+        {/* Snackbar para notificaciones */}
+        <Snackbar
+          open={snackbar.open}
+          autoHideDuration={6000}
+          onClose={handleCloseSnackbar}
+          anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        >
+          <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} sx={{ width: '100%' }}>
+            {snackbar.message}
+          </Alert>
+        </Snackbar>
       </Container>
     </Box>
   );

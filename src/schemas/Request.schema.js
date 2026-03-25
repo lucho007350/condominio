@@ -27,7 +27,8 @@ const updateRequestSchema = Joi.object({
   propietarioId: Joi.number().integer().allow(null),
   propietarioNombre: Joi.string().allow(null),
   remitenteUsuario: Joi.string().allow(null),
-  remitenteNombre: Joi.string().allow(null)
+  remitenteNombre: Joi.string().allow(null),
+  respuesta: Joi.string().allow(null, '')
 });
 
 const updateStatusSchema = Joi.object({

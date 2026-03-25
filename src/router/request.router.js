@@ -39,11 +39,9 @@ router.get(
     try {
       const { id } = req.params;
       const request = await requestService.getById(id);
-
       if (!request) {
         return res.status(404).json({ message: "Request no encontrado" });
       }
-
       res.status(200).json(request);
     } catch (error) {
       console.error(error);
@@ -59,9 +57,13 @@ router.put(
   async (req, res) => {
     try {
       const { id } = req.params;
-      const { tipo, asunto, descripcion, prioridad, estado, fecha, propietarioId, propietarioNombre, remitenteUsuario, remitenteNombre } = req.body;
+      const { tipo, asunto, descripcion, prioridad, estado, fecha, propietarioId, propietarioNombre, remitenteUsuario, remitenteNombre, respuesta } = req.body;
 
-      const request = await requestService.update(id, tipo, asunto, descripcion, prioridad, estado, fecha, propietarioId, propietarioNombre, remitenteUsuario, remitenteNombre);
+      const request = await requestService.update(
+        id, tipo, asunto, descripcion, prioridad, estado, fecha, 
+        propietarioId, propietarioNombre, remitenteUsuario, remitenteNombre,
+        respuesta
+      );
 
       if (!request) {
         return res.status(404).json({ message: "Request no encontrado" });
@@ -69,8 +71,8 @@ router.put(
 
       res.status(200).json(request);
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: "Error al actualizar el request" });
+      console.error('Error en update:', error);
+      res.status(500).json({ message: error.message || "Error al actualizar el request" });
     }
   }
 );
@@ -83,13 +85,10 @@ router.put(
     try {
       const { id } = req.params;
       const { estado } = req.body;
-
       const request = await requestService.updateStatus(id, estado);
-
       if (!request) {
         return res.status(404).json({ message: "Request no encontrado" });
       }
-
       res.status(200).json(request);
     } catch (error) {
       console.error(error);
@@ -105,11 +104,9 @@ router.delete(
     try {
       const { id } = req.params;
       const result = await requestService.delete(id);
-
       if (!result) {
         return res.status(404).json({ message: "Request no encontrado" });
       }
-
       res.status(200).json({ message: "Request eliminado correctamente" });
     } catch (error) {
       console.error(error);

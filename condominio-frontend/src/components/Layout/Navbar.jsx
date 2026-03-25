@@ -1,51 +1,67 @@
 import React, { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
+  Box,
+  List,
+  ListItem,
+  ListItemButton,
+  ListItemIcon,
+  ListItemText,
+  Avatar,
+  Typography,
+  Divider,
+  alpha,
+  IconButton,
+  Drawer,
+  Tooltip,
   AppBar,
   Toolbar,
-  Typography,
-  Button,
   Menu,
   MenuItem,
-  IconButton,
-  Avatar,
-  Box,
-  Divider,
+  Button,
 } from "@mui/material";
-
 import {
+  Menu as MenuIcon,
   Home as HomeIcon,
   People as PeopleIcon,
   Apartment as BuildingIcon,
   Payment as PaymentIcon,
   Badge as EmployeeIcon,
-  ExpandMore as ExpandMoreIcon,
   ReceiptLong as FacturaIcon,
-  Campaign as ComunicadoIcon,
   Person as PersonIcon,
   Logout as LogoutIcon,
   Receipt as ReceiptIcon,
   Business as BusinessIcon,
   MarkEmailUnread as PqrsIcon,
-  PersonAdd as PersonAddIcon, // Agregar este ícono para registrar
+  PersonAdd as PersonAddIcon,
+  ChevronLeft as ChevronLeftIcon,
+  Notifications as NotificationsIcon,
 } from "@mui/icons-material";
 
-const Navbar = () => {
+const navbarColors = {
+  primary: '#0a1c2c',
+  secondary: '#0f2a3a',
+  accent: '#2c5f6e',
+  text: '#ffffff',
+  textMuted: 'rgba(255,255,255,0.7)',
+  hover: 'rgba(255,255,255,0.1)',
+};
+
+const drawerWidth = 260;
+const collapsedDrawerWidth = 72;
+
+const MainLayout = ({ children }) => {
   const location = useLocation();
   const navigate = useNavigate();
+  const [open, setOpen] = useState(true);
+  const [anchorEl, setAnchorEl] = useState(null);
 
   const storedUser = JSON.parse(localStorage.getItem('user') || sessionStorage.getItem('user') || '{}');
-
-  const [anchorAdmin, setAnchorAdmin] = useState(null);
-  const [anchorGestion, setAnchorGestion] = useState(null);
-  const [anchorUser, setAnchorUser] = useState(null);
-  
-  // Obtener usuario del storage
   const [user] = useState(storedUser);
   const [isAdmin] = useState(storedUser.role === 'admin' || storedUser.rol === 'administrador');
   const [isPropietario] = useState(storedUser.role === 'propietario' || storedUser.rol === 'propietario');
 
-  const homePath = isAdmin ? '/dashboard' : isPropietario ? '/mis-propiedades' : '/inicio';
+  const homePath = isAdmin ? '/' : isPropietario ? '/mis-propiedades' : '/inicio';
 
   const handleLogout = () => {
     localStorage.removeItem('user');
@@ -53,386 +69,259 @@ const Navbar = () => {
     navigate('/login');
   };
 
+  const handleDrawerToggle = () => {
+    setOpen(!open);
+  };
+
+  const handleMenuOpen = (event) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleMenuClose = () => {
+    setAnchorEl(null);
+  };
+
+  const handleViewProfile = () => {
+    navigate('/perfil');
+    handleMenuClose();
+  };
+
+  const handleNotificationsClick = () => {
+    navigate('/comunicacion');
+  };
+
+  const handleRegisterClick = () => {
+    navigate('/register');
+  };
+
+  const isActive = (path) => location.pathname === path;
+
+  // Items del menú lateral - SIN DASHBOARD
+  const getNavItems = () => {
+    const items = [
+      { path: homePath, label: 'Inicio', icon: <HomeIcon /> },
+    ];
+    
+    if (isAdmin) {
+      items.push(
+        { path: '/residents', label: 'Residentes', icon: <PeopleIcon /> },
+        { path: '/employees', label: 'Empleados', icon: <EmployeeIcon /> },
+        { path: '/units', label: 'Unidades', icon: <BuildingIcon /> },
+        { path: '/facturas', label: 'Facturas', icon: <FacturaIcon /> },
+        { path: '/payments', label: 'Pagos', icon: <PaymentIcon /> },
+        { path: '/admin/pqrs', label: 'PQRS', icon: <PqrsIcon /> }        
+      );
+    } else if (isPropietario) {
+      items.push(
+        { path: '/mis-propiedades', label: 'Mis Propiedades', icon: <BusinessIcon /> },
+        { path: '/mis-pagos', label: 'Mis Pagos', icon: <ReceiptIcon /> }
+      );
+    } else {
+      items.push(
+        { path: '/mis-pagos', label: 'Mis Pagos', icon: <ReceiptIcon /> },
+        { path: '/pqrs', label: 'PQRS', icon: <PqrsIcon /> }
+      );
+    }
+    
+    return items;
+  };
+
+  const navItems = getNavItems();
+
   return (
-    <AppBar position="static" sx={{ backgroundColor: "#1e3a5f", color: "white" }}>
-      <Toolbar>
-        {/* LOGO / TÍTULO */}
-        <Typography
-          variant="h6"
-          component={Link}
-          to={homePath}
-          sx={{
-            flexGrow: 1,
-            textDecoration: "none",
-            color: "white",
-            fontWeight: "bold",
-          }}
-        >
-          Condominio App
-        </Typography>
+    <Box sx={{ minHeight: '0vh', backgroundColor: '#f0f2f5' }}>
+      <Drawer
+        variant="permanent"
+        sx={{
+          width: open ? drawerWidth : collapsedDrawerWidth,
+          flexShrink: 0,
+          '& .MuiDrawer-paper': {
+            width: open ? drawerWidth : collapsedDrawerWidth,
+            boxSizing: 'border-box',
+            backgroundColor: navbarColors.primary,
+            color: navbarColors.text,
+            transition: 'width 0.2s ease',
+            overflowX: 'hidden',
+            borderRight: 'none',
+            top: 0,
+            height: '100vh',
+          },
+        }}
+      >
+        <Box sx={{ 
+          p: 2, 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: open ? 'space-between' : 'center',
+          borderBottom: `1px solid ${alpha(navbarColors.text, 0.1)}`,
+        }}>
+          {open && (
+            <Typography variant="h6" sx={{ fontWeight: 700, color: navbarColors.text }}>
+              Condova
+            </Typography>
+          )}
+          <IconButton onClick={handleDrawerToggle} sx={{ color: navbarColors.text }}>
+            {open ? <ChevronLeftIcon /> : <MenuIcon />}
+          </IconButton>
+        </Box>
 
-        {/* INICIO - Visible para todos */}
-        <Button
-          component={Link}
-          to={homePath}
-          color="inherit"
-          startIcon={<HomeIcon />}
-          sx={{
-            mx: 1,
-            borderBottom: location.pathname === homePath ? "2px solid #ffffff" : "none",
-            '&:hover': {
-              backgroundColor: 'rgba(255,255,255,0.1)',
-            }
-          }}
-        >
-          Inicio
-        </Button>
+        <Box sx={{ 
+          p: 2, 
+          textAlign: 'center', 
+          borderBottom: `1px solid ${alpha(navbarColors.text, 0.1)}`,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+        }}>
+          <Avatar
+            sx={{
+              width: open ? 56 : 40,
+              height: open ? 56 : 40,
+              margin: '0 auto',
+              bgcolor: alpha(navbarColors.accent, 0.6),
+              fontSize: open ? '1.5rem' : '1rem',
+              fontWeight: 'bold',
+              mb: open ? 1 : 0,
+              transition: 'all 0.2s ease',
+            }}
+          >
+            {user.name ? user.name.charAt(0).toUpperCase() : user.nombre ? user.nombre.charAt(0).toUpperCase() : 'U'}
+          </Avatar>
+          {open && (
+            <>
+              <Typography variant="subtitle1" sx={{ fontWeight: 600, mt: 1 }}>
+                {user.name || user.nombre || 'Usuario'}
+              </Typography>
+              <Typography variant="caption" sx={{ color: navbarColors.textMuted }}>
+                {isAdmin ? 'Administrador' : isPropietario ? 'Propietario' : 'Residente'}
+              </Typography>
+            </>
+          )}
+        </Box>
 
-        {/* COMUNICADOS - Visible para todos */}
-        <Button
-          component={Link}
-          to="/comunicacion"
-          color="inherit"
-          startIcon={<ComunicadoIcon />}
-          sx={{
-            mx: 1,
-            borderBottom: location.pathname === "/comunicacion" ? "2px solid #ffffff" : "none",
-            '&:hover': {
-              backgroundColor: 'rgba(255,255,255,0.1)',
-            }
-          }}
-        >
-          Comunicados
-        </Button>
+        <List sx={{ px: 1, py: 2, flex: 1 }}>
+          {navItems.map((item) => (
+            <Tooltip key={item.path} title={!open ? item.label : ''} placement="right">
+              <ListItem disablePadding>
+                <ListItemButton
+                  component={Link}
+                  to={item.path}
+                  sx={{
+                    borderRadius: 2,
+                    mb: 0.5,
+                    justifyContent: open ? 'initial' : 'center',
+                    px: open ? 2 : 1,
+                    backgroundColor: isActive(item.path) ? alpha(navbarColors.accent, 0.3) : 'transparent',
+                    '&:hover': { backgroundColor: alpha(navbarColors.accent, 0.2) },
+                  }}
+                >
+                  <ListItemIcon sx={{ 
+                    color: navbarColors.text, 
+                    minWidth: 0,
+                    mr: open ? 2 : 'auto',
+                    justifyContent: 'center',
+                  }}>
+                    {item.icon}
+                  </ListItemIcon>
+                  {open && <ListItemText primary={item.label} />}
+                </ListItemButton>
+              </ListItem>
+            </Tooltip>
+          ))}
+        </List>
+      </Drawer>
 
-        {/* OPCIONES DE USUARIO REGULAR (solo si es user) */}
-        {!isAdmin && !isPropietario && user && (
-          <>
-            {/* MI PERFIL */}
-            <Button
-              component={Link}
-              to="/perfil"
-              color="inherit"
-              startIcon={<PersonIcon />}
-              sx={{
-                mx: 1,
-                borderBottom: location.pathname === "/perfil" ? "2px solid #ffffff" : "none",
-                '&:hover': {
-                  backgroundColor: 'rgba(255,255,255,0.1)',
-                }
-              }}
-            >
-              Mi Perfil
-            </Button>
+      <Box sx={{ flexGrow: 1 }}>
+          <AppBar
+            position="fixed"
+            sx={{
+              backgroundColor: '#ffffff',
+              '& .MuiToolbar-root': {
+                minHeight: 48,
+              },
+            }}
+          >
+          <Toolbar sx={{ justifyContent: 'flex-end' }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              {/* Botón Registrar - solo para admin con colores del navbar lateral */}
+              {isAdmin && (
+                <Button
+                  variant="contained"
+                  startIcon={<PersonAddIcon />}
+                  onClick={handleRegisterClick}
+                  sx={{
+                    bgcolor: navbarColors.secondary,
+                    color: '#ffffff',
+                    '&:hover': { 
+                      bgcolor: navbarColors.accent,
+                    },
+                    textTransform: 'none',
+                    borderRadius: 2,
+                    fontWeight: 500,
+                  }}
+                >
+                  Registrar
+                </Button>
+              )}
 
-            {/* MIS PAGOS */}
-            <Button
-              component={Link}
-              to="/mis-pagos"
-              color="inherit"
-              startIcon={<ReceiptIcon />}
-              sx={{
-                mx: 1,
-                borderBottom: location.pathname === "/mis-pagos" ? "2px solid #ffffff" : "none",
-                '&:hover': {
-                  backgroundColor: 'rgba(255,255,255,0.1)',
-                }
-              }}
-            >
-              Mis Pagos
-            </Button>
+              <Tooltip title="Comunicados">
+                <IconButton 
+                  size="large" 
+                  sx={{ color: '#64748b' }}
+                  onClick={handleNotificationsClick}
+                >
+                  <NotificationsIcon />
+                </IconButton>
+              </Tooltip>
 
-            {/* PQRS */}
-            <Button
-              component={Link}
-              to="/pqrs"
-              color="inherit"
-              startIcon={<PqrsIcon />}
-              sx={{
-                mx: 1,
-                borderBottom: location.pathname === "/pqrs" ? "2px solid #ffffff" : "none",
-                '&:hover': {
-                  backgroundColor: 'rgba(255,255,255,0.1)',
-                }
-              }}
-            >
-              PQRS
-            </Button>
-          </>
-        )}
+              <Tooltip title="Perfil">
+                <IconButton onClick={handleMenuOpen} size="small">
+                  <Avatar
+                    sx={{
+                      width: 35,
+                      height: 35,
+                      bgcolor: '#2c5f6e',
+                      fontSize: '0.9rem',
+                    }}
+                  >
+                    {user.name ? user.name.charAt(0).toUpperCase() : user.nombre ? user.nombre.charAt(0).toUpperCase() : 'U'}
+                  </Avatar>
+                </IconButton>
+              </Tooltip>
 
-        {/* OPCIONES DE PROPIETARIO (solo si es propietario) */}
-        {isPropietario && user && (
-          <>
-            {/* MIS PROPIEDADES */}
-            <Button
-              component={Link}
-              to="/mis-propiedades"
-              color="inherit"
-              startIcon={<BusinessIcon />}
-              sx={{
-                mx: 1,
-                borderBottom: location.pathname === "/mis-propiedades" ? "2px solid #ffffff" : "none",
-                '&:hover': {
-                  backgroundColor: 'rgba(255,255,255,0.1)',
-                }
-              }}
-            >
-              Mis Propiedades
-            </Button>
-          </>
-        )}
-
-        {/* OPCIONES DE ADMINISTRADOR (solo si es admin) */}
-        {isAdmin && (
-          <>
-            {/* REGISTRAR - Botón directo para acceso rápido */}
-             <Button
-               component={Link}
-               to="/admin/register"
-               color="inherit"
-               startIcon={<PersonAddIcon />}
-               sx={{
-                 mx: 1,
-                 borderBottom: location.pathname === "/admin/register" ? "2px solid #ffffff" : "none",
-                 backgroundColor: location.pathname === "/admin/register" ? 'rgba(255,255,255,0.1)' : 'transparent',
-                 '&:hover': {
-                   backgroundColor: 'rgba(255,255,255,0.2)',
-                 }
-               }}
-             >
-               Registrar
-             </Button>
-
-            {/* ADMINISTRACIÓN */}
-            <Button
-              color="inherit"
-              startIcon={<PeopleIcon />}
-              endIcon={<ExpandMoreIcon />}
-              onClick={(e) => setAnchorAdmin(e.currentTarget)}
-              sx={{ 
-                mx: 1,
-                '&:hover': {
-                  backgroundColor: 'rgba(255,255,255,0.1)',
-                }
-              }}
-            >
-              Administración
-            </Button>
-
-            <Menu
-              anchorEl={anchorAdmin}
-              open={Boolean(anchorAdmin)}
-              onClose={() => setAnchorAdmin(null)}
-              PaperProps={{
-                sx: {
-                  backgroundColor: "#1e3a5f",
-                  color: "white",
-                  borderRadius: 2,
-                  mt: 1,
-                },
-              }}
-            >
-               <MenuItem
-                 component={Link}
-                 to="/admin/register"
-                 onClick={() => setAnchorAdmin(null)}
-                 sx={{ '&:hover': { backgroundColor: 'rgba(255,255,255,0.1)' } }}
-               >
-                 <PersonAddIcon sx={{ mr: 1 }} /> Registrar Usuario
-               </MenuItem>
-              
-              <Divider sx={{ backgroundColor: 'rgba(255,255,255,0.2)', my: 1 }} />
-              
-              <MenuItem
-                component={Link}
-                to="/residents"
-                onClick={() => setAnchorAdmin(null)}
-                sx={{ '&:hover': { backgroundColor: 'rgba(255,255,255,0.1)' } }}
-              >
-                <PeopleIcon sx={{ mr: 1 }} /> Residentes
-              </MenuItem>
-
-              <MenuItem
-                component={Link}
-                to="/employees"
-                onClick={() => setAnchorAdmin(null)}
-                sx={{ '&:hover': { backgroundColor: 'rgba(255,255,255,0.1)' } }}
-              >
-                <EmployeeIcon sx={{ mr: 1 }} /> Empleados
-              </MenuItem>
-            </Menu>
-
-            {/* GESTIÓN */}
-            <Button
-              color="inherit"
-              startIcon={<BuildingIcon />}
-              endIcon={<ExpandMoreIcon />}
-              onClick={(e) => setAnchorGestion(e.currentTarget)}
-              sx={{ 
-                mx: 1,
-                '&:hover': {
-                  backgroundColor: 'rgba(255,255,255,0.1)',
-                }
-              }}
-            >
-              Gestión
-            </Button>
-
-            <Menu
-              anchorEl={anchorGestion}
-              open={Boolean(anchorGestion)}
-              onClose={() => setAnchorGestion(null)}
-              PaperProps={{
-                sx: {
-                  backgroundColor: "#1e3a5f",
-                  color: "white",
-                  borderRadius: 2,
-                  mt: 1,
-                },
-              }}
-            >
-              <MenuItem
-                component={Link}
-                to="/units"
-                onClick={() => setAnchorGestion(null)}
-                sx={{ '&:hover': { backgroundColor: 'rgba(255,255,255,0.1)' } }}
-              >
-                <BuildingIcon sx={{ mr: 1 }} /> Unidades
-              </MenuItem>
-
-              <MenuItem
-                component={Link}
-                to="/facturas"
-                onClick={() => setAnchorGestion(null)}
-                sx={{ '&:hover': { backgroundColor: 'rgba(255,255,255,0.1)' } }}
-              >
-                <FacturaIcon sx={{ mr: 1 }} /> Facturas
-              </MenuItem>
-
-              <MenuItem
-                component={Link}
-                to="/payments"
-                onClick={() => setAnchorGestion(null)}
-                sx={{ '&:hover': { backgroundColor: 'rgba(255,255,255,0.1)' } }}
-              >
-                <PaymentIcon sx={{ mr: 1 }} /> Pagos
-              </MenuItem>
-
-              <MenuItem
-                component={Link}
-                to="/admin/pqrs"
-                onClick={() => setAnchorGestion(null)}
-                sx={{ '&:hover': { backgroundColor: 'rgba(255,255,255,0.1)' } }}
-              >
-                <PqrsIcon sx={{ mr: 1 }} /> PQRS
-              </MenuItem>
-            </Menu>
-          </>
-        )}
-
-        {/* PERFIL DE USUARIO Y CERRAR SESIÓN (visible para todos) */}
-        {user && (
-          <Box sx={{ display: 'flex', alignItems: 'center', ml: 2 }}>
-            <IconButton
-              onClick={(e) => setAnchorUser(e.currentTarget)}
-              sx={{ 
-                color: 'white',
-                '&:hover': {
-                  backgroundColor: 'rgba(255,255,255,0.1)',
-                }
-              }}
-            >
-              <Avatar 
-                sx={{ 
-                  width: 35, 
-                  height: 35, 
-                  bgcolor: '#4a6a9a',
-                  fontSize: '0.9rem'
+              <Menu
+                anchorEl={anchorEl}
+                open={Boolean(anchorEl)}
+                onClose={handleMenuClose}
+                PaperProps={{
+                  sx: {
+                    mt: 1.5,
+                    minWidth: 180,
+                    borderRadius: 2,
+                    boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
+                  },
                 }}
               >
-                {user.name ? user.name.charAt(0).toUpperCase() : user.nombre ? user.nombre.charAt(0).toUpperCase() : 'U'}
-              </Avatar>
-            </IconButton>
-
-            <Menu
-              anchorEl={anchorUser}
-              open={Boolean(anchorUser)}
-              onClose={() => setAnchorUser(null)}
-              PaperProps={{
-                sx: {
-                  backgroundColor: "#1e3a5f",
-                  color: "white",
-                  borderRadius: 2,
-                  mt: 1,
-                  minWidth: 200,
-                },
-              }}
-            >
-              {/* Opciones según el rol */}
-              {!isAdmin && !isPropietario && (
-                <MenuItem 
-                  component={Link}
-                  to="/mis-pagos"
-                  onClick={() => setAnchorUser(null)}
-                  sx={{ '&:hover': { backgroundColor: 'rgba(255,255,255,0.1)' } }}
-                >
-                  <ReceiptIcon sx={{ mr: 2, fontSize: 20 }} /> Mis Pagos
+                <MenuItem onClick={handleViewProfile} sx={{ py: 1.5 }}>
+                  <PersonIcon sx={{ mr: 2, fontSize: 20, color: '#2c5f6e' }} />
+                  <Typography variant="body2" sx={{ fontWeight: 500 }}>Ver Perfil</Typography>
                 </MenuItem>
-              )}
-
-              {!isAdmin && !isPropietario && (
-                <MenuItem 
-                  component={Link}
-                  to="/pqrs"
-                  onClick={() => setAnchorUser(null)}
-                  sx={{ '&:hover': { backgroundColor: 'rgba(255,255,255,0.1)' } }}
-                >
-                  <PqrsIcon sx={{ mr: 2, fontSize: 20 }} /> PQRS
+                <Divider />
+                <MenuItem onClick={handleLogout} sx={{ py: 1.5 }}>
+                  <LogoutIcon sx={{ mr: 2, fontSize: 20, color: '#ef4444' }} />
+                  <Typography variant="body2" sx={{ color: '#ef4444', fontWeight: 500 }}>Cerrar Sesión</Typography>
                 </MenuItem>
-              )}
-
-              {isPropietario && (
-                <MenuItem 
-                  component={Link}
-                  to="/mis-propiedades"
-                  onClick={() => setAnchorUser(null)}
-                  sx={{ '&:hover': { backgroundColor: 'rgba(255,255,255,0.1)' } }}
-                >
-                  <BusinessIcon sx={{ mr: 2, fontSize: 20 }} /> Mis Propiedades
-                </MenuItem>
-              )}
-
-               {isAdmin && (
-                 <MenuItem 
-                   component={Link}
-                   to="/admin/register"
-                   onClick={() => setAnchorUser(null)}
-                   sx={{ '&:hover': { backgroundColor: 'rgba(255,255,255,0.1)' } }}
-                 >
-                   <PersonAddIcon sx={{ mr: 2, fontSize: 20 }} /> Registrar Usuario
-                 </MenuItem>
-               )}
-              
-              <Divider sx={{ backgroundColor: 'rgba(255,255,255,0.2)' }} />
-              
-              <MenuItem 
-                onClick={handleLogout}
-                sx={{ 
-                  color: '#ff6b6b',
-                  '&:hover': { 
-                    backgroundColor: 'rgba(255,107,107,0.1)',
-                  } 
-                }}
-              >
-                <LogoutIcon sx={{ mr: 2, fontSize: 20 }} /> Cerrar Sesión
-              </MenuItem>
-            </Menu>
-          </Box>
-        )}
-      </Toolbar>
-    </AppBar>
+              </Menu>
+            </Box>
+          </Toolbar>
+        </AppBar>
+        
+        <Box sx={{ p: 3 }}>
+          {children}
+        </Box>
+      </Box>
+    </Box>
   );
 };
 
-export default Navbar;
+export default MainLayout;

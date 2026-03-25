@@ -1,12 +1,18 @@
 import React, { useState } from 'react';
 import { Container, Row, Col, Form, Button, Card } from 'react-bootstrap';
-import { Link, useNavigate } from 'react-router-dom'; // Importar useNavigate para redirección
+import { Link, useNavigate } from 'react-router-dom';
 import 'bootstrap/dist/css/bootstrap.min.css';
-
 import { authAPI } from '../services/api.jsx';
 
+// Avatares por defecto para cada rol
+const DEFAULT_AVATARS = {
+  admin: { id: 1, bg: '#2d1f1a', variant: 1, name: 'Vikingo', role: 'admin' },
+  propietario: { id: 1, bg: '#2d4a2a', variant: 1, name: 'Casa', role: 'propietario' },
+  residente: { id: 1, bg: '#2a4a6a', variant: 1, name: 'Gato', role: 'residente' },
+};
+
 const Login = () => {
-  const navigate = useNavigate(); // Hook para navegación
+  const navigate = useNavigate();
   const primaryColor = '#1e3a5f';
   const [showPassword, setShowPassword] = useState(false);
   const [usuario, setUsuario] = useState('');
@@ -15,7 +21,16 @@ const Login = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [usuarioFocused, setUsuarioFocused] = useState(false);
   const [passwordFocused, setPasswordFocused] = useState(false);
-  const [error, setError] = useState(''); // Estado para mensajes de error
+  const [error, setError] = useState('');
+
+  // Función para obtener el avatar guardado
+  const getSavedAvatar = (role: string) => {
+    const savedAvatar = localStorage.getItem(`pixelAvatar_${role}`);
+    if (savedAvatar) {
+      return JSON.parse(savedAvatar);
+    }
+    return DEFAULT_AVATARS[role as keyof typeof DEFAULT_AVATARS] || DEFAULT_AVATARS.residente;
+  };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -38,39 +53,55 @@ const Login = () => {
         const fullData = meResponse?.data || {};
         user = { ...user, ...fullData };
         
-        // Extraer nombre y apellido del residente si existe
         const residente = fullData?.residente;
         if (residente) {
           user.nombre = residente.nombre || '';
           user.apellido = residente.apellido || '';
+          user.tipoResidente = residente.tipoResidente || '';
+          user.idResidente = residente.idResidente;
         }
       } catch (meError) {
         console.warn('No se pudo obtener datos adicionales del usuario:', meError);
       }
 
+      // Determinar el rol del usuario
+      const userRole = user.role === 'admin' ? 'admin' : 
+                       user.role === 'propietario' ? 'propietario' : 
+                       user.tipoResidente === 'Propietario' ? 'propietario' : 'residente';
+
+      // Obtener el avatar guardado para este rol
+      const savedAvatar = getSavedAvatar(userRole);
+
+      // Crear objeto userData
       const userData = {
         ...user,
         token,
+        role: userRole,
         name: user?.nombre && user?.apellido 
           ? `${user.nombre} ${user.apellido}` 
           : user?.name || user?.username || '',
+        avatar: savedAvatar,
+        avatarRole: userRole,
       };
 
+      // Guardar en storage (solo una vez)
       if (rememberMe) {
         localStorage.setItem('user', JSON.stringify(userData));
       } else {
         sessionStorage.setItem('user', JSON.stringify(userData));
       }
 
-      if (userData.role === 'admin') {
+      // Redirigir según el rol
+      if (userRole === 'admin') {
         navigate('/dashboard');
-      } else if (userData.role === 'propietario') {
+      } else if (userRole === 'propietario') {
         navigate('/mis-propiedades');
       } else {
         navigate('/inicio');
       }
-    } catch (error) {
-      const msg = (error as any)?.response?.data?.message || (error as any)?.message || 'Error al iniciar sesion. Intente nuevamente.';
+      
+    } catch (error: any) {
+      const msg = error?.response?.data?.message || error?.message || 'Error al iniciar sesion. Intente nuevamente.';
       setError(msg);
       console.error('Login error:', error);
     } finally {
@@ -275,8 +306,8 @@ const Login = () => {
                       fontSize: '0.9rem',
                       fontWeight: '500'
                     }}
-                    onMouseEnter={(e) => e.currentTarget.style.color = '#123d79'}
-                    onMouseLeave={(e) => e.currentTarget.style.color = primaryColor}
+                    onMouseEnter={(e) => (e.currentTarget.style.color = '#123d79')}
+                    onMouseLeave={(e) => (e.currentTarget.style.color = primaryColor)}
                   >
                     ¿Olvidaste tu contraseña?
                   </a>

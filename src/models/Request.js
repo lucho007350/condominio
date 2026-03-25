@@ -2,6 +2,7 @@ class Request {
 
     #idRequest = null;
     #tipo = null;
+    #respuesta = null;
     #asunto = null;
     #descripcion = null;
     #prioridad = null;
@@ -15,6 +16,7 @@ class Request {
     constructor(
         idRequest = null,
         tipo = null,
+        respuesta = null,
         asunto = null,
         descripcion = null,
         prioridad = null,
@@ -27,6 +29,7 @@ class Request {
     ) {
         this.#idRequest = idRequest;
         this.#tipo = tipo;
+        this.#respuesta = respuesta;
         this.#asunto = asunto;
         this.#descripcion = descripcion;
         this.#prioridad = prioridad;
@@ -38,98 +41,37 @@ class Request {
         this.#remitenteNombre = remitenteNombre;
     }
 
-    getIdRequest() {
-        return this.#idRequest;
-    }
+    getIdRequest() { return this.#idRequest; }
+    getTipo() { return this.#tipo; }
+    getRespuesta() { return this.#respuesta; }
+    getAsunto() { return this.#asunto; }
+    getDescripcion() { return this.#descripcion; }
+    getPrioridad() { return this.#prioridad; }
+    getEstado() { return this.#estado; }
+    getFecha() { return this.#fecha; }
+    getPropietarioId() { return this.#propietarioId; }
+    getPropietarioNombre() { return this.#propietarioNombre; }
+    getRemitenteUsuario() { return this.#remitenteUsuario; }
+    getRemitenteNombre() { return this.#remitenteNombre; }
 
-    getTipo() {
-        return this.#tipo;
-    }
-
-    getAsunto() {
-        return this.#asunto;
-    }
-
-    getDescripcion() {
-        return this.#descripcion;
-    }
-
-    getPrioridad() {
-        return this.#prioridad;
-    }
-
-    getEstado() {
-        return this.#estado;
-    }
-
-    getFecha() {
-        return this.#fecha;
-    }
-
-    getPropietarioId() {
-        return this.#propietarioId;
-    }
-
-    getPropietarioNombre() {
-        return this.#propietarioNombre;
-    }
-
-    getRemitenteUsuario() {
-        return this.#remitenteUsuario;
-    }
-
-    getRemitenteNombre() {
-        return this.#remitenteNombre;
-    }
-
-    setIdRequest(idRequest) {
-        this.#idRequest = idRequest;
-    }
-
-    setTipo(tipo) {
-        this.#tipo = tipo;
-    }
-
-    setAsunto(asunto) {
-        this.#asunto = asunto;
-    }
-
-    setDescripcion(descripcion) {
-        this.#descripcion = descripcion;
-    }
-
-    setPrioridad(prioridad) {
-        this.#prioridad = prioridad;
-    }
-
-    setEstado(estado) {
-        this.#estado = estado;
-    }
-
-    setFecha(fecha) {
-        this.#fecha = fecha;
-    }
-
-    setPropietarioId(propietarioId) {
-        this.#propietarioId = propietarioId;
-    }
-
-    setPropietarioNombre(propietarioNombre) {
-        this.#propietarioNombre = propietarioNombre;
-    }
-
-    setRemitenteUsuario(remitenteUsuario) {
-        this.#remitenteUsuario = remitenteUsuario;
-    }
-
-    setRemitenteNombre(remitenteNombre) {
-        this.#remitenteNombre = remitenteNombre;
-    }
+    setIdRequest(id) { this.#idRequest = id; }
+    setTipo(tipo) { this.#tipo = tipo; }
+    setRespuesta(respuesta) { this.#respuesta = respuesta; }
+    setAsunto(asunto) { this.#asunto = asunto; }
+    setDescripcion(descripcion) { this.#descripcion = descripcion; }
+    setPrioridad(prioridad) { this.#prioridad = prioridad; }
+    setEstado(estado) { this.#estado = estado; }
+    setFecha(fecha) { this.#fecha = fecha; }
+    setPropietarioId(id) { this.#propietarioId = id; }
+    setPropietarioNombre(nombre) { this.#propietarioNombre = nombre; }
+    setRemitenteUsuario(usuario) { this.#remitenteUsuario = usuario; }
+    setRemitenteNombre(nombre) { this.#remitenteNombre = nombre; }
 
     getValues() {
         return {
             idRequest: this.#idRequest,
             tipo: this.#tipo,
+            respuesta: this.#respuesta,
             asunto: this.#asunto,
             descripcion: this.#descripcion,
             prioridad: this.#prioridad,

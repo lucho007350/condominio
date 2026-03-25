@@ -1,12 +1,14 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Container, Row, Col } from 'react-bootstrap';
+import { Container, Box, Typography, alpha } from '@mui/material';
+import { Row, Col } from 'react-bootstrap';
 
 import { residentesAPI, unidadesAPI } from '../services/api.jsx';
 
 const toArray = (v) => (Array.isArray(v) ? v : v ? [v] : []);
 
 const Inicio = () => {
-  const primaryColor = '#1e3a5f';
+  const primaryColor = '#0a1c2c';
+  const accentColor = '#2c5f6e';
 
   const [unitsCount, setUnitsCount] = useState(null);
   const [residentsCount, setResidentsCount] = useState(null);
@@ -61,238 +63,209 @@ const Inicio = () => {
   }, [loadingStats, residentsCount, unitsCount]);
 
   return (
-    <div style={{
-      position: 'relative',
-      width: '100%',
-      minHeight: 'calc(100vh - 64px)',
-      overflow: 'hidden',
-      margin: 0,
-      padding: 0,
-      backgroundColor: '#000' // Fallback color mientras carga el video
-    }}>
-      {/* Video de fondo */}
+    <Box sx={{ position: 'relative', width: '100%', minHeight: '100vh', overflow: 'hidden', backgroundColor: '#000' }}>
+      {/* Video de fondo - OCUPA TODA LA PANTALLA */}
       <video
         autoPlay
         loop
         muted
         playsInline
         style={{
-          position: 'absolute',
-          top: '50%',
-          left: '50%',
-          minWidth: '100%',
-          minHeight: '100%',
-          width: 'auto',
-          height: 'auto',
-          transform: 'translateX(-50%) translateY(-50%)',
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
           objectFit: 'cover',
           zIndex: 0,
-          filter: 'brightness(0.7)' // Oscurece ligeramente el video
         }}
       >
         <source src="/202602171648.mp4" type="video/mp4" />
         Tu navegador no soporta videos HTML5.
       </video>
 
-      {/* Overlay con gradiente */}
-      <div style={{
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        width: '100%',
-        height: '100%',
-        background: `linear-gradient(135deg, rgba(30, 58, 95, 0.85) 0%, rgba(0, 0, 0, 0.7) 100%)`,
-        zIndex: 1
-      }}></div>
+      {/* Overlay con gradiente azul oscuro - OCUPA TODA LA PANTALLA */}
+      <Box
+        sx={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          background: `linear-gradient(135deg, ${alpha(primaryColor, 0.85)} 0%, ${alpha(primaryColor, 0.7)} 100%)`,
+          zIndex: 1,
+        }}
+      />
 
-      {/* Contenido principal */}
-      <Container 
-        fluid 
-        style={{
+      {/* Contenido principal - CENTRADO CON RESPETO AL NAVBAR */}
+      <Box
+        sx={{
           position: 'relative',
           zIndex: 2,
-          minHeight: 'calc(100vh - 64px)',
+          minHeight: '100vh',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          padding: '2rem'
+          py: 4,
+          px: { xs: 2, sm: 3, md: 4 },
         }}
       >
-        <Row className="justify-content-center w-100">
-          <Col lg={10} xl={8}>
-            <div style={{
-              textAlign: 'center',
-              color: 'white',
-              animation: 'fadeInUp 1s ease-out'
-            }}>
-              {/* Badge de bienvenida */}
-              <div style={{
-                display: 'inline-block',
-                backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                backdropFilter: 'blur(10px)',
-                border: '1px solid rgba(255, 255, 255, 0.2)',
-                borderRadius: '50px',
-                padding: '0.5rem 1.5rem',
-                marginBottom: '2rem',
-                fontSize: '0.9rem',
-                letterSpacing: '2px',
-                color: 'rgba(255, 255, 255, 0.9)'
-              }}>
-                ✦ BIENVENIDO A ✦
-              </div>
-              
-              {/* Título principal */}
-              <h1 style={{
-                fontSize: 'clamp(2.5rem, 8vw, 5rem)',
-                marginBottom: '1.5rem',
-                fontWeight: '800',
-                lineHeight: '1.2',
-                color: 'white',
-                textShadow: '2px 2px 4px rgba(0, 0, 0, 0.3)',
-                letterSpacing: '-0.5px'
-              }}>
-                CONDOMINIO
-                <span style={{
-                  display: 'block',
-                  color: '#fff',
-                  background: `linear-gradient(135deg, #fff 0%, ${primaryColor} 100%)`,
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
-                  fontSize: 'clamp(2rem, 6vw, 4rem)'
-                }}>
-                  LAS MARGARITAS
-                </span>
-              </h1>
+        <Container maxWidth="lg">
+          <Row className="justify-content-center">
+            <Col lg={10} xl={8}>
+              <Box sx={{ textAlign: 'center', color: 'white' }}>
+                {/* Badge de bienvenida */}
+                <Box
+                  sx={{
+                    display: 'inline-block',
+                    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                    backdropFilter: 'blur(10px)',
+                    border: '1px solid rgba(255, 255, 255, 0.2)',
+                    borderRadius: '50px',
+                    padding: '0.5rem 1.5rem',
+                    mb: 3,
+                    fontSize: '0.9rem',
+                    letterSpacing: '2px',
+                    color: 'rgba(255, 255, 255, 0.9)',
+                  }}
+                >
+                  ✦ BIENVENIDO A ✦
+                </Box>
 
-              {/* Descripción */}
-              <p style={{
-                color: 'rgba(255, 255, 255, 0.9)',
-                lineHeight: '1.8',
-                marginBottom: '3rem',
-                fontSize: 'clamp(1rem, 2vw, 1.2rem)',
-                maxWidth: '800px',
-                marginLeft: 'auto',
-                marginRight: 'auto',
-                textShadow: '1px 1px 2px rgba(0, 0, 0, 0.3)'
-              }}>
-                Vive en el lugar más exclusivo de la ciudad. Disfruta de gimnasio, areas verdes,
-                seguridad 24/7 y salon de eventos. Un espacio disenado para tu bienestar y el de tu familia.
-              </p>
-
-              {/* Tarjetas de estadísticas */}
-              <Row className="justify-content-center g-4">
-                {stats.map((stat, index) => (
-                  <Col key={index} xs={6} sm={4} md={3}>
-                    <div style={{
-                      background: 'rgba(255, 255, 255, 0.1)',
-                      backdropFilter: 'blur(10px)',
-                      border: '1px solid rgba(255, 255, 255, 0.2)',
-                      borderRadius: '20px',
-                      padding: '1.5rem 1rem',
-                      textAlign: 'center',
-                      transition: 'all 0.3s ease',
-                      cursor: 'default',
-                      boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)',
-                      animation: `fadeInUp 1s ease-out ${index * 0.1}s both`
+                {/* Título principal */}
+                <Typography
+                  variant="h1"
+                  sx={{
+                    fontSize: { xs: '2.5rem', sm: '3.5rem', md: '4.5rem' },
+                    mb: 2,
+                    fontWeight: 800,
+                    lineHeight: 1.2,
+                    color: 'white',
+                    textShadow: '2px 2px 4px rgba(0, 0, 0, 0.3)',
+                    letterSpacing: '-0.5px',
+                  }}
+                >
+                  CONDOMINIO
+                  <Box
+                    component="span"
+                    sx={{
+                      display: 'block',
+                      background: `linear-gradient(135deg, #fff 0%, ${accentColor} 100%)`,
+                      WebkitBackgroundClip: 'text',
+                      WebkitTextFillColor: 'transparent',
+                      fontSize: { xs: '2rem', sm: '3rem', md: '4rem' },
                     }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.transform = 'translateY(-10px)';
-                      e.currentTarget.style.background = 'rgba(255, 255, 255, 0.15)';
-                      e.currentTarget.style.boxShadow = '0 15px 40px rgba(30, 58, 95, 0.3)';
+                  >
+                    LAS MARGARITAS
+                  </Box>
+                </Typography>
+
+                {/* Descripción */}
+                <Typography
+                  variant="body1"
+                  sx={{
+                    color: 'rgba(255, 255, 255, 0.9)',
+                    lineHeight: 1.8,
+                    mb: 4,
+                    fontSize: { xs: '1rem', sm: '1.1rem', md: '1.2rem' },
+                    maxWidth: '800px',
+                    mx: 'auto',
+                    textShadow: '1px 1px 2px rgba(0, 0, 0, 0.3)',
+                  }}
+                >
+                  Vive en el lugar más exclusivo de la ciudad. Disfruta de gimnasio, áreas verdes,
+                  seguridad 24/7 y salón de eventos. Un espacio diseñado para tu bienestar y el de tu familia.
+                </Typography>
+
+                {/* Tarjetas de estadísticas */}
+                <Row className="justify-content-center g-4">
+                  {stats.map((stat, index) => (
+                    <Col key={index} xs={6} sm={4} md={3}>
+                      <Box
+                        sx={{
+                          background: 'rgba(255, 255, 255, 0.1)',
+                          backdropFilter: 'blur(10px)',
+                          border: '1px solid rgba(255, 255, 255, 0.2)',
+                          borderRadius: '20px',
+                          padding: '1.5rem 1rem',
+                          textAlign: 'center',
+                          transition: 'all 0.3s ease',
+                          cursor: 'default',
+                          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)',
+                          animation: `fadeInUp 1s ease-out ${index * 0.1}s both`,
+                          '&:hover': {
+                            transform: 'translateY(-10px)',
+                            background: 'rgba(255, 255, 255, 0.15)',
+                            boxShadow: `0 15px 40px ${alpha(accentColor, 0.3)}`,
+                          },
+                        }}
+                      >
+                        {/* Icono */}
+                        <Box sx={{ fontSize: '2.5rem', mb: 0.5, opacity: 0.9 }}>
+                          {stat.icon}
+                        </Box>
+
+                        {/* Número */}
+                        <Typography
+                          variant="h3"
+                          sx={{
+                            fontSize: { xs: '2rem', sm: '2.5rem', md: '3rem' },
+                            fontWeight: 800,
+                            color: 'white',
+                            lineHeight: 1.2,
+                            mb: 0.25,
+                            textShadow: `2px 2px 4px ${accentColor}`,
+                          }}
+                        >
+                          {stat.number}
+                        </Typography>
+
+                        {/* Label */}
+                        <Typography
+                          variant="caption"
+                          sx={{
+                            fontSize: '0.85rem',
+                            color: 'rgba(255, 255, 255, 0.8)',
+                            letterSpacing: '1px',
+                            textTransform: 'uppercase',
+                          }}
+                        >
+                          {stat.label}
+                        </Typography>
+
+                        {/* Línea decorativa */}
+                        <Box
+                          sx={{
+                            width: '40px',
+                            height: '2px',
+                            background: accentColor,
+                            margin: '0.75rem auto 0',
+                            borderRadius: '2px',
+                            transition: 'width 0.3s ease',
+                          }}
+                        />
+                      </Box>
+                    </Col>
+                  ))}
+                </Row>
+
+                {statsError && (
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      mt: 2,
+                      color: 'rgba(255, 255, 255, 0.85)',
+                      textShadow: '1px 1px 2px rgba(0, 0, 0, 0.3)',
                     }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.transform = 'translateY(0)';
-                      e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
-                      e.currentTarget.style.boxShadow = '0 8px 32px rgba(0, 0, 0, 0.1)';
-                    }}>
-                      {/* Icono */}
-                      <div style={{
-                        fontSize: '2.5rem',
-                        marginBottom: '0.5rem',
-                        opacity: 0.9
-                      }}>
-                        {stat.icon}
-                      </div>
-                      
-                      {/* Número */}
-                      <div style={{
-                        fontSize: 'clamp(2rem, 4vw, 3rem)',
-                        fontWeight: '800',
-                        color: 'white',
-                        lineHeight: '1.2',
-                        marginBottom: '0.25rem',
-                        textShadow: `2px 2px 4px ${primaryColor}`
-                      }}>
-                        {stat.number}
-                      </div>
-                      
-                      {/* Label */}
-                      <div style={{
-                        fontSize: '0.9rem',
-                        color: 'rgba(255, 255, 255, 0.8)',
-                        letterSpacing: '1px',
-                        textTransform: 'uppercase'
-                      }}>
-                        {stat.label}
-                      </div>
-
-                      {/* Línea decorativa */}
-                      <div style={{
-                        width: '40px',
-                        height: '2px',
-                        background: primaryColor,
-                        margin: '0.75rem auto 0',
-                        borderRadius: '2px',
-                        transition: 'width 0.3s ease'
-                      }} />
-                    </div>
-                  </Col>
-                ))}
-              </Row>
-
-              {statsError && (
-                <div style={{
-                  marginTop: '1.5rem',
-                  color: 'rgba(255, 255, 255, 0.85)',
-                  fontSize: '0.95rem',
-                  textShadow: '1px 1px 2px rgba(0, 0, 0, 0.3)'
-                }}>
-                  {statsError}
-                </div>
-              )}
-
-              {/* Botón de acción (opcional) */}
-              <div style={{ marginTop: '3rem' }}>
-                <button style={{
-                  background: 'transparent',
-                  border: `2px solid ${primaryColor}`,
-                  color: 'white',
-                  padding: '0.75rem 2.5rem',
-                  borderRadius: '50px',
-                  fontSize: '1rem',
-                  fontWeight: '600',
-                  cursor: 'pointer',
-                  transition: 'all 0.3s ease',
-                  backdropFilter: 'blur(5px)',
-                  letterSpacing: '1px'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = primaryColor;
-                  e.currentTarget.style.transform = 'translateY(-2px)';
-                  e.currentTarget.style.boxShadow = `0 10px 20px ${primaryColor}80`;
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = 'transparent';
-                  e.currentTarget.style.transform = 'translateY(0)';
-                  e.currentTarget.style.boxShadow = 'none';
-                }}>
-                  EXPLORAR MÁS
-                </button>
-              </div>
-            </div>
-          </Col>
-        </Row>
-      </Container>
+                  >
+                    {statsError}
+                  </Typography>
+                )}
+              </Box>
+            </Col>
+          </Row>
+        </Container>
+      </Box>
 
       {/* Estilos CSS personalizados */}
       <style>{`
@@ -307,7 +280,6 @@ const Inicio = () => {
           }
         }
 
-        /* Estilo para el scrollbar (opcional) */
         ::-webkit-scrollbar {
           width: 8px;
         }
@@ -317,15 +289,15 @@ const Inicio = () => {
         }
 
         ::-webkit-scrollbar-thumb {
-          background: ${primaryColor};
+          background: ${accentColor};
           border-radius: 4px;
         }
 
         ::-webkit-scrollbar-thumb:hover {
-          background: #2a4a7a;
+          background: ${primaryColor};
         }
       `}</style>
-    </div>
+    </Box>
   );
 };
 
