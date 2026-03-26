@@ -51,8 +51,8 @@ import { empleadosAPI, facturasAPI, paymentAPI, residentesAPI, unidadesAPI } fro
 
 // Colores personalizados
 const colors = {
-  primary: '#1e3a5f',
-  secondary: '#2a4a7a',
+  primary: '#0f2a3a',
+  secondary: '#0d2533',
   success: '#10b981',
   warning: '#f59e0b',
   error: '#ef4444',
@@ -975,84 +975,6 @@ const Dashboard = () => {
                     </TableBody>
                   </Table>
                 </TableContainer>
-              </CardContent>
-            </GlassCard>
-          </Grid>
-
-          {/* Acciones Rápidas */}
-          <Grid item xs={12} lg={4}>
-            <GlassCard sx={{ height: '100%' }}>
-              <CardContent sx={{ p: 3 }}>
-                <Typography variant="h6" sx={{ fontWeight: 700, color: colors.text.primary, mb: 3 }}>
-                  Acciones Rápidas
-                </Typography>
-                
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                  <QuickAction
-                    title="Registrar Pago"
-                    description="Agregar nuevo pago de residente"
-                    icon={MoneyIcon}
-                    color={colors.success}
-                    onClick={() => navigate('/payments')}
-                  />
-                  
-                  <QuickAction
-                    title="Agregar Residente"
-                    description="Registrar nuevo residente"
-                    icon={PeopleIcon}
-                    color={colors.warning}
-                    onClick={() => navigate('/residents')}
-                  />
-                  
-                  <QuickAction
-                    title="Registrar Empleado"
-                    description="Agregar nuevo empleado"
-                    icon={AssessmentIcon}
-                    color={colors.purple}
-                    onClick={() => navigate('/employees')}
-                  />
-                </Box>
-
-                <Divider sx={{ my: 3 }} />
-
-                {/* Próximos vencimientos */}
-                <Box>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-                    <CalendarIcon sx={{ color: colors.primary, fontSize: 20 }} />
-                    <Typography variant="subtitle1" sx={{ fontWeight: 600, color: colors.text.primary }}>
-                      Próximos vencimientos
-                    </Typography>
-                  </Box>
-                  
-                  {(upcomingDue.length > 0 ? upcomingDue : []).map((item, index) => (
-                    <Box
-                      key={index}
-                      sx={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        py: 1,
-                        borderBottom: index < 2 ? `1px solid ${alpha(colors.border, 0.5)}` : 'none',
-                      }}
-                    >
-                      <Typography variant="body2">{item.label}</Typography>
-                      <Chip
-                        label={`${item.days} días`}
-                        size="small"
-                        sx={{
-                          backgroundColor: alpha(item.days <= 3 ? colors.error : item.days <= 10 ? colors.warning : colors.info, 0.1),
-                          color: item.days <= 3 ? colors.error : item.days <= 10 ? colors.warning : colors.info,
-                        }}
-                      />
-                    </Box>
-                  ))}
-
-                  {upcomingDue.length === 0 && (
-                    <Typography variant="body2" sx={{ color: colors.text.secondary }}>
-                      No hay facturas pendientes con vencimiento proximo
-                    </Typography>
-                  )}
-                </Box>
               </CardContent>
             </GlassCard>
           </Grid>

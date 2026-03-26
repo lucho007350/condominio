@@ -24,8 +24,12 @@ import {
   FormControl,
   InputLabel,
   Select,
-  MenuItem
+  MenuItem,
+  Avatar,
+  Container,
+  alpha
 } from '@mui/material';
+import { styled } from '@mui/material/styles';
 
 import {
   CheckCircle as PagadaIcon,
@@ -36,10 +40,45 @@ import {
   Add as AddIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
-  Receipt as ReceiptIcon
+  Receipt as ReceiptIcon,
+  Close as CloseIcon,
+  ReceiptLong as FacturaIcon,
 } from '@mui/icons-material';
 
 import { facturasAPI, unidadesAPI } from '../services/api';
+
+const colors = {
+  primary: '#0f2a3a',
+  secondary: '#1d3e52',
+  success: '#10b981',
+  warning: '#f59e0b',
+  error: '#ef4444',
+  info: '#3b82f6',
+  background: '#f8fafc',
+  surface: '#ffffff',
+  text: {
+    primary: '#1e293b',
+    secondary: '#64748b',
+    disabled: '#94a3b8',
+  },
+  border: '#e2e8f0',
+};
+
+const GradientButton = styled(Button)(({ bgcolor = colors.primary }) => ({
+  background: `linear-gradient(135deg, ${bgcolor} 0%, ${alpha(bgcolor, 0.8)} 100%)`,
+  color: 'white',
+  borderRadius: 12,
+  padding: '8px 20px',
+  fontWeight: 600,
+  textTransform: 'none',
+  fontSize: '0.9rem',
+  boxShadow: `0 4px 10px ${alpha(bgcolor, 0.3)}`,
+  transition: 'all 0.3s ease',
+  '&:hover': {
+    transform: 'translateY(-2px)',
+    boxShadow: `0 8px 20px ${alpha(bgcolor, 0.4)}`,
+  },
+}));
 
 const ESTADOS_FACTURA = ['Pendiente', 'Pagada', 'Vencida'];
 
@@ -190,7 +229,7 @@ const Facturas = () => {
   if (loading) {
     return (
       <Box sx={{ p: 3, display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 300 }}>
-        <CircularProgress />
+        <CircularProgress sx={{ color: colors.primary }} />
       </Box>
     );
   }
@@ -204,205 +243,282 @@ const Facturas = () => {
   }
 
   return (
-    <Box sx={{ width: '100%' }}>
-      {/* Header */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 2, mb: 4 }}>
-        <Box>
-          <Typography variant="h4" fontWeight="bold">
-            🧾 Facturación del Condominio
-          </Typography>
-          <Typography color="text.secondary">
-            Control de facturas por unidad habitacional
-          </Typography>
-        </Box>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={() => handleOpenDialog()}
-          sx={{ backgroundColor: '#1e3a5f', color: 'white' }}
+    <Box sx={{ backgroundColor: colors.background, minHeight: '100vh', py: 4 }}>
+      <Container 
+        maxWidth="ml"
+      >
+        {/* Header */}
+        <Paper
+          elevation={0}
+          sx={{
+            p: 4,
+            mb: 4,
+            borderRadius: 4,
+            background: `linear-gradient(135deg, ${colors.primary} 0%, ${colors.secondary} 100%)`,
+            color: 'white',
+            position: 'relative',
+            overflow: 'hidden',
+          }}
         >
-          Crear factura
-        </Button>
-      </Box>
-
-      {/* KPIs */}
-      <Grid container spacing={3} sx={{ mb: 4 }}>
-        {[
-          { label: 'Total Facturas', value: facturas.length, icon: <ReceiptIcon />, color: '#2196F3' },
-          { label: 'Pagadas', value: facturas.filter(f => (f.estadoFactura ?? f.estado) === 'Pagada').length, icon: <PagadaIcon />, color: '#4CAF50' },
-          { label: 'Pendientes', value: facturas.filter(f => (f.estadoFactura ?? f.estado) === 'Pendiente').length, icon: <PendienteIcon />, color: '#FF9800' },
-          { label: 'Vencidas', value: facturas.filter(f => (f.estadoFactura ?? f.estado) === 'Vencida').length, icon: <VencidaIcon />, color: '#f44336' }
-        ].map((item, i) => (
-          <Grid item size={{ xs: 12, sm: 6, md: 3 }} key={i}>
-            <Paper sx={{ p: 3, borderRadius: 3, display: 'flex', alignItems: 'center', gap: 2 }}>
-              <Box
+          <Box
+            sx={{
+              position: 'absolute',
+              top: -20,
+              right: -20,
+              width: 200,
+              height: 200,
+              borderRadius: '50%',
+              background: 'rgba(255,255,255,0.1)',
+            }}
+          />
+          <Box sx={{ position: 'relative', zIndex: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <Avatar
                 sx={{
-                  p: 1.5,
-                  borderRadius: 2,
-                  backgroundColor: `${item.color}20`,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
+                  width: 70,
+                  height: 70,
+                  bgcolor: 'rgba(255,255,255,0.2)',
                 }}
               >
-                {React.cloneElement(item.icon, { sx: { fontSize: 32, color: item.color } })}
-              </Box>
+                <FacturaIcon sx={{ fontSize: 35 }} />
+              </Avatar>
               <Box>
-                <Typography variant="h5" fontWeight="bold">{item.value}</Typography>
-                <Typography color="text.secondary" variant="body2">{item.label}</Typography>
+                <Typography variant="h4" sx={{ fontWeight: 800, mb: 1 }}>
+                  Facturación del Condominio
+                </Typography>
+                <Typography variant="body1" sx={{ color: 'rgba(255,255,255,0.9)' }}>
+                  Control de facturas por unidad habitacional
+                </Typography>
               </Box>
-            </Paper>
-          </Grid>
-        ))}
-      </Grid>
+            </Box>
+            <GradientButton
+              startIcon={<AddIcon />}
+              onClick={() => handleOpenDialog()}
+              sx={{ bgcolor: colors.success }}
+            >
+              Crear factura
+            </GradientButton>
+          </Box>
+        </Paper>
 
-      {/* Tabla */}
-      <TableContainer component={Paper} sx={{ borderRadius: 3 }}>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell><b>ID Factura</b></TableCell>
-              <TableCell><b>Unidad</b></TableCell>
-              <TableCell><b>Fecha Emisión</b></TableCell>
-              <TableCell><b>Fecha Vencimiento</b></TableCell>
-              <TableCell><b>Monto</b></TableCell>
-              <TableCell><b>Estado</b></TableCell>
-              <TableCell><b>Vencimiento</b></TableCell>
-              <TableCell align="center"><b>Acciones</b></TableCell>
-            </TableRow>
-          </TableHead>
+        {/* KPIs */}
+        <Grid container spacing={3} sx={{ mb: 4 }}>
+          {[
+            { label: 'Total Facturas', value: facturas.length, icon: <ReceiptIcon />, color: '#2196F3' },
+            { label: 'Pagadas', value: facturas.filter(f => (f.estadoFactura ?? f.estado) === 'Pagada').length, icon: <PagadaIcon />, color: '#4CAF50' },
+            { label: 'Pendientes', value: facturas.filter(f => (f.estadoFactura ?? f.estado) === 'Pendiente').length, icon: <PendienteIcon />, color: '#FF9800' },
+            { label: 'Vencidas', value: facturas.filter(f => (f.estadoFactura ?? f.estado) === 'Vencida').length, icon: <VencidaIcon />, color: '#f44336' }
+          ].map((item, i) => (
+            <Grid item size={{ xs: 12, sm: 6, md: 3 }} key={i}>
+              <Paper sx={{ p: 3, borderRadius: 3, display: 'flex', alignItems: 'center', gap: 2, border: `1px solid ${colors.border}`, boxShadow: 'none' }}>
+                <Box
+                  sx={{
+                    p: 1.5,
+                    borderRadius: 2,
+                    backgroundColor: `${item.color}20`,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
+                >
+                  {React.cloneElement(item.icon, { sx: { fontSize: 32, color: item.color } })}
+                </Box>
+                <Box>
+                  <Typography variant="h5" fontWeight="bold" sx={{ color: colors.text.primary }}>{item.value}</Typography>
+                  <Typography color="text.secondary" variant="body2">{item.label}</Typography>
+                </Box>
+              </Paper>
+            </Grid>
+          ))}
+        </Grid>
 
-          <TableBody>
-            {facturas.map((f) => (
-              <TableRow key={f.idFactura ?? f.id ?? Math.random()} hover>
-                <TableCell>{f.idFactura ?? f.id}</TableCell>
-
-                <TableCell>
-                  <UnidadIcon fontSize="small" sx={{ mr: 1 }} />
-                  {f.numeroUnidad ?? f.idUnidad ?? f.unidad ?? '-'}
-                </TableCell>
-
-                <TableCell>
-                  <CalendarIcon fontSize="small" sx={{ mr: 1 }} />
-                  {f.fechaEmision ?? f.fecha_emision ?? '-'}
-                </TableCell>
-
-                <TableCell>{f.fechaVencimiento ?? f.fecha_vencimiento ?? '-'}</TableCell>
-
-                <TableCell>
-                  ${Number(f.monto ?? 0).toLocaleString()}
-                </TableCell>
-
-                <TableCell>{estadoChip(f.estadoFactura ?? f.estado ?? 'Pendiente')}</TableCell>
-
-                <TableCell sx={{ width: 180 }}>
-                  <LinearProgress
-                    variant="determinate"
-                    value={getProgreso(f)}
-                    color={
-                      (f.estadoFactura ?? f.estado) === 'Pagada'
-                        ? 'success'
-                        : (f.estadoFactura ?? f.estado) === 'Pendiente'
-                        ? 'warning'
-                        : 'error'
-                    }
-                  />
-                </TableCell>
-                <TableCell align="center">
-                  <IconButton color="primary" size="small" onClick={() => handleOpenDialog(f)} title="Editar">
-                    <EditIcon />
-                  </IconButton>
-                  <IconButton color="error" size="small" onClick={() => handleDelete(f)} title="Eliminar">
-                    <DeleteIcon />
-                  </IconButton>
-                </TableCell>
+        {/* Tabla */}
+        <TableContainer component={Paper} sx={{ borderRadius: 4, border: `1px solid ${colors.border}`, boxShadow: 'none' }}>
+          <Table>
+            <TableHead>
+              <TableRow sx={{ backgroundColor: alpha(colors.primary, 0.02) }}>
+                <TableCell sx={{ fontWeight: 700 }}><b>ID Factura</b></TableCell>
+                <TableCell sx={{ fontWeight: 700 }}><b>Unidad</b></TableCell>
+                <TableCell sx={{ fontWeight: 700 }}><b>Fecha Emisión</b></TableCell>
+                <TableCell sx={{ fontWeight: 700 }}><b>Fecha Vencimiento</b></TableCell>
+                <TableCell sx={{ fontWeight: 700 }}><b>Monto</b></TableCell>
+                <TableCell sx={{ fontWeight: 700 }}><b>Estado</b></TableCell>
+                <TableCell sx={{ fontWeight: 700 }}><b>Vencimiento</b></TableCell>
+                <TableCell align="center" sx={{ fontWeight: 700 }}><b>Acciones</b></TableCell>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
+            </TableHead>
 
-      {/* Dialog Crear / Editar */}
-      <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
-        <DialogTitle>{facturaEdit ? 'Editar factura' : 'Nueva factura'}</DialogTitle>
-        <DialogContent>
-          <Grid container spacing={2} sx={{ mt: 0.5 }}>
-            <Grid item size={{ xs: 12, sm: 6 }}>
-              <TextField
-                fullWidth
-                label="Fecha emisión"
-                type="date"
-                name="fechaEmision"
-                value={formData.fechaEmision}
-                onChange={handleInputChange}
-                InputLabelProps={{ shrink: true }}
-              />
-            </Grid>
-            <Grid item size={{ xs: 12, sm: 6 }}>
-              <TextField
-                fullWidth
-                label="Fecha vencimiento"
-                type="date"
-                name="fechaVencimiento"
-                value={formData.fechaVencimiento}
-                onChange={handleInputChange}
-                InputLabelProps={{ shrink: true }}
-              />
-            </Grid>
-            <Grid item size={{ xs: 12, sm: 6 }}>
-              <TextField
-                fullWidth
-                label="Monto"
-                type="number"
-                name="monto"
-                value={formData.monto}
-                onChange={handleInputChange}
-                inputProps={{ min: 0, step: 1000 }}
-              />
-            </Grid>
-            <Grid item size={{ xs: 12, sm: 6 }}>
-              <FormControl fullWidth>
-                <InputLabel>Estado</InputLabel>
-                <Select
-                  name="estadoFactura"
-                  value={formData.estadoFactura}
-                  label="Estado"
+            <TableBody>
+              {facturas.map((f) => (
+                <TableRow key={f.idFactura ?? f.id ?? Math.random()} hover>
+                  <TableCell>{f.idFactura ?? f.id}</TableCell>
+
+                  <TableCell>
+                    <UnidadIcon fontSize="small" sx={{ mr: 1, color: colors.text.secondary }} />
+                    {f.numeroUnidad ?? f.idUnidad ?? f.unidad ?? '-'}
+                  </TableCell>
+
+                  <TableCell>
+                    <CalendarIcon fontSize="small" sx={{ mr: 1, color: colors.text.secondary }} />
+                    {f.fechaEmision ?? f.fecha_emision ?? '-'}
+                  </TableCell>
+
+                  <TableCell>{f.fechaVencimiento ?? f.fecha_vencimiento ?? '-'}</TableCell>
+
+                  <TableCell>
+                    <Typography sx={{ fontWeight: 600, color: colors.primary }}>
+                      ${Number(f.monto ?? 0).toLocaleString()}
+                    </Typography>
+                  </TableCell>
+
+                  <TableCell>{estadoChip(f.estadoFactura ?? f.estado ?? 'Pendiente')}</TableCell>
+
+                  <TableCell sx={{ width: 180 }}>
+                    <LinearProgress
+                      variant="determinate"
+                      value={getProgreso(f)}
+                      color={
+                        (f.estadoFactura ?? f.estado) === 'Pagada'
+                          ? 'success'
+                          : (f.estadoFactura ?? f.estado) === 'Pendiente'
+                          ? 'warning'
+                          : 'error'
+                      }
+                      sx={{ borderRadius: 2 }}
+                    />
+                  </TableCell>
+                  <TableCell align="center">
+                    <IconButton 
+                      color="primary" 
+                      size="small" 
+                      onClick={() => handleOpenDialog(f)} 
+                      title="Editar"
+                      sx={{ color: colors.primary, '&:hover': { backgroundColor: alpha(colors.primary, 0.1) } }}
+                    >
+                      <EditIcon />
+                    </IconButton>
+                    <IconButton 
+                      color="error" 
+                      size="small" 
+                      onClick={() => handleDelete(f)} 
+                      title="Eliminar"
+                      sx={{ '&:hover': { backgroundColor: alpha(colors.error, 0.1) } }}
+                    >
+                      <DeleteIcon />
+                    </IconButton>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+
+        {/* Dialog Crear / Editar */}
+        <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: 4 } }}>
+          <DialogTitle sx={{ 
+            backgroundColor: colors.primary, 
+            color: 'white', 
+            py: 2,
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+          }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <ReceiptIcon />
+              <Typography variant="h6">
+                {facturaEdit ? 'Editar factura' : 'Nueva factura'}
+              </Typography>
+            </Box>
+            <IconButton onClick={handleCloseDialog} sx={{ color: 'white' }} size="small">
+              <CloseIcon />
+            </IconButton>
+          </DialogTitle>
+          <DialogContent sx={{ pt: 3 }}>
+            <Grid container spacing={2} sx={{ mt: 0.5 }}>
+              <Grid item size={{ xs: 12, sm: 6 }}>
+                <TextField
+                  fullWidth
+                  label="Fecha emisión"
+                  type="date"
+                  name="fechaEmision"
+                  value={formData.fechaEmision}
                   onChange={handleInputChange}
-                >
-                  {ESTADOS_FACTURA.map((est) => (
-                    <MenuItem key={est} value={est}>{est}</MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item size={12}>
-              <FormControl fullWidth>
-                <InputLabel>Unidad</InputLabel>
-                <Select
-                  name="idUnidad"
-                  value={formData.idUnidad}
-                  label="Unidad"
+                  InputLabelProps={{ shrink: true }}
+                  sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                />
+              </Grid>
+              <Grid item size={{ xs: 12, sm: 6 }}>
+                <TextField
+                  fullWidth
+                  label="Fecha vencimiento"
+                  type="date"
+                  name="fechaVencimiento"
+                  value={formData.fechaVencimiento}
                   onChange={handleInputChange}
-                  required
-                >
-                  <MenuItem value="">Seleccione unidad</MenuItem>
-                  {unidades.map((u) => (
-                    <MenuItem key={u.idUnidad ?? u.id} value={u.idUnidad ?? u.id}>
-                      {u.numero ?? u.numeroUnidad ?? `Unidad ${u.idUnidad ?? u.id}`}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
+                  InputLabelProps={{ shrink: true }}
+                  sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                />
+              </Grid>
+              <Grid item size={{ xs: 12, sm: 6 }}>
+                <TextField
+                  fullWidth
+                  label="Monto"
+                  type="number"
+                  name="monto"
+                  value={formData.monto}
+                  onChange={handleInputChange}
+                  inputProps={{ min: 0, step: 1000 }}
+                  sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                />
+              </Grid>
+              <Grid item size={{ xs: 12, sm: 6 }}>
+                <FormControl fullWidth>
+                  <InputLabel>Estado</InputLabel>
+                  <Select
+                    name="estadoFactura"
+                    value={formData.estadoFactura}
+                    label="Estado"
+                    onChange={handleInputChange}
+                    sx={{ borderRadius: 2 }}
+                  >
+                    {ESTADOS_FACTURA.map((est) => (
+                      <MenuItem key={est} value={est}>{est}</MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
+              <Grid item size={12}>
+                <FormControl fullWidth>
+                  <InputLabel>Unidad</InputLabel>
+                  <Select
+                    name="idUnidad"
+                    value={formData.idUnidad}
+                    label="Unidad"
+                    onChange={handleInputChange}
+                    required
+                    sx={{ borderRadius: 2 }}
+                  >
+                    <MenuItem value="">Seleccione unidad</MenuItem>
+                    {unidades.map((u) => (
+                      <MenuItem key={u.idUnidad ?? u.id} value={u.idUnidad ?? u.id}>
+                        {u.numero ?? u.numeroUnidad ?? `Unidad ${u.idUnidad ?? u.id}`}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
             </Grid>
-          </Grid>
-        </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={handleCloseDialog}>Cancelar</Button>
-          <Button variant="contained" onClick={handleSave} disabled={saving} sx={{ backgroundColor: '#1e3a5f' }}>
-            {saving ? 'Guardando...' : 'Guardar'}
-          </Button>
-        </DialogActions>
-      </Dialog>
+          </DialogContent>
+          <DialogActions sx={{ p: 2.5, bgcolor: alpha(colors.background, 0.5) }}>
+            <Button onClick={handleCloseDialog} variant="outlined" sx={{ borderRadius: 2 }}>
+              Cancelar
+            </Button>
+            <GradientButton onClick={handleSave} disabled={saving}>
+              {saving ? 'Guardando...' : 'Guardar'}
+            </GradientButton>
+          </DialogActions>
+        </Dialog>
+      </Container>
     </Box>
   );
 };

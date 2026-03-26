@@ -6,14 +6,16 @@ import { authAPI } from '../services/api.jsx';
 
 // Avatares por defecto para cada rol
 const DEFAULT_AVATARS = {
-  admin: { id: 1, bg: '#2d1f1a', variant: 1, name: 'Vikingo', role: 'admin' },
-  propietario: { id: 1, bg: '#2d4a2a', variant: 1, name: 'Casa', role: 'propietario' },
-  residente: { id: 1, bg: '#2a4a6a', variant: 1, name: 'Gato', role: 'residente' },
+  admin: { id: 1, bg: '#0f2a3a', variant: 1, name: 'Vikingo', role: 'admin' },
+  propietario: { id: 1, bg: '#1d3e52', variant: 1, name: 'Casa', role: 'propietario' },
+  residente: { id: 1, bg: '#2c5f6e', variant: 1, name: 'Gato', role: 'residente' },
 };
 
 const Login = () => {
   const navigate = useNavigate();
-  const primaryColor = '#1e3a5f';
+  const primaryColor = '#0f2a3a';
+  const secondaryColor = '#1d3e52';
+  const accentColor = '#2c5f6e';
   const [showPassword, setShowPassword] = useState(false);
   const [usuario, setUsuario] = useState('');
   const [password, setPassword] = useState('');
@@ -115,7 +117,7 @@ const Login = () => {
       className="d-flex align-items-center justify-content-center position-relative"
       style={{ 
         minHeight: '100vh',
-        background: `linear-gradient(135deg, ${primaryColor} 0%, #2a4a7a 50%, #3a5a8a 100%)`,
+        background: `linear-gradient(135deg, ${primaryColor} 0%, ${secondaryColor} 50%, ${accentColor} 100%)`,
         position: 'relative',
         overflow: 'hidden'
       }}
@@ -165,10 +167,10 @@ const Login = () => {
                   style={{
                     width: '90px',
                     height: '90px',
-                    background: `linear-gradient(135deg, ${primaryColor} 0%, #2a4a7a 100%)`,
+                    background: `linear-gradient(135deg, ${primaryColor} 0%, ${secondaryColor} 100%)`,
                     color: 'white',
                     fontSize: '2.5rem',
-                    boxShadow: '0 10px 20px rgba(30, 58, 95, 0.3)',
+                    boxShadow: '0 10px 20px rgba(15, 42, 58, 0.3)',
                     animation: 'pulse 2s infinite'
                   }}
                 >
@@ -227,7 +229,7 @@ const Login = () => {
                         border: `2px solid ${usuarioFocused ? primaryColor : '#e0e0e0'}`,
                         paddingLeft: '45px',
                         transition: 'all 0.3s ease',
-                        boxShadow: usuarioFocused ? `0 0 0 3px rgba(30, 58, 95, 0.1)` : 'none'
+                        boxShadow: usuarioFocused ? `0 0 0 3px rgba(15, 42, 58, 0.1)` : 'none'
                       }}
                       required
                     />
@@ -265,7 +267,7 @@ const Login = () => {
                         paddingLeft: '45px',
                         paddingRight: '45px',
                         transition: 'all 0.3s ease',
-                        boxShadow: passwordFocused ? `0 0 0 3px rgba(30, 58, 95, 0.1)` : 'none'
+                        boxShadow: passwordFocused ? `0 0 0 3px rgba(15, 42, 58, 0.1)` : 'none'
                       }}
                       required
                     />
@@ -286,51 +288,24 @@ const Login = () => {
                   </div>
                 </Form.Group>
 
-                {/* Remember Me & Forgot Password */}
-                <div className="d-flex justify-content-between align-items-center mb-4">
-                  <Form.Check 
-                    type="checkbox"
-                    id="rememberMe"
-                    label="Recordarme"
-                    checked={rememberMe}
-                    onChange={(e) => setRememberMe(e.target.checked)}
-                    className="text-secondary"
-                    style={{ cursor: 'pointer' }}
-                  />
-                  
-                  <a 
-                    href="#"
-                    className="text-decoration-none"
-                    style={{ 
-                      color: primaryColor,
-                      fontSize: '0.9rem',
-                      fontWeight: '500'
-                    }}
-                    onMouseEnter={(e) => (e.currentTarget.style.color = '#123d79')}
-                    onMouseLeave={(e) => (e.currentTarget.style.color = primaryColor)}
-                  >
-                    ¿Olvidaste tu contraseña?
-                  </a>
-                </div>
-
                 {/* Login Button */}
                 <Button 
                   type="submit"
                   className="w-100 py-3 fw-semibold border-0 d-flex align-items-center justify-content-center gap-2"
                   style={{ 
-                    background: `linear-gradient(135deg, ${primaryColor} 0%, #2a4a7a 100%)`,
+                    background: `linear-gradient(135deg, ${primaryColor} 0%, ${secondaryColor} 100%)`,
                     borderRadius: '15px',
-                    boxShadow: '0 10px 20px rgba(30, 58, 95, 0.3)',
+                    boxShadow: '0 10px 20px rgba(15, 42, 58, 0.3)',
                     transition: 'all 0.3s ease'
                   }}
                   disabled={isLoading}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.transform = 'translateY(-2px)';
-                    e.currentTarget.style.boxShadow = '0 15px 30px rgba(30, 58, 95, 0.4)';
+                    e.currentTarget.style.boxShadow = '0 15px 30px rgba(15, 42, 58, 0.4)';
                   }}
                   onMouseLeave={(e) => {
                     e.currentTarget.style.transform = 'translateY(0)';
-                    e.currentTarget.style.boxShadow = '0 10px 20px rgba(30, 58, 95, 0.3)';
+                    e.currentTarget.style.boxShadow = '0 10px 20px rgba(15, 42, 58, 0.3)';
                   }}
                 >
                   {isLoading ? (
@@ -344,19 +319,6 @@ const Login = () => {
                     </>
                   )}
                 </Button>
-
-                <div className="text-center mt-4">
-                  <span className="text-muted" style={{ fontSize: '0.95rem' }}>
-                    ¿No tienes cuenta?{' '}
-                  </span>
-                  <Link
-                    to="/register"
-                    className="text-decoration-none"
-                    style={{ color: primaryColor, fontWeight: 700, fontSize: '0.95rem' }}
-                  >
-                    Regístrate
-                  </Link>
-                </div>
                 
               </Form>
             </Card.Body>
@@ -373,9 +335,9 @@ const Login = () => {
         }
         
         @keyframes pulse {
-          0% { box-shadow: 0 0 0 0 rgba(30, 58, 95, 0.7); }
-          70% { box-shadow: 0 0 0 10px rgba(30, 58, 95, 0); }
-          100% { box-shadow: 0 0 0 0 rgba(30, 58, 95, 0); }
+          0% { box-shadow: 0 0 0 0 rgba(15, 42, 58, 0.7); }
+          70% { box-shadow: 0 0 0 10px rgba(15, 42, 58, 0); }
+          100% { box-shadow: 0 0 0 0 rgba(15, 42, 58, 0); }
         }
       `}</style>
     </Container>

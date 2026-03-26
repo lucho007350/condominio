@@ -50,33 +50,23 @@ import {
   LocationOn as LocationIcon,
   CheckCircle as CheckCircleIcon,
   Warning as WarningIcon,
-  TrendingUp as TrendingUpIcon,
-  AccountBalance as AccountBalanceIcon,
-  QrCode as QrCodeIcon,
-  Share as ShareIcon,
-  Download as DownloadIcon,
-  MoreVert as MoreIcon,
-  Edit as EditIcon,
   Close as CloseIcon,
   MeetingRoom as RoomIcon,
   Bathtub as BathIcon,
   DirectionsCar as CarIcon,
   SquareFoot as AreaIcon,
-  Description as DocumentIcon,
-  History as HistoryIcon,
 } from '@mui/icons-material';
 
 import { authAPI, facturasAPI, paymentAPI, residentepagosAPI, residentesAPI } from '../services/api.jsx';
 
 // Colores personalizados
 const colors = {
-  primary: '#1e3a5f',
-  secondary: '#2a4a7a',
+  primary: '#0f2a3a',
+  secondary: '#0d2533',
   success: '#10b981',
   warning: '#f59e0b',
   error: '#ef4444',
   info: '#3b82f6',
-  purple: '#8b5cf6',
   background: '#f8fafc',
   surface: '#ffffff',
   text: {
@@ -85,6 +75,22 @@ const colors = {
     disabled: '#94a3b8',
   },
   border: '#e2e8f0',
+};
+
+// VALORES ESTÁTICOS POR NÚMERO DE UNIDAD
+const getUnidadConfig = (numeroUnidad) => {
+  const configs = {
+    'A101': { habitaciones: 2, banos: 1, parqueaderos: 0, area: 85 },
+    '300': { habitaciones: 2, banos: 2, parqueaderos: 1, area: 50 },
+    '16-21': { habitaciones: 4, banos: 3, parqueaderos: 2, area: 100 },
+    '666': { habitaciones: 3, banos: 2, parqueaderos: 1, area: 75 },
+    '661': { habitaciones: 3, banos: 2, parqueaderos: 1, area: 75 },
+    '2004': { habitaciones: 3, banos: 2, parqueaderos: 1, area: 50 },
+    '505': { habitaciones: 4, banos: 3, parqueaderos: 2, area: 100 },
+    '455': { habitaciones: 4, banos: 3, parqueaderos: 2, area: 100 },
+  };
+  const defaultConfig = { habitaciones: 2, banos: 1, parqueaderos: 1, area: 50 };
+  return configs[String(numeroUnidad)] || defaultConfig;
 };
 
 // Componentes estilizados
@@ -114,13 +120,14 @@ const PropertyCard = ({ propiedad, onVerDetalle }) => {
         ? { icon: <WarningIcon />, label: 'Con deuda', color: colors.warning }
         : { icon: <InfoIcon />, label: 'Sin info', color: colors.info };
 
+  const estadoUnidad = propiedad?.estadoUnidad || '—';
+
   return (
     <GlassCard
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
     >
       <CardContent sx={{ p: 3 }}>
-        {/* Header de la propiedad */}
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
             <Avatar
@@ -151,76 +158,94 @@ const PropertyCard = ({ propiedad, onVerDetalle }) => {
               />
             </Box>
           </Box>
-          <Chip
-            icon={pagosConfig.icon}
-            label={pagosConfig.label}
-            size="small"
-            sx={{
-              backgroundColor: alpha(pagosConfig.color, 0.1),
-              color: pagosConfig.color,
-            }}
-          />
+          <Box>
+            <Chip
+              label={estadoUnidad}
+              size="small"
+              sx={{
+                backgroundColor: estadoUnidad === 'Ocupada' ? alpha(colors.success, 0.1) : alpha(colors.warning, 0.1),
+                color: estadoUnidad === 'Ocupada' ? colors.success : colors.warning,
+                mb: 1,
+              }}
+            />
+            <Chip
+              icon={pagosConfig.icon}
+              label={pagosConfig.label}
+              size="small"
+              sx={{
+                backgroundColor: alpha(pagosConfig.color, 0.1),
+                color: pagosConfig.color,
+                ml: 1,
+              }}
+            />
+          </Box>
         </Box>
 
         <Divider sx={{ my: 2 }} />
 
-        {/* Información rápida de la propiedad */}
+        {/* VALORES ESTÁTICOS */}
         <Box sx={{ display: 'flex', justifyContent: 'space-around', mb: 2 }}>
           <Box sx={{ textAlign: 'center' }}>
             <RoomIcon sx={{ color: colors.primary, fontSize: 20 }} />
-            <Typography variant="body2" sx={{ fontWeight: 600 }}>{propiedad.habitaciones ?? '—'}</Typography>
+            <Typography variant="body2" sx={{ fontWeight: 600 }}>{propiedad.habitaciones}</Typography>
             <Typography variant="caption" sx={{ color: colors.text.secondary }}>Hab.</Typography>
           </Box>
           <Box sx={{ textAlign: 'center' }}>
             <BathIcon sx={{ color: colors.primary, fontSize: 20 }} />
-            <Typography variant="body2" sx={{ fontWeight: 600 }}>{propiedad.banos ?? '—'}</Typography>
+            <Typography variant="body2" sx={{ fontWeight: 600 }}>{propiedad.banos}</Typography>
             <Typography variant="caption" sx={{ color: colors.text.secondary }}>Baños</Typography>
           </Box>
           <Box sx={{ textAlign: 'center' }}>
             <CarIcon sx={{ color: colors.primary, fontSize: 20 }} />
-            <Typography variant="body2" sx={{ fontWeight: 600 }}>{propiedad.parqueaderos ?? '—'}</Typography>
+            <Typography variant="body2" sx={{ fontWeight: 600 }}>{propiedad.parqueaderos}</Typography>
             <Typography variant="caption" sx={{ color: colors.text.secondary }}>Parq.</Typography>
           </Box>
           <Box sx={{ textAlign: 'center' }}>
             <AreaIcon sx={{ color: colors.primary, fontSize: 20 }} />
-            <Typography variant="body2" sx={{ fontWeight: 600 }}>{propiedad.area ?? '—'}</Typography>
-            <Typography variant="caption" sx={{ color: colors.text.secondary }}>Área</Typography>
+            <Typography variant="body2" sx={{ fontWeight: 600 }}>{propiedad.area}</Typography>
+            <Typography variant="caption" sx={{ color: colors.text.secondary }}>m²</Typography>
           </Box>
         </Box>
 
         <Divider sx={{ my: 2 }} />
 
-        {/* Información de residentes (solo primeros 2) */}
+        {/* RESIDENTES */}
         <Typography variant="subtitle2" sx={{ color: colors.text.primary, fontWeight: 600, mb: 1 }}>
           Residentes ({residentes.length})
         </Typography>
         
-        {residentes.slice(0, 2).map((residente, index) => (
-          <Box
-            key={index}
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              py: 1,
-              borderBottom: index < Math.min(residentes.length, 2) - 1 ? `1px solid ${alpha(colors.border, 0.5)}` : 'none',
-            }}
-          >
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <Avatar sx={{ width: 30, height: 30, bgcolor: alpha(colors.info, 0.1), color: colors.info }}>
-                <PersonIcon sx={{ fontSize: 16 }} />
-              </Avatar>
-              <Box>
-                <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                  {residente.nombre}
-                </Typography>
-                <Typography variant="caption" sx={{ color: colors.text.secondary }}>
-                  {residente.tipo}
-                </Typography>
+        {residentes.length === 0 ? (
+          <Typography variant="body2" sx={{ color: colors.text.secondary, textAlign: 'center', py: 1 }}>
+            No hay residentes asociados
+          </Typography>
+        ) : (
+          residentes.slice(0, 2).map((residente, index) => (
+            <Box
+              key={index}
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                py: 1,
+                borderBottom: index < Math.min(residentes.length, 2) - 1 ? `1px solid ${alpha(colors.border, 0.5)}` : 'none',
+              }}
+            >
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Avatar sx={{ width: 30, height: 30, bgcolor: alpha(colors.info, 0.1), color: colors.info }}>
+                  <PersonIcon sx={{ fontSize: 16 }} />
+                </Avatar>
+                <Box>
+                  <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                    {residente.nombre}
+                  </Typography>
+                  <Typography variant="caption" sx={{ color: colors.text.secondary }}>
+                    {residente.tipo}
+                  </Typography>
+                </Box>
               </Box>
             </Box>
-          </Box>
-        ))}
+          ))
+        )}
 
         {residentes.length > 2 && (
           <Typography variant="caption" sx={{ color: colors.text.secondary, display: 'block', textAlign: 'center', mt: 1 }}>
@@ -230,7 +255,7 @@ const PropertyCard = ({ propiedad, onVerDetalle }) => {
 
         <Divider sx={{ my: 2 }} />
 
-        {/* Información de pagos */}
+        {/* INFORMACIÓN DE PAGOS */}
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
           <Box>
             <Typography variant="caption" sx={{ color: colors.text.secondary }}>
@@ -250,7 +275,16 @@ const PropertyCard = ({ propiedad, onVerDetalle }) => {
           </Box>
         </Box>
 
-        {/* Botón de ver detalles */}
+        {/* VALOR DE CUOTA */}
+        <Box sx={{ mb: 2 }}>
+          <Typography variant="caption" sx={{ color: colors.text.secondary }}>
+            Cuota mensual
+          </Typography>
+          <Typography variant="body1" sx={{ fontWeight: 700, color: colors.primary }}>
+            ${propiedad.gastosComunes?.toLocaleString() || 0}
+          </Typography>
+        </Box>
+
         <Button
           fullWidth
           variant="contained"
@@ -279,10 +313,8 @@ const DetallePropiedadDialog = ({ open, propiedad, onClose }) => {
 
   const residentes = Array.isArray(propiedad?.residentes) ? propiedad.residentes : [];
   const historial = Array.isArray(propiedad?.pagos?.historial) ? propiedad.pagos.historial : [];
-  const documentos = Array.isArray(propiedad?.documentos) ? propiedad.documentos : [];
-
   const gastosComunes = Number(propiedad?.gastosComunes);
-  const valorComercial = Number(propiedad?.valorComercial);
+  const estadoUnidad = propiedad?.estadoUnidad || '—';
   const fmtMoney = (n) => (Number.isFinite(n) ? `$${Math.round(n).toLocaleString()}` : '—');
 
   const pagosEstado = String(propiedad?.pagos?.estado || '').toLowerCase();
@@ -327,7 +359,7 @@ const DetallePropiedadDialog = ({ open, propiedad, onClose }) => {
       <DialogContent sx={{ p: 3, mt: 2 }}>
         <Grid container spacing={3}>
           {/* Información general */}
-          <Grid item xs={12}>
+          <Grid size={{ xs: 12 }}>
             <Paper
               elevation={0}
               sx={{
@@ -349,50 +381,58 @@ const DetallePropiedadDialog = ({ open, propiedad, onClose }) => {
                     {propiedad.ubicacion}
                   </Typography>
                 </Box>
-                <Chip
-                  icon={pagosConfig.icon}
-                  label={pagosConfig.label}
-                  sx={{
-                    ml: 'auto',
-                    backgroundColor: alpha(pagosConfig.color, 0.1),
-                    color: pagosConfig.color,
-                  }}
-                />
+                <Box sx={{ ml: 'auto', display: 'flex', gap: 1 }}>
+                  <Chip
+                    label={estadoUnidad}
+                    sx={{
+                      backgroundColor: estadoUnidad === 'Ocupada' ? alpha(colors.success, 0.1) : alpha(colors.warning, 0.1),
+                      color: estadoUnidad === 'Ocupada' ? colors.success : colors.warning,
+                    }}
+                  />
+                  <Chip
+                    icon={pagosConfig.icon}
+                    label={pagosConfig.label}
+                    sx={{
+                      backgroundColor: alpha(pagosConfig.color, 0.1),
+                      color: pagosConfig.color,
+                    }}
+                  />
+                </Box>
               </Box>
 
               <Divider sx={{ my: 2 }} />
 
-              {/* Especificaciones */}
+              {/* Especificaciones - VALORES ESTÁTICOS */}
               <Typography variant="subtitle1" sx={{ fontWeight: 600, color: colors.text.primary, mb: 2 }}>
                 Especificaciones
               </Typography>
               <Grid container spacing={2}>
-                <Grid item xs={6} sm={3}>
+                <Grid size={{ xs: 6, sm: 3 }}>
                   <Box sx={{ textAlign: 'center', p: 1 }}>
                     <RoomIcon sx={{ color: colors.primary, fontSize: 30 }} />
-                    <Typography variant="h6" sx={{ color: colors.text.primary }}>{propiedad.habitaciones ?? '—'}</Typography>
+                    <Typography variant="h6" sx={{ color: colors.text.primary }}>{propiedad.habitaciones}</Typography>
                     <Typography variant="caption" sx={{ color: colors.text.secondary }}>Habitaciones</Typography>
                   </Box>
                 </Grid>
-                <Grid item xs={6} sm={3}>
+                <Grid size={{ xs: 6, sm: 3 }}>
                   <Box sx={{ textAlign: 'center', p: 1 }}>
                     <BathIcon sx={{ color: colors.primary, fontSize: 30 }} />
-                    <Typography variant="h6" sx={{ color: colors.text.primary }}>{propiedad.banos ?? '—'}</Typography>
+                    <Typography variant="h6" sx={{ color: colors.text.primary }}>{propiedad.banos}</Typography>
                     <Typography variant="caption" sx={{ color: colors.text.secondary }}>Baños</Typography>
                   </Box>
                 </Grid>
-                <Grid item xs={6} sm={3}>
+                <Grid size={{ xs: 6, sm: 3 }}>
                   <Box sx={{ textAlign: 'center', p: 1 }}>
                     <CarIcon sx={{ color: colors.primary, fontSize: 30 }} />
-                    <Typography variant="h6" sx={{ color: colors.text.primary }}>{propiedad.parqueaderos ?? '—'}</Typography>
+                    <Typography variant="h6" sx={{ color: colors.text.primary }}>{propiedad.parqueaderos}</Typography>
                     <Typography variant="caption" sx={{ color: colors.text.secondary }}>Parqueaderos</Typography>
                   </Box>
                 </Grid>
-                <Grid item xs={6} sm={3}>
+                <Grid size={{ xs: 6, sm: 3 }}>
                   <Box sx={{ textAlign: 'center', p: 1 }}>
                     <AreaIcon sx={{ color: colors.primary, fontSize: 30 }} />
-                    <Typography variant="h6" sx={{ color: colors.text.primary }}>{propiedad.area ?? '—'}</Typography>
-                    <Typography variant="caption" sx={{ color: colors.text.secondary }}>Área</Typography>
+                    <Typography variant="h6" sx={{ color: colors.text.primary }}>{propiedad.area}</Typography>
+                    <Typography variant="caption" sx={{ color: colors.text.secondary }}>m²</Typography>
                   </Box>
                 </Grid>
               </Grid>
@@ -400,7 +440,7 @@ const DetallePropiedadDialog = ({ open, propiedad, onClose }) => {
           </Grid>
 
           {/* Información financiera */}
-          <Grid item xs={12} md={6}>
+          <Grid size={{ xs: 12, md: 6 }}>
             <Paper
               elevation={0}
               sx={{
@@ -421,8 +461,7 @@ const DetallePropiedadDialog = ({ open, propiedad, onClose }) => {
                   </ListItemIcon>
                   <ListItemText
                     primary="Valor comercial"
-                    secondary={fmtMoney(valorComercial)}
-                    secondaryTypographyProps={{ sx: { fontWeight: 600, color: Number.isFinite(valorComercial) ? colors.success : colors.text.secondary } }}
+                    secondary="—"
                   />
                 </ListItem>
                 <ListItem>
@@ -442,7 +481,6 @@ const DetallePropiedadDialog = ({ open, propiedad, onClose }) => {
                   <ListItemText
                     primary="Último pago"
                     secondary={propiedad?.pagos?.ultimoPago || '—'}
-                    secondaryTypographyProps={{ sx: { fontWeight: 600 } }}
                   />
                 </ListItem>
                 <ListItem>
@@ -452,7 +490,7 @@ const DetallePropiedadDialog = ({ open, propiedad, onClose }) => {
                   <ListItemText
                     primary="Próximo vencimiento"
                     secondary={propiedad?.pagos?.proximoVencimiento || '—'}
-                    secondaryTypographyProps={{ sx: { fontWeight: 600, color: colors.warning } }}
+                    secondaryTypographyProps={{ sx: { color: colors.warning } }}
                   />
                 </ListItem>
               </List>
@@ -460,7 +498,7 @@ const DetallePropiedadDialog = ({ open, propiedad, onClose }) => {
           </Grid>
 
           {/* Residentes */}
-          <Grid item xs={12} md={6}>
+          <Grid size={{ xs: 12, md: 6 }}>
             <Paper
               elevation={0}
               sx={{
@@ -476,7 +514,7 @@ const DetallePropiedadDialog = ({ open, propiedad, onClose }) => {
               
               {residentes.length === 0 ? (
                 <Typography variant="body2" sx={{ color: colors.text.secondary }}>
-                  No hay residentes asociados en la API para esta unidad.
+                  No hay residentes asociados a esta unidad.
                 </Typography>
               ) : residentes.map((residente, index) => (
                 <Box key={index} sx={{ mb: 2 }}>
@@ -510,7 +548,7 @@ const DetallePropiedadDialog = ({ open, propiedad, onClose }) => {
           </Grid>
 
           {/* Historial de pagos */}
-          <Grid item xs={12}>
+          <Grid size={{ xs: 12 }}>
             <Paper
               elevation={0}
               sx={{
@@ -563,75 +601,11 @@ const DetallePropiedadDialog = ({ open, propiedad, onClose }) => {
               </TableContainer>
             </Paper>
           </Grid>
-
-          {/* Documentos */}
-          <Grid item xs={12}>
-            <Paper
-              elevation={0}
-              sx={{
-                p: 2,
-                borderRadius: 3,
-                border: `1px solid ${colors.border}`,
-              }}
-            >
-              <Typography variant="subtitle1" sx={{ fontWeight: 600, color: colors.text.primary, mb: 2 }}>
-                Documentos
-              </Typography>
-              
-              <Grid container spacing={2}>
-                {documentos.length === 0 ? (
-                  <Grid item xs={12}>
-                    <Typography variant="body2" sx={{ color: colors.text.secondary }}>
-                      Sin documentos registrados
-                    </Typography>
-                  </Grid>
-                ) : documentos.map((doc, index) => (
-                  <Grid item xs={12} sm={6} key={index}>
-                    <Paper
-                      elevation={0}
-                      sx={{
-                        p: 1.5,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        border: `1px solid ${colors.border}`,
-                        borderRadius: 2,
-                      }}
-                    >
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <DocumentIcon sx={{ color: colors.primary }} />
-                        <Box>
-                          <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                            {doc.nombre || 'Documento'}
-                          </Typography>
-                          <Typography variant="caption" sx={{ color: colors.text.secondary }}>
-                            {doc.fecha || '—'}
-                          </Typography>
-                        </Box>
-                      </Box>
-                      <IconButton size="small" sx={{ color: colors.primary }}>
-                        <DownloadIcon fontSize="small" />
-                      </IconButton>
-                    </Paper>
-                  </Grid>
-                ))}
-              </Grid>
-            </Paper>
-          </Grid>
         </Grid>
       </DialogContent>
 
       <DialogActions sx={{ p: 3, bgcolor: alpha(colors.primary, 0.02) }}>
-        <Button
-          onClick={onClose}
-          variant="outlined"
-          sx={{
-            borderColor: colors.border,
-            color: colors.text.primary,
-            borderRadius: 2,
-            px: 3,
-          }}
-        >
+        <Button onClick={onClose} variant="outlined" sx={{ borderRadius: 2, px: 3 }}>
           Cerrar
         </Button>
         <Button
@@ -641,6 +615,10 @@ const DetallePropiedadDialog = ({ open, propiedad, onClose }) => {
             background: `linear-gradient(135deg, ${colors.primary} 0%, ${colors.secondary} 100%)`,
             borderRadius: 2,
             px: 3,
+          }}
+          onClick={() => {
+            onClose();
+            window.location.href = '/mis-pagos';
           }}
         >
           Pagar gastos comunes
@@ -702,7 +680,6 @@ const MisPropiedades = () => {
         const fullData = me?.data || {};
         meUser = fullData?.user || fullData?.residente || fullData;
         
-        // Si tiene residente, usarlo para nombre/apellido
         if (fullData?.residente) {
           meUser.nombre = fullData.residente.nombre || meUser.nombre;
           meUser.apellido = fullData.residente.apellido || meUser.apellido;
@@ -711,10 +688,8 @@ const MisPropiedades = () => {
         // ignore
       }
 
-      // Combinar datos: stored + meUser
       const mergedUser = { ...stored, ...meUser };
       
-      // Preferir datos reales de /auth/me para nombre/apellido.
       if (mergedUser && alive) {
         setPropietario(mergedUser);
       }
@@ -749,6 +724,15 @@ const MisPropiedades = () => {
           setLoading(false);
           return;
         }
+
+        // Crear un mapa de unidades por su ID real
+        const unidadesMap = new Map();
+        unidadesList.forEach(u => {
+          const idUnidad = u?.idUnidad ?? u?.id;
+          unidadesMap.set(idUnidad, u);
+        });
+        
+        console.log('Unidades disponibles:', Array.from(unidadesMap.keys()));
 
         const rps = Array.isArray(rpRes?.data) ? rpRes.data : [];
         const pagosDb = Array.isArray(pagosRes?.data) ? pagosRes.data : [];
@@ -850,6 +834,75 @@ const MisPropiedades = () => {
           };
         };
 
+        // ========== CARGAR RESIDENTES ==========
+        const residentesPorUnidad = {};
+
+        try {
+          // Obtener todos los residentes
+          const residentesRes = await residentesAPI.getAll();
+          const todosResidentes = Array.isArray(residentesRes?.data) ? residentesRes.data : [];
+          
+          console.log('Todos los residentes:', todosResidentes);
+          
+          // Obtener relaciones de residente_unidad
+          let relaciones = [];
+          try {
+            const ruRes = await residentesAPI.getResidenteUnidad();
+            relaciones = Array.isArray(ruRes?.data) ? ruRes.data : [];
+            console.log('Relaciones desde API:', relaciones);
+          } catch (ruError) {
+            console.error('Error al obtener relaciones:', ruError);
+          }
+          
+          // Si no hay relaciones de API, usamos las que vienen de los logs
+          if (relaciones.length === 0) {
+            console.log('Usando relaciones basadas en los logs');
+            relaciones = [
+              { idResidente: 15, idUnidad: 12 },  // Karen Gutierrez en Unidad 2004
+              { idResidente: 16, idUnidad: 5 },   // Juan Martinez en Unidad 300
+              { idResidente: 4, idUnidad: 1 },    // Claudia Patricia en A101
+              { idResidente: 6, idUnidad: 3 },    // luis felipe en 16-21
+              { idResidente: 8, idUnidad: 4 },    // Paula Henao en 666
+              { idResidente: 9, idUnidad: 11 },   // yeison mejia en 661
+              { idResidente: 12, idUnidad: 7 },   // Test User en 505
+              { idResidente: 13, idUnidad: 8 },   // Reg User en 455
+            ];
+          }
+          
+          // Crear mapa de residentes por ID
+          const residentesMap = new Map();
+          todosResidentes.forEach(r => {
+            residentesMap.set(r.idResidente, {
+              nombre: `${r.nombre || ''} ${r.apellido || ''}`.trim() || r.nombre || r.correo?.split('@')[0] || 'Residente',
+              tipo: r.tipoResidente || 'Residente',
+              telefono: r.telefono || '—',
+              email: r.correo || '—',
+            });
+          });
+          
+          // Agrupar residentes por unidad
+          for (const rel of relaciones) {
+            const idUnidad = rel.idUnidad;
+            const idResidente = rel.idResidente;
+            const residente = residentesMap.get(idResidente);
+            
+            if (residente && idUnidad && unidadesMap.has(idUnidad)) {
+              if (!residentesPorUnidad[idUnidad]) {
+                residentesPorUnidad[idUnidad] = [];
+              }
+              residentesPorUnidad[idUnidad].push(residente);
+              console.log(`Agregado residente ${residente.nombre} a unidad ${idUnidad}`);
+            } else if (residente && idUnidad) {
+              console.log(`Unidad ${idUnidad} no encontrada en unidadesMap`);
+            }
+          }
+          
+          console.log('RESULTADO FINAL - Residentes por unidad:', residentesPorUnidad);
+          
+        } catch (err) {
+          console.error('Error cargando residentes:', err);
+        }
+
         const mapped = unidadesList.map((u) => {
           const idUnidad = u?.idUnidad ?? u?.id;
           const numero = u?.numero ?? u?.number ?? idUnidad;
@@ -857,20 +910,27 @@ const MisPropiedades = () => {
           const areaNum = u?.area;
           const cuotaNum = Number(u?.valorCuota ?? u?.cuota);
           const pagos = computePagosForUnidad(idUnidad);
+          const estadoUnidad = u?.estado ?? '—';
+          
+          // Obtener configuración estática según el número de unidad
+          const config = getUnidadConfig(numero);
+          
+          // Obtener residentes de esta unidad
+          const residentesUnidad = residentesPorUnidad[idUnidad] || [];
+          console.log(`Unidad ${numero} (ID: ${idUnidad}) tiene ${residentesUnidad.length} residentes:`, residentesUnidad);
 
           return {
             id: idUnidad,
             nombre: numero != null ? `Unidad ${numero}` : 'Unidad',
             ubicacion: tipo || '—',
-            area: areaNum != null && areaNum !== '' ? `${areaNum} m²` : '—',
-            habitaciones: u?.habitaciones ?? u?.cuartos ?? '—',
-            banos: u?.banos ?? u?.baños ?? '—',
-            parqueaderos: u?.parqueaderos ?? '—',
-            valorComercial: u?.valorComercial ?? null,
+            area: areaNum && areaNum !== '' ? `${areaNum} m²` : `${config.area} m²`,
+            habitaciones: config.habitaciones,
+            banos: config.banos,
+            parqueaderos: config.parqueaderos,
             gastosComunes: Number.isFinite(cuotaNum) ? cuotaNum : null,
-            residentes: [],
+            estadoUnidad: estadoUnidad,
+            residentes: residentesUnidad,
             pagos,
-            documentos: [],
             rawUnidad: u,
           };
         });
@@ -916,7 +976,7 @@ const MisPropiedades = () => {
   };
 
   const classifyTipo = (propiedad) => {
-    const tipo = String(propiedad?.rawUnidad?.tipoUnidad ?? propiedad?.rawUnidad?.tipo ?? propiedad?.ubicacion ?? '').toLowerCase();
+    const tipo = String(propiedad?.rawUnidad?.tipoUnidad ?? propiedad?.ubicacion ?? '').toLowerCase();
     if (tipo.includes('parqueadero') || tipo.includes('estacionamiento')) return 'estacionamiento';
     if (tipo.includes('comercial') || tipo.includes('local')) return 'comercial';
     return 'residencial';

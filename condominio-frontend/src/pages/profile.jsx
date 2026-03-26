@@ -655,12 +655,7 @@ const Profile = () => {
   return (
     <Box sx={{ backgroundColor: profileColors.background, minHeight: '100vh', pt: 0 }}>
           <Container 
-          maxWidth={false}
-          sx={{
-            py: 2,
-            px: { md: 7 },
-            ml: { md: '40px' },
-          }}
+           maxWidth="xl"
         >
 
         {loadError && (

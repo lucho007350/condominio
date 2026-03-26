@@ -18,7 +18,7 @@ import Propietarios from "./pages/Propietarios";
 import PQRS from "./pages/PQRS";
 import AdminPQRS from "./pages/AdminPQRS";
 import Register from './pages/Register';
-
+import PropiPQRS from './pages/PropiPQRS';  
 
 const PrivateRoute = ({ children }) => {
   const user = JSON.parse(localStorage.getItem('user') || sessionStorage.getItem('user') || '{}');
@@ -54,7 +54,11 @@ function App() {
         <Route path="/login" element={<Login />} />
 
         {/* Registro público (sin sesión) */}
-        <Route path="/register" element={<Register />} />
+        <Route path="/register" element={
+          <MainLayout>
+            <Register />
+          </MainLayout>
+        } />
         
         {/* Rutas protegidas con MainLayout */}
         <Route path="/inicio" element={
@@ -122,6 +126,7 @@ function App() {
             <PQRS />
           </PrivateRoute>
         } />
+        
         <Route path="/mis-propiedades" element={
           <PrivateRoute>
             <Propietarios />
@@ -139,14 +144,18 @@ function App() {
             <AdminPQRS />
           </PrivateRoute>
         } />
-
-        
         
         {/* Mantén también las rutas en inglés por si acaso (opcional) */}
         <Route path="/profile" element={<Navigate to="/perfil" />} />
         <Route path="/mypays" element={<Navigate to="/mis-pagos" />} />
         <Route path="/pqr" element={<Navigate to="/pqrs" />} />
-
+        
+        {/* Ruta para propietario PQRS */}
+        <Route path="/propietario/pqrs" element={
+          <PrivateRoute>
+            <PropiPQRS />
+          </PrivateRoute>
+        } />
         
         {/* Redirigir ruta raíz según sesión y rol */}
         <Route path="/" element={<RootRedirect />} />

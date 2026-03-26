@@ -491,14 +491,14 @@ const AdminPQRS = () => {
                       startIcon={<AddIcon />}
                       onClick={handleOpenCreateDialog}
                       sx={{
-                        bgcolor: colors.success,
+                        bgcolor: colors.primary,
                         color: 'white',
-                        '&:hover': { bgcolor: '#0d9668' },
+                        '&:hover': { bgcolor: '#0d2533' },
                         borderRadius: 2,
                         textTransform: 'none',
                       }}
                     >
-                      Nueva PQRS
+                      Nuevo PQRS
                     </Button>
                     <Button
                       variant="outlined"

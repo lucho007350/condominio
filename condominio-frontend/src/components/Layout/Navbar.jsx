@@ -61,7 +61,7 @@ const MainLayout = ({ children }) => {
   const [isAdmin] = useState(storedUser.role === 'admin' || storedUser.rol === 'administrador');
   const [isPropietario] = useState(storedUser.role === 'propietario' || storedUser.rol === 'propietario');
 
-  const homePath = isAdmin ? '/' : isPropietario ? '/mis-propiedades' : '/inicio';
+  const homePath = isAdmin ? '/' : isPropietario ? '/' : '/inicio';
 
   const handleLogout = () => {
     localStorage.removeItem('user');
@@ -96,7 +96,6 @@ const MainLayout = ({ children }) => {
 
   const isActive = (path) => location.pathname === path;
 
-  // Items del menú lateral - SIN DASHBOARD
   const getNavItems = () => {
     const items = [
       { path: homePath, label: 'Inicio', icon: <HomeIcon /> },
@@ -112,11 +111,13 @@ const MainLayout = ({ children }) => {
         { path: '/admin/pqrs', label: 'PQRS', icon: <PqrsIcon /> }        
       );
     } else if (isPropietario) {
+      // Para propietario: solo Inicio, Mis Pagos y PQRS
       items.push(
-        { path: '/mis-propiedades', label: 'Mis Propiedades', icon: <BusinessIcon /> },
-        { path: '/mis-pagos', label: 'Mis Pagos', icon: <ReceiptIcon /> }
+        { path: '/mis-pagos', label: 'Mis Pagos', icon: <ReceiptIcon /> },
+        { path: '/propietario/pqrs', label: 'PQRS', icon: <PqrsIcon /> }
       );
     } else {
+      // Para residente
       items.push(
         { path: '/mis-pagos', label: 'Mis Pagos', icon: <ReceiptIcon /> },
         { path: '/pqrs', label: 'PQRS', icon: <PqrsIcon /> }
@@ -125,7 +126,7 @@ const MainLayout = ({ children }) => {
     
     return items;
   };
-
+  
   const navItems = getNavItems();
 
   return (
@@ -233,19 +234,19 @@ const MainLayout = ({ children }) => {
       </Drawer>
 
       <Box sx={{ flexGrow: 1, ml: open ? `${drawerWidth}px` : `${collapsedDrawerWidth}px`, transition: 'margin 0.2s ease', minHeight: '100vh' }}>
-          <AppBar
-            position="fixed"
-            sx={{
-              backgroundColor: '#ffffff',
-              width: `calc(100% - ${open ? drawerWidth : collapsedDrawerWidth}px)`,
-              ml: open ? `${drawerWidth}px` : `${collapsedDrawerWidth}px`,
-              transition: 'width 0.2s ease, margin 0.2s ease',
-              boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-              '& .MuiToolbar-root': {
-                minHeight: 48,
-              },
-            }}
-          >
+        <AppBar
+          position="fixed"
+          sx={{
+            backgroundColor: '#ffffff',
+            width: `calc(100% - ${open ? drawerWidth : collapsedDrawerWidth}px)`,
+            ml: open ? `${drawerWidth}px` : `${collapsedDrawerWidth}px`,
+            transition: 'width 0.2s ease, margin 0.2s ease',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+            '& .MuiToolbar-root': {
+              minHeight: 48,
+            },
+          }}
+        >
           <Toolbar sx={{ justifyContent: 'flex-end' }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
               {isAdmin && (

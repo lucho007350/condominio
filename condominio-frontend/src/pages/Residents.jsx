@@ -2,11 +2,45 @@ import React, { useState, useEffect } from 'react';
 import {
   Paper, Typography, Box, Button, TextField, Table, TableBody, TableCell, TableContainer, TableHead,
   TableRow, IconButton, InputAdornment, Chip, CircularProgress, Alert, Dialog, DialogTitle, DialogContent,
-  DialogActions, FormControl, InputLabel, Select, MenuItem, Grid, Snackbar,
+  DialogActions, FormControl, InputLabel, Select, MenuItem, Grid, Snackbar, Avatar, Container, alpha,
 } from '@mui/material';
 import { Add as AddIcon, Search as SearchIcon, Edit as EditIcon, Delete as DeleteIcon, Phone as PhoneIcon,
-  Email as EmailIcon, Badge as BadgeIcon, Close as CloseIcon } from '@mui/icons-material';
+  Email as EmailIcon, Badge as BadgeIcon, Close as CloseIcon, People as PeopleIcon } from '@mui/icons-material';
+import { styled } from '@mui/material/styles';
 import { residentesAPI } from '../services/api.jsx';
+
+const colors = {
+  primary: '#0f2a3a',
+  secondary: '#1d3e52',
+  success: '#10b981',
+  warning: '#f59e0b',
+  error: '#ef4444',
+  info: '#3b82f6',
+  background: '#f8fafc',
+  surface: '#ffffff',
+  text: {
+    primary: '#1e293b',
+    secondary: '#64748b',
+    disabled: '#94a3b8',
+  },
+  border: '#e2e8f0',
+};
+
+const GradientButton = styled(Button)(({ bgcolor = colors.primary }) => ({
+  background: `linear-gradient(135deg, ${bgcolor} 0%, ${alpha(bgcolor, 0.8)} 100%)`,
+  color: 'white',
+  borderRadius: 12,
+  padding: '8px 20px',
+  fontWeight: 600,
+  textTransform: 'none',
+  fontSize: '0.9rem',
+  boxShadow: `0 4px 10px ${alpha(bgcolor, 0.3)}`,
+  transition: 'all 0.3s ease',
+  '&:hover': {
+    transform: 'translateY(-2px)',
+    boxShadow: `0 8px 20px ${alpha(bgcolor, 0.4)}`,
+  },
+}));
 
 const emptyForm = {
   nombre: '',
@@ -138,20 +172,12 @@ const Residents = () => {
   };
 
   const handleConfirmDelete = async () => {
-    console.log('===== DELETE BUTTON CLICKED =====');
-    console.log('residentToDelete:', residentToDelete);
-    if (!residentToDelete?.idResidente) {
-      console.log('No hay idResidente');
-      return;
-    }
+    if (!residentToDelete?.idResidente) return;
     setSaving(true);
     const isPropietario = String(residentToDelete.tipoResidente || '').toLowerCase() === 'propietario';
-    console.log('isPropietario:', isPropietario);
     
     try {
-      console.log('Llamando API delete para id:', residentToDelete.idResidente);
       await residentesAPI.delete(residentToDelete.idResidente);
-      console.log('API delete completada');
       setResidents((prev) => prev.filter((r) => r.idResidente !== residentToDelete.idResidente));
       handleCloseDeleteConfirm();
       
@@ -181,225 +207,366 @@ const Residents = () => {
   const handleCloseSnackbar = () => setSnackbar((s) => ({ ...s, open: false }));
 
   return (
-    <Box sx={{ width: '100%' }}>
-      {/* Header */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
-        <Box>
-          <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold', mb: 1, }}>
-            👥 Gestión de Residentes
-          </Typography>
-          <Typography variant="body1" color="textSecondary">
-            Administra la información de los residentes del condominio
-          </Typography>
-        </Box>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          sx={{ color: 'white', backgroundColor: '#1e3a5f' }}
-          onClick={handleOpenCreate}
-        >
-          Nuevo Residente
-        </Button>
-      </Box>
-
-      {/* Error */}
-      {error && (
-        <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>
-          {error}
-        </Alert>
-      )}
-
-      {/* Búsqueda */}
-      <Paper sx={{ p: 2, mb: 3 }}>
-        <TextField
-          fullWidth
-          placeholder="Buscar por nombre, documento, teléfono o correo..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchIcon />
-              </InputAdornment>
-            ),
+    <Box sx={{ backgroundColor: colors.background, minHeight: '100vh', py: 4 }}>
+      <Container 
+        maxWidth="xl"
+      >
+        {/* Header */}
+        <Paper
+          elevation={0}
+          sx={{
+            p: 4,
+            mb: 4,
+            borderRadius: 4,
+            background: `linear-gradient(135deg, ${colors.primary} 0%, ${colors.secondary} 100%)`,
+            color: 'white',
+            position: 'relative',
+            overflow: 'hidden',
           }}
-        />
-      </Paper>
-
-      {/* Tabla de residentes */}
-      <Paper sx={{ p: 3, boxShadow: 3 }}>
-        {loading ? (
-          <Box sx={{ py: 6, display: 'flex', justifyContent: 'center' }}>
-            <CircularProgress />
+        >
+          <Box
+            sx={{
+              position: 'absolute',
+              top: -20,
+              right: -20,
+              width: 200,
+              height: 200,
+              borderRadius: '50%',
+              background: 'rgba(255,255,255,0.1)',
+            }}
+          />
+          <Box sx={{ position: 'relative', zIndex: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <Avatar
+                sx={{
+                  width: 70,
+                  height: 70,
+                  bgcolor: 'rgba(255,255,255,0.2)',
+                }}
+              >
+                <PeopleIcon sx={{ fontSize: 35 }} />
+              </Avatar>
+              <Box>
+                <Typography variant="h4" sx={{ fontWeight: 800, mb: 1 }}>
+                  Gestión de Residentes
+                </Typography>
+                <Typography variant="body1" sx={{ color: 'rgba(255,255,255,0.9)' }}>
+                  Administra la información de los residentes del condominio
+                </Typography>
+              </Box>
+            </Box>
+            <GradientButton
+              startIcon={<AddIcon />}
+              onClick={handleOpenCreate}
+              sx={{ bgcolor: colors.success }}
+            >
+              Nuevo Residente
+            </GradientButton>
           </Box>
-        ) : (
-          <TableContainer>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>Nombre</TableCell>
-                  <TableCell>Tipo</TableCell>
-                  <TableCell>Documento</TableCell>
-                  <TableCell>Contacto</TableCell>
-                  <TableCell>Estado</TableCell>
-                  <TableCell align="right">Acciones</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {filteredResidents.map((resident) => (
-                  <TableRow key={resident.idResidente} hover>
-                    <TableCell>
-                      <Typography sx={{ fontWeight: 'medium' }}>
-                        {[resident.nombre, resident.apellido].filter(Boolean).join(' ') || '—'}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                        <BadgeIcon sx={{ fontSize: 16, mr: 1, color: 'text.secondary' }} />
-                        {resident.tipoResidente ?? '—'}
-                      </Box>
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="body2">{resident.documento ?? '—'}</Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                          <PhoneIcon sx={{ fontSize: 14, mr: 1, color: 'text.secondary' }} />
-                          <Typography variant="body2">{resident.telefono ?? '—'}</Typography>
-                        </Box>
-                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                          <EmailIcon sx={{ fontSize: 14, mr: 1, color: 'text.secondary' }} />
-                          <Typography variant="body2">{resident.correo ?? '—'}</Typography>
-                        </Box>
-                      </Box>
-                    </TableCell>
-                    <TableCell>
-                      <Chip
-                        label={String(resident.estado ?? '').toLowerCase() === 'activo' ? 'Activo' : 'Inactivo'}
-                        color={String(resident.estado ?? '').toLowerCase() === 'activo' ? 'success' : 'default'}
-                        size="small"
-                      />
-                    </TableCell>
-                    <TableCell align="right">
-                      <IconButton size="small" color="primary" onClick={() => handleOpenEdit(resident)}>
-                        <EditIcon />
-                      </IconButton>
-                      <IconButton size="small" color="error" onClick={() => handleOpenDeleteConfirm(resident)}>
-                        <DeleteIcon />
-                      </IconButton>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
+        </Paper>
+
+        {/* Error */}
+        {error && (
+          <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }} onClose={() => setError(null)}>
+            {error}
+          </Alert>
         )}
 
-        {!loading && filteredResidents.length === 0 && (
-          <Box sx={{ py: 4, textAlign: 'center' }}>
-            <Typography color="textSecondary">
-              {residents.length === 0 ? 'No hay residentes registrados' : 'No se encontraron residentes con esos criterios de búsqueda'}
+        {/* Búsqueda */}
+        <Paper sx={{ p: 2, mb: 3, borderRadius: 3, border: `1px solid ${colors.border}`, boxShadow: 'none' }}>
+          <TextField
+            fullWidth
+            placeholder="Buscar por nombre, documento, teléfono o correo..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon sx={{ color: colors.text.secondary }} />
+                </InputAdornment>
+              ),
+            }}
+          />
+        </Paper>
+
+        {/* Tabla de residentes */}
+        <Paper sx={{ p: 3, borderRadius: 4, border: `1px solid ${colors.border}`, boxShadow: 'none' }}>
+          <Box sx={{ mb: 2 }}>
+            <Typography variant="h6" sx={{ color: colors.text.primary, fontWeight: 700 }}>
+              Lista de Residentes
+            </Typography>
+            <Typography variant="body2" sx={{ color: colors.text.secondary, mt: 0.5 }}>
+              {filteredResidents.length} registros encontrados
             </Typography>
           </Box>
-        )}
-      </Paper>
 
-      {/* Resumen */}
-      <Paper sx={{ p: 2, mt: 3 }}>
-        <Typography variant="subtitle1" sx={{ fontWeight: 'medium', mb: 1 }}>
-          Resumen
-        </Typography>
-        <Box sx={{ display: 'flex', gap: 3 }}>
-          <Box>
-            <Typography variant="body2" color="textSecondary">Total Residentes</Typography>
-            <Typography variant="h6">{residents.length}</Typography>
-          </Box>
-          <Box>
-            <Typography variant="body2" color="textSecondary">Activos</Typography>
-            <Typography variant="h6" color="success.main">{totalActivos}</Typography>
-          </Box>
-          <Box>
-            <Typography variant="body2" color="textSecondary">Inactivos</Typography>
-            <Typography variant="h6" color="text.secondary">{totalInactivos}</Typography>
-          </Box>
-        </Box>
-      </Paper>
+          {loading ? (
+            <Box sx={{ py: 6, display: 'flex', justifyContent: 'center' }}>
+              <CircularProgress sx={{ color: colors.primary }} />
+            </Box>
+          ) : (
+            <TableContainer>
+              <Table>
+                <TableHead>
+                  <TableRow sx={{ backgroundColor: alpha(colors.primary, 0.02) }}>
+                    <TableCell sx={{ fontWeight: 700 }}>Nombre</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>Tipo</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>Documento</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>Contacto</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>Estado</TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 700 }}>Acciones</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {filteredResidents.map((resident) => (
+                    <TableRow key={resident.idResidente} hover>
+                      <TableCell>
+                        <Typography sx={{ fontWeight: 'medium', color: colors.text.primary }}>
+                          {[resident.nombre, resident.apellido].filter(Boolean).join(' ') || '—'}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <BadgeIcon sx={{ fontSize: 16, color: colors.text.secondary }} />
+                          <Typography variant="body2">{resident.tipoResidente ?? '—'}</Typography>
+                        </Box>
+                      </TableCell>
+                      <TableCell>
+                        <Typography variant="body2" sx={{ color: colors.text.secondary }}>
+                          {resident.documento ?? '—'}
+                        </Typography>
+                      </TableCell>
+                      <TableCell>
+                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <PhoneIcon sx={{ fontSize: 14, color: colors.text.secondary }} />
+                            <Typography variant="body2">{resident.telefono ?? '—'}</Typography>
+                          </Box>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <EmailIcon sx={{ fontSize: 14, color: colors.text.secondary }} />
+                            <Typography variant="body2">{resident.correo ?? '—'}</Typography>
+                          </Box>
+                        </Box>
+                      </TableCell>
+                      <TableCell>
+                        <Chip
+                          label={String(resident.estado ?? '').toLowerCase() === 'activo' ? 'Activo' : 'Inactivo'}
+                          size="small"
+                          sx={{
+                            backgroundColor: String(resident.estado ?? '').toLowerCase() === 'activo' 
+                              ? alpha(colors.success, 0.1) 
+                              : alpha(colors.error, 0.1),
+                            color: String(resident.estado ?? '').toLowerCase() === 'activo' ? colors.success : colors.error,
+                            fontWeight: 600,
+                          }}
+                        />
+                      </TableCell>
+                      <TableCell align="right">
+                        <IconButton 
+                          size="small" 
+                          onClick={() => handleOpenEdit(resident)}
+                          sx={{ 
+                            color: colors.primary,
+                            '&:hover': { backgroundColor: alpha(colors.primary, 0.1) }
+                          }}
+                        >
+                          <EditIcon />
+                        </IconButton>
+                        <IconButton 
+                          size="small" 
+                          onClick={() => handleOpenDeleteConfirm(resident)}
+                          sx={{ 
+                            color: colors.error,
+                            '&:hover': { backgroundColor: alpha(colors.error, 0.1) }
+                          }}
+                        >
+                          <DeleteIcon />
+                        </IconButton>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          )}
 
-      {/* Diálogo crear / editar residente */}
-      <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: 2 } }}>
-        <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#1e3a5f', color: 'white' }}>
-          {editingResident ? 'Editar Residente' : 'Nuevo Residente'}
-          <IconButton onClick={handleCloseDialog} sx={{ color: 'white' }} size="small">
-            <CloseIcon />
-          </IconButton>
-        </DialogTitle>
-        <DialogContent sx={{ pt: 3 }}>
-          <Grid container spacing={2}>
-            <Grid item xs={12} sm={6}>
-              <TextField fullWidth label="Nombre" name="nombre" value={form.nombre} onChange={handleInputChange} required />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField fullWidth label="Apellido" name="apellido" value={form.apellido} onChange={handleInputChange} required />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <FormControl fullWidth>
-                <InputLabel>Tipo</InputLabel>
-                <Select name="tipoResidente" value={form.tipoResidente} label="Tipo" onChange={handleInputChange}>
-                  <MenuItem value="Propietario">Propietario</MenuItem>
-                  <MenuItem value="Arrendatario">Arrendatario</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField fullWidth label="Documento" name="documento" value={form.documento} onChange={handleInputChange} required />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField fullWidth label="Teléfono" name="telefono" value={form.telefono} onChange={handleInputChange} required />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField fullWidth label="Correo" name="correo" type="email" value={form.correo} onChange={handleInputChange} required />
-            </Grid>
-            <Grid item xs={12}>
-              <FormControl fullWidth>
-                <InputLabel>Estado</InputLabel>
-                <Select name="estado" value={form.estado} label="Estado" onChange={handleInputChange}>
-                  <MenuItem value="Activo">Activo</MenuItem>
-                  <MenuItem value="Inactivo">Inactivo</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-          </Grid>
-        </DialogContent>
-        <DialogActions sx={{ p: 2 }}>
-          <Button onClick={handleCloseDialog} disabled={saving}>Cancelar</Button>
-          <Button variant="contained" onClick={handleSubmit} disabled={saving} sx={{ backgroundColor: '#1e3a5f' }}>
-            {saving ? 'Guardando…' : editingResident ? 'Guardar cambios' : 'Crear'}
-          </Button>
-        </DialogActions>
-      </Dialog>
+          {!loading && filteredResidents.length === 0 && (
+            <Box sx={{ py: 8, textAlign: 'center' }}>
+              <PeopleIcon sx={{ fontSize: 60, color: colors.text.disabled, mb: 2 }} />
+              <Typography variant="h6" sx={{ color: colors.text.secondary }}>
+                {residents.length === 0 ? 'No hay residentes registrados' : 'No se encontraron residentes con esos criterios de búsqueda'}
+              </Typography>
+            </Box>
+          )}
+        </Paper>
 
-      {/* Diálogo confirmar eliminar */}
-      <Dialog open={openDeleteConfirm} onClose={handleCloseDeleteConfirm} maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: 2 } }}>
-        <DialogTitle>¿Eliminar residente?</DialogTitle>
-        <DialogContent>
-          <Typography variant="body2" color="text.secondary">
-            Se eliminará a {residentToDelete && [residentToDelete.nombre, residentToDelete.apellido].filter(Boolean).join(' ')}. Esta acción no se puede deshacer.
+        {/* Resumen */}
+        <Paper sx={{ p: 3, mt: 3, borderRadius: 3, border: `1px solid ${colors.border}`, boxShadow: 'none' }}>
+          <Typography variant="subtitle1" sx={{ fontWeight: 600, color: colors.text.primary, mb: 2 }}>
+            Resumen
           </Typography>
-        </DialogContent>
-        <DialogActions sx={{ p: 2 }}>
-          <Button onClick={handleCloseDeleteConfirm} disabled={saving}>Cancelar</Button>
-          <Button variant="contained" color="error" onClick={handleConfirmDelete} disabled={saving}>
-            {saving ? 'Eliminando…' : 'Eliminar'}
-          </Button>
-        </DialogActions>
-      </Dialog>
+          <Box sx={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+            <Box>
+              <Typography variant="caption" sx={{ color: colors.text.secondary, display: 'block' }}>
+                Total Residentes
+              </Typography>
+              <Typography variant="h5" sx={{ fontWeight: 700, color: colors.text.primary }}>
+                {residents.length}
+              </Typography>
+            </Box>
+            <Box>
+              <Typography variant="caption" sx={{ color: colors.text.secondary, display: 'block' }}>
+                Activos
+              </Typography>
+              <Typography variant="h5" sx={{ fontWeight: 700, color: colors.success }}>
+                {totalActivos}
+              </Typography>
+            </Box>
+            <Box>
+              <Typography variant="caption" sx={{ color: colors.text.secondary, display: 'block' }}>
+                Inactivos
+              </Typography>
+              <Typography variant="h5" sx={{ fontWeight: 700, color: colors.text.secondary }}>
+                {totalInactivos}
+              </Typography>
+            </Box>
+          </Box>
+        </Paper>
 
-      <Snackbar open={snackbar.open} autoHideDuration={4000} onClose={handleCloseSnackbar} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
-        <Alert onClose={handleCloseSnackbar} severity={snackbar.severity}>
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
+        {/* Diálogo crear / editar residente */}
+        <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: 4 } }}>
+          <DialogTitle sx={{ 
+            backgroundColor: colors.primary, 
+            color: 'white', 
+            py: 2,
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+          }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <BadgeIcon />
+              <Typography variant="h6">
+                {editingResident ? 'Editar Residente' : 'Nuevo Residente'}
+              </Typography>
+            </Box>
+            <IconButton onClick={handleCloseDialog} sx={{ color: 'white' }} size="small">
+              <CloseIcon />
+            </IconButton>
+          </DialogTitle>
+          <DialogContent sx={{ pt: 3 }}>
+            <Grid container spacing={2}>
+              <Grid item xs={12} sm={6}>
+                <TextField 
+                  fullWidth 
+                  label="Nombre" 
+                  name="nombre" 
+                  value={form.nombre} 
+                  onChange={handleInputChange} 
+                  required 
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField 
+                  fullWidth 
+                  label="Apellido" 
+                  name="apellido" 
+                  value={form.apellido} 
+                  onChange={handleInputChange} 
+                  required 
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <FormControl fullWidth>
+                  <InputLabel>Tipo</InputLabel>
+                  <Select name="tipoResidente" value={form.tipoResidente} label="Tipo" onChange={handleInputChange}>
+                    <MenuItem value="Propietario">Propietario</MenuItem>
+                    <MenuItem value="Residente">Residente</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField 
+                  fullWidth 
+                  label="Documento" 
+                  name="documento" 
+                  value={form.documento} 
+                  onChange={handleInputChange} 
+                  required 
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField 
+                  fullWidth 
+                  label="Teléfono" 
+                  name="telefono" 
+                  value={form.telefono} 
+                  onChange={handleInputChange} 
+                  required 
+                />
+              </Grid>
+              <Grid item xs={12} sm={6}>
+                <TextField 
+                  fullWidth 
+                  label="Correo" 
+                  name="correo" 
+                  type="email" 
+                  value={form.correo} 
+                  onChange={handleInputChange} 
+                  required 
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <FormControl fullWidth>
+                  <InputLabel>Estado</InputLabel>
+                  <Select name="estado" value={form.estado} label="Estado" onChange={handleInputChange}>
+                    <MenuItem value="Activo">Activo</MenuItem>
+                    <MenuItem value="Inactivo">Inactivo</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+            </Grid>
+          </DialogContent>
+          <DialogActions sx={{ p: 2.5, bgcolor: alpha(colors.background, 0.5) }}>
+            <Button onClick={handleCloseDialog} disabled={saving} variant="outlined">
+              Cancelar
+            </Button>
+            <GradientButton onClick={handleSubmit} disabled={saving}>
+              {saving ? 'Guardando…' : editingResident ? 'Guardar cambios' : 'Crear'}
+            </GradientButton>
+          </DialogActions>
+        </Dialog>
+
+        {/* Diálogo confirmar eliminar */}
+        <Dialog open={openDeleteConfirm} onClose={handleCloseDeleteConfirm} maxWidth="xs" fullWidth PaperProps={{ sx: { borderRadius: 4 } }}>
+          <DialogTitle sx={{ backgroundColor: colors.primary, color: 'white', py: 2 }}>
+            <Typography variant="h6">¿Eliminar residente?</Typography>
+          </DialogTitle>
+          <DialogContent>
+            <Typography variant="body2" color="text.secondary">
+              Se eliminará a {residentToDelete && [residentToDelete.nombre, residentToDelete.apellido].filter(Boolean).join(' ')}. Esta acción no se puede deshacer.
+            </Typography>
+          </DialogContent>
+          <DialogActions sx={{ p: 2.5 }}>
+            <Button onClick={handleCloseDeleteConfirm} disabled={saving} variant="outlined">
+              Cancelar
+            </Button>
+            <Button variant="contained" color="error" onClick={handleConfirmDelete} disabled={saving}>
+              {saving ? 'Eliminando…' : 'Eliminar'}
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        <Snackbar 
+          open={snackbar.open} 
+          autoHideDuration={4000} 
+          onClose={handleCloseSnackbar} 
+          anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        >
+          <Alert onClose={handleCloseSnackbar} severity={snackbar.severity}>
+            {snackbar.message}
+          </Alert>
+        </Snackbar>
+      </Container>
     </Box>
   );
 };

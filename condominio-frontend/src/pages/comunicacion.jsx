@@ -86,7 +86,7 @@ const StyledCard = styled(Card)(({ isRead }) => ({
   border: 'none',
   boxShadow: '0 2px 8px rgba(0, 0, 0, 0.03), 0 1px 2px rgba(0, 0, 0, 0.05)',
   transition: 'all 0.2s ease',
-  backgroundColor: isRead ? colors.surface : alpha(colors.accent, 0.02),
+  backgroundColor: isRead ? colors.surface : alpha(colors.secondary, 0.02),
   borderLeft: isRead ? 'none' : `3px solid ${colors.accent}`,
   '&:hover': {
     transform: 'translateX(4px)',
@@ -545,8 +545,8 @@ const Comunicacion = () => {
                   startIcon={<AddIcon />}
                   onClick={handleOpenDialog}
                   sx={{
-                    bgcolor: colors.success,
-                    '&:hover': { bgcolor: '#0d9668' },
+                    bgcolor: colors.secondary,
+                    '&:hover': { bgcolor: '#0d2533' },
                     borderRadius: 2,
                     textTransform: 'none',
                   }}

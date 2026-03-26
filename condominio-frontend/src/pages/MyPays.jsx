@@ -975,12 +975,7 @@ const MyPays = () => {
   return (
     <Box sx={{ backgroundColor: colors.background, minHeight: '100vh', py: 4 }}>
       <Container 
-        maxWidth={false}
-        sx={{
-          py: 2,
-          px: { md: 7 },
-          ml: { md: '40px' },
-        }}
+         maxWidth="xl"
       >
         {loadError && (
           <Alert severity={loadError.includes('Contacta') || loadError.includes('administrador') ? 'info' : 'warning'} sx={{ mb: 3, borderRadius: 2 }}>

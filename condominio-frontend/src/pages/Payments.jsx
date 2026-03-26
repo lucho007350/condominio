@@ -1,23 +1,100 @@
 import React, { useState, useEffect } from 'react';
-import {Box, Typography, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-TablePagination, Button, IconButton, Chip, TextField, InputAdornment, Dialog, DialogTitle, DialogContent,
-DialogActions, Grid, MenuItem, Select, FormControl, InputLabel, Card, CardContent, LinearProgress,
-Tooltip, Alert,} from '@mui/material';
+import {
+  Box,
+  Typography,
+  Paper,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  TablePagination,
+  Button,
+  IconButton,
+  Chip,
+  TextField,
+  InputAdornment,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Grid,
+  MenuItem,
+  Select,
+  FormControl,
+  InputLabel,
+  Card,
+  CardContent,
+  LinearProgress,
+  Tooltip,
+  Alert,
+  Avatar,
+  Container,
+  alpha
+} from '@mui/material';
+import { styled } from '@mui/material/styles';
 
-import {Search as SearchIcon, FilterList as FilterIcon, Download as DownloadIcon, Add as AddIcon,
-Edit as EditIcon, Delete as DeleteIcon, CheckCircle as CheckIcon, Pending as PendingIcon, 
-Warning as WarningIcon, AttachMoney as MoneyIcon, CalendarMonth as CalendarIcon, Receipt as ReceiptIcon,} from '@mui/icons-material';
+import {
+  Search as SearchIcon,
+  FilterList as FilterIcon,
+  Download as DownloadIcon,
+  Add as AddIcon,
+  Edit as EditIcon,
+  Delete as DeleteIcon,
+  CheckCircle as CheckIcon,
+  Pending as PendingIcon,
+  Warning as WarningIcon,
+  AttachMoney as MoneyIcon,
+  CalendarMonth as CalendarIcon,
+  Receipt as ReceiptIcon,
+  Close as CloseIcon,
+  Payment as PaymentIcon,
+} from '@mui/icons-material';
 
 import { paymentAPI, facturasAPI } from '../services/api';
 
-import { DatePicker } from '@mui/x-date-pickers/DatePicker'; //para seleccionar fechas
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider'; //para localizacion de fechas
-import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns'; //adaptador de fechas
-import { format } from 'date-fns'; //funcion para formatear fechas
-import { es } from 'date-fns/locale'; //localizacion en español
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
 
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+
+const colors = {
+  primary: '#0f2a3a',
+  secondary: '#1d3e52',
+  success: '#10b981',
+  warning: '#f59e0b',
+  error: '#ef4444',
+  info: '#3b82f6',
+  background: '#f8fafc',
+  surface: '#ffffff',
+  text: {
+    primary: '#1e293b',
+    secondary: '#64748b',
+    disabled: '#94a3b8',
+  },
+  border: '#e2e8f0',
+};
+
+const GradientButton = styled(Button)(({ bgcolor = colors.primary }) => ({
+  background: `linear-gradient(135deg, ${bgcolor} 0%, ${alpha(bgcolor, 0.8)} 100%)`,
+  color: 'white',
+  borderRadius: 12,
+  padding: '8px 20px',
+  fontWeight: 600,
+  textTransform: 'none',
+  fontSize: '0.9rem',
+  boxShadow: `0 4px 10px ${alpha(bgcolor, 0.3)}`,
+  transition: 'all 0.3s ease',
+  '&:hover': {
+    transform: 'translateY(-2px)',
+    boxShadow: `0 8px 20px ${alpha(bgcolor, 0.4)}`,
+  },
+}));
 
 // Mapeo estado API (Pendiente, Procesado, Rechazado) <-> vista (pending, paid, overdue)
 const estadoToView = (estadoPago) => {
@@ -114,7 +191,6 @@ const Payments = () => {
 
   useEffect(() => {
     fetchPayments();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Filtrar pagos
@@ -190,7 +266,7 @@ const Payments = () => {
       body,
       startY: 105,
       styles: { fontSize: 9, cellPadding: 4 },
-      headStyles: { fillColor: [30, 58, 95] },
+      headStyles: { fillColor: [15, 42, 58] },
       alternateRowStyles: { fillColor: [248, 250, 252] },
       margin: { left: 40, right: 40 },
     });
@@ -342,7 +418,7 @@ const Payments = () => {
 
   // Componente de estadísticas
   const StatCard = ({ title, value, icon, color, subtitle }) => (
-    <Card sx={{ height: '100%', boxShadow: 2 }}>
+    <Card sx={{ height: '100%', boxShadow: 'none', borderRadius: 3, border: `1px solid ${colors.border}` }}>
       <CardContent>
         <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
           <Box
@@ -382,427 +458,482 @@ const Payments = () => {
   if (loading) {
     return (
       <Box sx={{ width: '100%', p: 3 }}>
-        <LinearProgress />
+        <LinearProgress sx={{ backgroundColor: alpha(colors.primary, 0.1), '& .MuiLinearProgress-bar': { backgroundColor: colors.primary } }} />
       </Box>
     );
   }
 
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns} adapterLocale={es}>
-      <Box sx={{ width: '100%' }}>
-        {error && (
-          <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
-            {error}
-          </Alert>
-        )}
-        {/* Header */}
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
-          <Box>
-            <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold', mb: 1 }}>
-              💰 Gestión de Pagos
-            </Typography>
-            <Typography variant="body1" color="textSecondary">
-              Administra los pagos de cuotas del condominio
-            </Typography>
-          </Box>
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={() => handleOpenDialog()}
-            sx={{ color: 'white', backgroundColor: '#1e3a5f' }}
+      <Box sx={{ backgroundColor: colors.background, minHeight: '100vh', py: 4 }}>
+        <Container 
+          maxWidth="xl"
+        >
+          {error && (
+            <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }} onClose={() => setError(null)}>
+              {error}
+            </Alert>
+          )}
+
+          {/* Header */}
+          <Paper
+            elevation={0}
+            sx={{
+              p: 4,
+              mb: 4,
+              borderRadius: 4,
+              background: `linear-gradient(135deg, ${colors.primary} 0%, ${colors.secondary} 100%)`,
+              color: 'white',
+              position: 'relative',
+              overflow: 'hidden',
+            }}
           >
-            Registrar Pago
-          </Button>
-        </Box>
+            <Box
+              sx={{
+                position: 'absolute',
+                top: -20,
+                right: -20,
+                width: 200,
+                height: 200,
+                borderRadius: '50%',
+                background: 'rgba(255,255,255,0.1)',
+              }}
+            />
+            <Box sx={{ position: 'relative', zIndex: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <Avatar
+                  sx={{
+                    width: 70,
+                    height: 70,
+                    bgcolor: 'rgba(255,255,255,0.2)',
+                  }}
+                >
+                  <PaymentIcon sx={{ fontSize: 35 }} />
+                </Avatar>
+                <Box>
+                  <Typography variant="h4" sx={{ fontWeight: 800, mb: 1 }}>
+                    Gestión de Pagos
+                  </Typography>
+                  <Typography variant="body1" sx={{ color: 'rgba(255,255,255,0.9)' }}>
+                    Administra los pagos de cuotas del condominio
+                  </Typography>
+                </Box>
+              </Box>
+              <GradientButton
+                startIcon={<AddIcon />}
+                onClick={() => handleOpenDialog()}
+                sx={{ bgcolor: colors.success }}
+              >
+                Registrar Pago
+              </GradientButton>
+            </Box>
+          </Paper>
 
-        {/* Estadísticas */}
-        <Grid container spacing={3} sx={{ mb: 4 }}>
-          <Grid item xs={12} sm={6} md={3}>
-            <StatCard
-              title="Total Recaudado"
-              value={stats.totalCollected}
-              icon={<MoneyIcon />}
-              color="#4CAF50"
-              subtitle="Este mes"
-            />
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <StatCard
-              title="Monto Pendiente"
-              value={stats.pendingAmount}
-              icon={<PendingIcon />}
-              color="#FF9800"
-              subtitle="Por cobrar"
-            />
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
-            <StatCard
-              title="Pagos Vencidos"
-              value={stats.overduePayments}
-              icon={<WarningIcon />}
-              color="#F44336"
-              subtitle="Atrasados"
-            />
-          </Grid>
-        </Grid>
-
-        {/* Filtros y búsqueda */}
-        <Paper sx={{ p: 3, mb: 3, boxShadow: 2 }}>
-          <Grid container spacing={2} alignItems="center">
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                placeholder="Buscar por apartamento o recibo..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <SearchIcon />
-                    </InputAdornment>
-                  ),
-                }}
+          {/* Estadísticas */}
+          <Grid container spacing={3} sx={{ mb: 4 }}>
+            <Grid item xs={12} sm={6} md={4}>
+              <StatCard
+                title="Total Recaudado"
+                value={stats.totalCollected}
+                icon={<MoneyIcon />}
+                color="#4CAF50"
+                subtitle="Este mes"
               />
             </Grid>
-            <Grid item xs={12} md={3}>
-              <FormControl fullWidth>
-                <InputLabel>Estado</InputLabel>
-                <Select
-                  value={filterStatus}
-                  label="Estado"
-                  onChange={(e) => setFilterStatus(e.target.value)}
-                  startAdornment={
-                    <InputAdornment position="start">
-                      <FilterIcon />
-                    </InputAdornment>
-                  }
-                >
-                  <MenuItem value="all">Todos los estados</MenuItem>
-                  <MenuItem value="paid">Pagado</MenuItem>
-                  <MenuItem value="pending">Pendiente</MenuItem>
-                  <MenuItem value="overdue">Vencido</MenuItem>
-                </Select>
-              </FormControl>
+            <Grid item xs={12} sm={6} md={4}>
+              <StatCard
+                title="Monto Pendiente"
+                value={stats.pendingAmount}
+                icon={<PendingIcon />}
+                color="#FF9800"
+                subtitle="Por cobrar"
+              />
             </Grid>
-            <Grid item xs={12} md={3}>
-              <Box sx={{ display: 'flex', gap: 1 }}>
-                <Button
-                  fullWidth
-                  variant="outlined"
-                  startIcon={<DownloadIcon />}
-                  sx={{ color: 'white', backgroundColor: '#1e3a5f' }}
-                  onClick={handleExportPDF}
-                >
-                  Exportar
-                </Button>
-              </Box>
+            <Grid item xs={12} sm={6} md={4}>
+              <StatCard
+                title="Pagos Vencidos"
+                value={stats.overduePayments}
+                icon={<WarningIcon />}
+                color="#F44336"
+                subtitle="Atrasados"
+              />
             </Grid>
           </Grid>
-        </Paper>
 
-        {/* Tabla de pagos */}
-        <Paper sx={{ boxShadow: 3 }}>
-          <TableContainer>
-            <Table>
-              <TableHead>
-                <TableRow>
-<TableCell>Apartamento</TableCell>
-                  <TableCell>Monto</TableCell>
-                  <TableCell>Fecha Vencimiento</TableCell>
-                  <TableCell>Fecha Pago</TableCell>
-                  <TableCell>Estado del pago</TableCell>
-                  <TableCell>Método</TableCell>
-                  <TableCell>Recibo</TableCell>
-                  <TableCell>Acciones</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {filteredPayments
-                  .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-                  .map((payment) => (
-                    <TableRow key={payment.id} hover>
-                      <TableCell>
-                        <Chip label={payment.apartment} size="small" />
-                      </TableCell>
-                      <TableCell>
-                        <Typography sx={{ fontWeight: 'bold' }}>
-                          ${payment.amount.toLocaleString()}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                          <CalendarIcon sx={{ mr: 1, fontSize: 16, color: 'text.secondary' }} />
-                          {formatDate(payment.dueDate)}
-                        </Box>
-                      </TableCell>
-                      <TableCell>
-                        {payment.paymentDate ? (
-                          <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                            <CalendarIcon sx={{ mr: 1, fontSize: 16, color: 'text.secondary' }} />
-                            {formatDate(payment.paymentDate)}
-                          </Box>
-                        ) : '-'}
-                      </TableCell>
-                      <TableCell>
-                        <Chip
-                          icon={getStatusIcon(payment.status)}
-                          label={
-                            payment.status === 'paid' ? 'Pagado' :
-                            payment.status === 'pending' ? 'Pendiente' : 'Vencido'
-                          }
-                          color={getStatusColor(payment.status)}
-                          size="small"
-                          variant="outlined"
-                        />
-                      </TableCell>
-                      <TableCell>{payment.method || '-'}</TableCell>
-                      <TableCell>
-                        {payment.receipt ? (
-                          <Chip label={payment.receipt} size="small" color="primary" />
-                        ) : '-'}
-                      </TableCell>
-                      <TableCell>
-                        <Box sx={{ display: 'flex', gap: 1 }}>
-                          <Tooltip title="Editar">
-                            <IconButton 
-                              size="small" 
-                              color="primary"
-                              onClick={() => handleOpenDialog(payment)}
-                            >
-                              <EditIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
-                          <Tooltip title="Eliminar">
-                            <IconButton size="small" color="error" onClick={() => handleDelete(payment)}>
-                              <DeleteIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
-                          {payment.status !== 'paid' && (
-                            <Tooltip title="Marcar como pagado">
-                              <IconButton size="small" color="success" onClick={() => handleMarkAsPaid(payment)}>
-                                <CheckIcon fontSize="small" />
-                              </IconButton>
-                            </Tooltip>
-                          )}
-                        </Box>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
-          <TablePagination
-            rowsPerPageOptions={[5, 10, 25]}
-            component="div"
-            count={filteredPayments.length}
-            rowsPerPage={rowsPerPage}
-            page={page}
-            onPageChange={handleChangePage}
-            onRowsPerPageChange={handleChangeRowsPerPage}
-            labelRowsPerPage="Filas por página:"
-            labelDisplayedRows={({ from, to, count }) => 
-              `${from}-${to} de ${count}`
-            }
-          />
-        </Paper>
-
-        {/* Resumen */}
-        <Grid container spacing={3} sx={{ mt: 3 }}>
-          <Grid item xs={12} md={6}>
-            <Paper sx={{ p: 3, boxShadow: 2 }}>
-              <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold' }}>
-                📊 Resumen por Estado
-              </Typography>
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                {['paid', 'pending', 'overdue'].map((status) => {
-                  const count = payments.filter(p => p.status === status).length;
-                  const amount = payments
-                    .filter(p => p.status === status)
-                    .reduce((sum, p) => sum + p.amount, 0);
-                  
-                  return (
-                    <Box key={status} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                        {getStatusIcon(status)}
-                        <Typography sx={{ ml: 1 }}>
-                          {status === 'paid' ? 'Pagados' : 
-                           status === 'pending' ? 'Pendientes' : 'Vencidos'}
-                        </Typography>
-                      </Box>
-                      <Box sx={{ textAlign: 'right' }}>
-                        <Typography variant="body2" color="textSecondary">
-                          {count} pagos
-                        </Typography>
-                        <Typography variant="body1" sx={{ fontWeight: 'bold' }}>
-                          ${amount.toLocaleString()}
-                        </Typography>
-                      </Box>
-                    </Box>
-                  );
-                })}
-              </Box>
-            </Paper>
-          </Grid>
-          <Grid item xs={12} md={6}>
-            <Paper sx={{ p: 3, boxShadow: 2 }}>
-              <Typography variant="h6" sx={{ mb: 2, fontWeight: 'bold' }}>
-                ⚠️ Pagos Vencidos
-              </Typography>
-              {payments.filter(p => p.status === 'overdue').length === 0 ? (
-                <Alert severity="success">
-                  No hay pagos vencidos. ¡Excelente trabajo!
-                </Alert>
-              ) : (
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                  {payments
-                    .filter(p => p.status === 'overdue')
-                    .map(payment => (
-                      <Box 
-                        key={payment.id} 
-                        sx={{ 
-                          p: 2, 
-                          border: '1px solid #ffcdd2', 
-                          borderRadius: 1,
-                          backgroundColor: '#ffebee'
-                        }}
-                      >
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                          <Typography variant="subtitle2">
-                            Unidad {payment.apartment}
-                          </Typography>
-                          <Typography variant="subtitle2" sx={{ fontWeight: 'bold', color: '#d32f2f' }}>
-                            ${payment.amount.toLocaleString()}
-                          </Typography>
-                        </Box>
-                        <Typography variant="caption" color="textSecondary">
-                          Vencido el {formatDate(payment.dueDate)}
-                        </Typography>
-                        {payment.notes && (
-                          <Typography variant="caption" sx={{ display: 'block', mt: 0.5 }}>
-                            Nota: {payment.notes}
-                          </Typography>
-                        )}
-                      </Box>
-                    ))}
-                </Box>
-              )}
-            </Paper>
-          </Grid>
-        </Grid>
-
-        {/* Diálogo para registrar/editar pago */}
-        <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="md" fullWidth>
-          <DialogTitle>
-            {selectedPayment ? 'Editar Pago' : 'Registrar Nuevo Pago'}
-          </DialogTitle>
-          <DialogContent>
-            <Grid container spacing={3} sx={{ mt: 0.5 }}>
-              <Grid item xs={12}>
-                
-                <FormControl fullWidth size="medium" sx={{ minHeight: 64 }}>
-                  <Select
-                    name="idFactura"
-                    value={formData.idFactura}
-                    onChange={handleInputChange}
-                    required
-                    displayEmpty
-                    renderValue={(v) => {
-                      if (!v) return 'Seleccione una factura';
-                      const f = facturas.find((x) => (x.idFactura ?? x.id) === Number(v));
-                      return f
-                        ? `Factura #${f.idFactura ?? f.id} – Unidad ${f.numeroUnidad ?? f.numero ?? f.idUnidad ?? '-'}`
-                        : `Factura #${v}`;
-                    }}
-                    sx={{
-                      fontSize: '1.0625rem',
-                      py: 1.5,
-                      '& .MuiSelect-select': { py: 1.5 },
-                    }}
-                  >
-                    <MenuItem value="">
-                      <em>Seleccione una factura</em>
-                    </MenuItem>
-                    {facturas.map((f) => (
-                      <MenuItem key={f.idFactura ?? f.id} value={f.idFactura ?? f.id} sx={{ fontSize: '1.0625rem' }}>
-                        Factura #{f.idFactura ?? f.id} – Unidad {f.numeroUnidad ?? f.numero ?? f.idUnidad ?? '-'}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              </Grid>
-              <Grid item xs={12} sm={6}>
+          {/* Filtros y búsqueda */}
+          <Paper sx={{ p: 3, mb: 3, borderRadius: 3, border: `1px solid ${colors.border}`, boxShadow: 'none' }}>
+            <Grid container spacing={2} alignItems="center">
+              <Grid item xs={12} md={6}>
                 <TextField
                   fullWidth
-                  label="Fecha de pago"
-                  type="date"
-                  name="fechaPago"
-                  value={formData.fechaPago}
-                  onChange={handleInputChange}
-                  InputLabelProps={{ shrink: true }}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  fullWidth
-                  label="Monto"
-                  type="number"
-                  name="monto"
-                  value={formData.monto}
-                  onChange={handleInputChange}
-                  inputProps={{ min: 0, step: 1000 }}
+                  placeholder="Buscar por apartamento o recibo..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
                   InputProps={{
                     startAdornment: (
                       <InputAdornment position="start">
-                        <MoneyIcon />
+                        <SearchIcon sx={{ color: colors.text.secondary }} />
                       </InputAdornment>
                     ),
                   }}
+                  sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
                 />
               </Grid>
-              <Grid item xs={12} sm={6}>
+              <Grid item xs={12} md={3}>
                 <FormControl fullWidth>
                   <InputLabel>Estado</InputLabel>
                   <Select
-                    name="estadoPago"
-                    value={formData.estadoPago}
+                    value={filterStatus}
                     label="Estado"
-                    onChange={handleInputChange}
+                    onChange={(e) => setFilterStatus(e.target.value)}
+                    sx={{ borderRadius: 2 }}
                   >
-                    <MenuItem value="Pendiente">Pendiente</MenuItem>
-                    <MenuItem value="Procesado">Procesado (Pagado)</MenuItem>
-                    <MenuItem value="Rechazado">Rechazado</MenuItem>
+                    <MenuItem value="all">Todos los estados</MenuItem>
+                    <MenuItem value="paid">Pagado</MenuItem>
+                    <MenuItem value="pending">Pendiente</MenuItem>
+                    <MenuItem value="overdue">Vencido</MenuItem>
                   </Select>
                 </FormControl>
               </Grid>
-              <Grid item xs={12} sm={6}>
-                <FormControl fullWidth>
-                  <InputLabel>Método de pago</InputLabel>
-                  <Select
-                    name="metodoPago"
-                    value={formData.metodoPago}
-                    label="Método de pago"
-                    onChange={handleInputChange}
-                  >
-                    <MenuItem value="Efectivo">Efectivo</MenuItem>
-                    <MenuItem value="Transferencia">Transferencia</MenuItem>
-                    <MenuItem value="Tarjeta">Tarjeta</MenuItem>
-                  </Select>
-                </FormControl>
+              <Grid item xs={12} md={3}>
+                <GradientButton
+                  fullWidth
+                  startIcon={<DownloadIcon />}
+                  onClick={handleExportPDF}
+                  sx={{ bgcolor: colors.info }}
+                >
+                  Exportar
+                </GradientButton>
               </Grid>
             </Grid>
-          </DialogContent>
-          <DialogActions sx={{ px: 3, pb: 2 }}>
-            <Button onClick={handleCloseDialog}>Cancelar</Button>
-            <Button
-              variant="contained"
-              onClick={handleSave}
-              disabled={saving || !formData.idFactura || !formData.fechaPago || formData.monto === ''}
-              sx={{ backgroundColor: '#1e3a5f' }}
-            >
-              {saving ? 'Guardando...' : selectedPayment ? 'Actualizar' : 'Registrar'}
-            </Button>
-          </DialogActions>
-        </Dialog>
+          </Paper>
+
+          {/* Tabla de pagos */}
+          <Paper sx={{ borderRadius: 4, border: `1px solid ${colors.border}`, boxShadow: 'none', overflow: 'hidden' }}>
+            <TableContainer>
+              <Table>
+                <TableHead>
+                  <TableRow sx={{ backgroundColor: alpha(colors.primary, 0.02) }}>
+                    <TableCell sx={{ fontWeight: 700 }}>Condominio</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>Monto</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>Fecha Vencimiento</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>Fecha Pago</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>Estado del pago</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>Método</TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>Recibo</TableCell>
+                    <TableCell align="center" sx={{ fontWeight: 700 }}>Acciones</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {filteredPayments
+                    .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+                    .map((payment) => (
+                      <TableRow key={payment.id} hover>
+                        <TableCell>
+                          <Chip 
+                            label={payment.apartment} 
+                            size="small"
+                            sx={{ 
+                              backgroundColor: alpha(colors.primary, 0.1),
+                              color: colors.primary,
+                              fontWeight: 600
+                            }}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          <Typography sx={{ fontWeight: 600, color: colors.primary }}>
+                            ${payment.amount.toLocaleString()}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <CalendarIcon sx={{ fontSize: 16, color: colors.text.secondary }} />
+                            {formatDate(payment.dueDate)}
+                          </Box>
+                        </TableCell>
+                        <TableCell>
+                          {payment.paymentDate ? (
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                              <CalendarIcon sx={{ fontSize: 16, color: colors.text.secondary }} />
+                              {formatDate(payment.paymentDate)}
+                            </Box>
+                          ) : '-'}
+                        </TableCell>
+                        <TableCell>
+                          <Chip
+                            icon={getStatusIcon(payment.status)}
+                            label={
+                              payment.status === 'paid' ? 'Pagado' :
+                              payment.status === 'pending' ? 'Pendiente' : 'Vencido'
+                            }
+                            color={getStatusColor(payment.status)}
+                            size="small"
+                            variant="outlined"
+                          />
+                        </TableCell>
+                        <TableCell>{payment.method || '-'}</TableCell>
+                        <TableCell>
+                          {payment.receipt ? (
+                            <Chip label={payment.receipt} size="small" color="primary" />
+                          ) : '-'}
+                        </TableCell>
+                        <TableCell align="center">
+                          <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center' }}>
+                            <Tooltip title="Editar">
+                              <IconButton 
+                                size="small" 
+                                onClick={() => handleOpenDialog(payment)}
+                                sx={{ color: colors.primary, '&:hover': { backgroundColor: alpha(colors.primary, 0.1) } }}
+                              >
+                                <EditIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                            <Tooltip title="Eliminar">
+                              <IconButton 
+                                size="small" 
+                                color="error" 
+                                onClick={() => handleDelete(payment)}
+                                sx={{ '&:hover': { backgroundColor: alpha(colors.error, 0.1) } }}
+                              >
+                                <DeleteIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                            {payment.status !== 'paid' && (
+                              <Tooltip title="Marcar como pagado">
+                                <IconButton 
+                                  size="small" 
+                                  onClick={() => handleMarkAsPaid(payment)}
+                                  sx={{ color: colors.success, '&:hover': { backgroundColor: alpha(colors.success, 0.1) } }}
+                                >
+                                  <CheckIcon fontSize="small" />
+                                </IconButton>
+                              </Tooltip>
+                            )}
+                          </Box>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+            <TablePagination
+              rowsPerPageOptions={[5, 10, 25]}
+              component="div"
+              count={filteredPayments.length}
+              rowsPerPage={rowsPerPage}
+              page={page}
+              onPageChange={handleChangePage}
+              onRowsPerPageChange={handleChangeRowsPerPage}
+              labelRowsPerPage="Filas por página:"
+              labelDisplayedRows={({ from, to, count }) => 
+                `${from}-${to} de ${count}`
+              }
+              sx={{
+                borderTop: `1px solid ${colors.border}`,
+              }}
+            />
+          </Paper>
+
+          {/* Resumen */}
+          <Grid container spacing={3} sx={{ mt: 3 }}>
+            <Grid item xs={12} md={6}>
+              <Paper sx={{ p: 3, borderRadius: 3, border: `1px solid ${colors.border}`, boxShadow: 'none' }}>
+                <Typography variant="h6" sx={{ mb: 2, fontWeight: 700, color: colors.text.primary }}>
+                  📊 Resumen por Estado
+                </Typography>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                  {['paid', 'pending', 'overdue'].map((status) => {
+                    const count = payments.filter(p => p.status === status).length;
+                    const amount = payments
+                      .filter(p => p.status === status)
+                      .reduce((sum, p) => sum + p.amount, 0);
+                    
+                    return (
+                      <Box key={status} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                          {getStatusIcon(status)}
+                          <Typography sx={{ ml: 1 }}>
+                            {status === 'paid' ? 'Pagados' : 
+                             status === 'pending' ? 'Pendientes' : 'Vencidos'}
+                          </Typography>
+                        </Box>
+                        <Box sx={{ textAlign: 'right' }}>
+                          <Typography variant="body2" color="textSecondary">
+                            {count} pagos
+                          </Typography>
+                          <Typography variant="body1" sx={{ fontWeight: 600, color: colors.primary }}>
+                            ${amount.toLocaleString()}
+                          </Typography>
+                        </Box>
+                      </Box>
+                    );
+                  })}
+                </Box>
+              </Paper>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <Paper sx={{ p: 3, borderRadius: 3, border: `1px solid ${colors.border}`, boxShadow: 'none' }}>
+                <Typography variant="h6" sx={{ mb: 2, fontWeight: 700, color: colors.text.primary }}>
+                  ⚠️ Pagos Vencidos
+                </Typography>
+                {payments.filter(p => p.status === 'overdue').length === 0 ? (
+                  <Alert severity="success" sx={{ borderRadius: 2 }}>
+                    No hay pagos vencidos. ¡Excelente trabajo!
+                  </Alert>
+                ) : (
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    {payments
+                      .filter(p => p.status === 'overdue')
+                      .map(payment => (
+                        <Box 
+                          key={payment.id} 
+                          sx={{ 
+                            p: 2, 
+                            border: `1px solid ${alpha(colors.error, 0.3)}`, 
+                            borderRadius: 2,
+                            backgroundColor: alpha(colors.error, 0.05)
+                          }}
+                        >
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                            <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>
+                              Unidad {payment.apartment}
+                            </Typography>
+                            <Typography variant="subtitle2" sx={{ fontWeight: 700, color: colors.error }}>
+                              ${payment.amount.toLocaleString()}
+                            </Typography>
+                          </Box>
+                          <Typography variant="caption" color="textSecondary">
+                            Vencido el {formatDate(payment.dueDate)}
+                          </Typography>
+                        </Box>
+                      ))}
+                  </Box>
+                )}
+              </Paper>
+            </Grid>
+          </Grid>
+
+          {/* Diálogo para registrar/editar pago */}
+          <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="md" fullWidth PaperProps={{ sx: { borderRadius: 4 } }}>
+            <DialogTitle sx={{ 
+              backgroundColor: colors.primary, 
+              color: 'white', 
+              py: 2,
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+            }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <PaymentIcon />
+                <Typography variant="h6">
+                  {selectedPayment ? 'Editar Pago' : 'Registrar Nuevo Pago'}
+                </Typography>
+              </Box>
+              <IconButton onClick={handleCloseDialog} sx={{ color: 'white' }} size="small">
+                <CloseIcon />
+              </IconButton>
+            </DialogTitle>
+            <DialogContent sx={{ pt: 3 }}>
+              <Grid container spacing={3} sx={{ mt: 0.5 }}>
+                <Grid item xs={12}>
+                  <FormControl fullWidth>
+                    <InputLabel>Factura</InputLabel>
+                    <Select
+                      name="idFactura"
+                      value={formData.idFactura}
+                      onChange={handleInputChange}
+                      required
+                      sx={{ borderRadius: 2 }}
+                    >
+                      <MenuItem value="">
+                        <em>Seleccione una factura</em>
+                      </MenuItem>
+                      {facturas.map((f) => (
+                        <MenuItem key={f.idFactura ?? f.id} value={f.idFactura ?? f.id}>
+                          Factura #{f.idFactura ?? f.id} – Unidad {f.numeroUnidad ?? f.numero ?? f.idUnidad ?? '-'}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    label="Fecha de pago"
+                    type="date"
+                    name="fechaPago"
+                    value={formData.fechaPago}
+                    onChange={handleInputChange}
+                    InputLabelProps={{ shrink: true }}
+                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    fullWidth
+                    label="Monto"
+                    type="number"
+                    name="monto"
+                    value={formData.monto}
+                    onChange={handleInputChange}
+                    inputProps={{ min: 0, step: 1000 }}
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <MoneyIcon sx={{ color: colors.text.secondary }} />
+                        </InputAdornment>
+                      ),
+                    }}
+                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2 } }}
+                  />
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <FormControl fullWidth>
+                    <InputLabel>Estado</InputLabel>
+                    <Select
+                      name="estadoPago"
+                      value={formData.estadoPago}
+                      label="Estado"
+                      onChange={handleInputChange}
+                      sx={{ borderRadius: 2 }}
+                    >
+                      <MenuItem value="Pendiente">Pendiente</MenuItem>
+                      <MenuItem value="Procesado">Procesado (Pagado)</MenuItem>
+                      <MenuItem value="Rechazado">Rechazado</MenuItem>
+                    </Select>
+                  </FormControl>
+                </Grid>
+                <Grid item xs={12} sm={6}>
+                  <FormControl fullWidth>
+                    <InputLabel>Método de pago</InputLabel>
+                    <Select
+                      name="metodoPago"
+                      value={formData.metodoPago}
+                      label="Método de pago"
+                      onChange={handleInputChange}
+                      sx={{ borderRadius: 2 }}
+                    >
+                      <MenuItem value="Efectivo">Efectivo</MenuItem>
+                      <MenuItem value="Transferencia">Transferencia</MenuItem>
+                      <MenuItem value="Tarjeta">Tarjeta</MenuItem>
+                    </Select>
+                  </FormControl>
+                </Grid>
+              </Grid>
+            </DialogContent>
+            <DialogActions sx={{ p: 2.5, bgcolor: alpha(colors.background, 0.5) }}>
+              <Button onClick={handleCloseDialog} variant="outlined" sx={{ borderRadius: 2 }}>
+                Cancelar
+              </Button>
+              <GradientButton
+                onClick={handleSave}
+                disabled={saving || !formData.idFactura || !formData.fechaPago || formData.monto === ''}
+              >
+                {saving ? 'Guardando...' : selectedPayment ? 'Actualizar' : 'Registrar'}
+              </GradientButton>
+            </DialogActions>
+          </Dialog>
+        </Container>
       </Box>
     </LocalizationProvider>
   );

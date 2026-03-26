@@ -36,6 +36,10 @@ import {
   IconButton,
   Tooltip,
   Stack,
+  RadioGroup,
+  FormControlLabel,
+  Radio,
+  CircularProgress,
 } from '@mui/material';
 import {
   MarkEmailUnread as PqrsIcon,
@@ -49,6 +53,8 @@ import {
   Info as InfoIcon,
   Error as ErrorIcon,
   Reply as ReplyIcon,
+  AdminPanelSettings as AdminIcon,
+  Home as HomeIcon,
 } from '@mui/icons-material';
 import { styled } from '@mui/material/styles';
 import { requestAPI, residentAPI } from '../services/api.jsx';
@@ -94,9 +100,12 @@ const StyledCard = styled(Card)({
   overflow: 'hidden',
 });
 
+// Configuración de estados - CORREGIDA con todos los estados de tu BD
 const statusConfig = {
   pendiente: { label: 'Pendiente', color: colors.warning, icon: <WarningIcon />, bg: alpha(colors.warning, 0.1) },
+  'en proceso': { label: 'En proceso', color: colors.info, icon: <InfoIcon />, bg: alpha(colors.info, 0.1) },
   en_proceso: { label: 'En proceso', color: colors.info, icon: <InfoIcon />, bg: alpha(colors.info, 0.1) },
+  terminado: { label: 'Terminado', color: colors.success, icon: <CheckCircleIcon />, bg: alpha(colors.success, 0.1) },
   resuelto: { label: 'Resuelto', color: colors.success, icon: <CheckCircleIcon />, bg: alpha(colors.success, 0.1) },
   rechazado: { label: 'Rechazado', color: colors.error, icon: <ErrorIcon />, bg: alpha(colors.error, 0.1) },
 };
@@ -156,16 +165,13 @@ const safeParseUser = () => {
 const toArray = (v) => (Array.isArray(v) ? v : v ? [v] : []);
 
 const normalizePropietario = (u) => {
-  const id = u?.idPropietario ?? u?.id ?? u?._id ?? u?.uuid;
-  const name = u?.name ?? u?.nombre ?? u?.fullName ?? [u?.nombres, u?.apellidos].filter(Boolean).join(' ');
-  const username = u?.username ?? u?.usuario;
-  const email = u?.email ?? u?.correo;
+  const id = u?.idResidente ?? u?.id ?? u?._id ?? u?.uuid;
+  const name = `${u?.nombre || ''} ${u?.apellido || ''}`.trim() || u?.name || u?.username || 'Propietario';
   return {
-    id: id ?? username ?? email ?? name,
-    name: name || username || email || 'Propietario',
-    username,
-    email,
-    raw: u,
+    id: id,
+    name: name,
+    documento: u?.documento,
+    correo: u?.correo,
   };
 };
 
@@ -175,13 +181,13 @@ const normalizeRequest = (r) => ({
   asunto: r?.asunto ?? r?.subject ?? r?.titulo ?? '',
   descripcion: r?.descripcion ?? r?.description ?? r?.detalle ?? '',
   prioridad: r?.prioridad ?? r?.priority ?? 'media',
-  estado: r?.estado ?? r?.status ?? 'pendiente',
+  estado: String(r?.estado ?? r?.status ?? 'pendiente').toLowerCase(),
   fecha: r?.fecha ?? r?.createdAt ?? r?.created_at,
   respuesta: r?.respuesta ?? '',
-  propietarioId: r?.propietarioId ?? r?.destinatarioId ?? r?.to,
-  propietarioNombre: r?.propietarioNombre ?? r?.destinatarioNombre ?? r?.toName ?? '',
-  remitenteUsuario: r?.remitenteUsuario ?? r?.createdBy ?? r?.username ?? '',
-  remitenteNombre: r?.remitenteNombre ?? r?.createdByName ?? '',
+  propietarioId: r?.propietarioId,
+  propietarioNombre: r?.propietarioNombre ?? '',
+  remitenteUsuario: r?.remitenteUsuario ?? '',
+  remitenteNombre: r?.remitenteNombre ?? '',
 });
 
 const PQRS = () => {
@@ -190,12 +196,14 @@ const PQRS = () => {
   const isUser = role === 'user' || role === 'residente' || role === 'resident';
 
   const [tab, setTab] = useState(0);
-  const [loadingOwners, setLoadingOwners] = useState(true);
+  const [loadingPropietarios, setLoadingPropietarios] = useState(true);
   const [loadingMine, setLoadingMine] = useState(true);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
 
+  // Estado para tipo de destinatario
+  const [destinatarioTipo, setDestinatarioTipo] = useState('propietario');
   const [propietarios, setPropietarios] = useState([]);
   const [mine, setMine] = useState([]);
   const [selectedRequest, setSelectedRequest] = useState(null);
@@ -210,6 +218,7 @@ const PQRS = () => {
     prioridad: 'media',
   });
 
+  // Filtrar solo propietarios (tipoResidente = 'Propietario')
   const propietarioOptions = useMemo(() => {
     const seen = new Set();
     return propietarios.filter((p) => {
@@ -220,27 +229,34 @@ const PQRS = () => {
     });
   }, [propietarios]);
 
+  // Cargar propietarios desde la base de datos
   const loadPropietarios = async () => {
-    setLoadingOwners(true);
+    setLoadingPropietarios(true);
     setError('');
     try {
       const res = await residentAPI.getAll();
       const users = toArray(res?.data);
+      console.log('Todos los usuarios:', users);
+      
+      // Filtrar solo propietarios
       const owners = users
         .filter((u) => {
-          const role = String(u?.role || u?.tipo || '').toLowerCase();
-          return role === 'propietario' || role === 'owner';
+          const tipoResidente = String(u?.tipoResidente || '').toLowerCase();
+          return tipoResidente === 'propietario';
         })
         .map(normalizePropietario);
       setPropietarios(owners);
-    } catch {
+      console.log('Propietarios cargados:', owners);
+    } catch (err) {
+      console.error('Error al cargar propietarios:', err);
       setPropietarios([]);
       setInfo('No se pudieron cargar propietarios desde la API; puedes escribir el nombre manualmente.');
     } finally {
-      setLoadingOwners(false);
+      setLoadingPropietarios(false);
     }
   };
 
+  // Cargar mis PQRS
   const loadMine = async () => {
     setLoadingMine(true);
     setError('');
@@ -248,13 +264,25 @@ const PQRS = () => {
     try {
       const res = await requestAPI.getAll();
       const all = toArray(res?.data);
+      console.log('Todas las PQRS:', all);
+      
       const mineFromApi = all
         .map(normalizeRequest)
-        .filter((r) => (user?.username ? r.remitenteUsuario === user.username : true));
+        .filter((r) => {
+          const remitente = r.remitenteUsuario || '';
+          const userIdentifier = user?.username || user?.email || user?.id || user?.idResidente;
+          return remitente === userIdentifier;
+        });
       
-      mineFromApi.sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+      mineFromApi.sort((a, b) => {
+        const dateA = a.fecha ? new Date(a.fecha) : new Date(0);
+        const dateB = b.fecha ? new Date(b.fecha) : new Date(0);
+        return dateB - dateA;
+      });
       setMine(mineFromApi);
-    } catch {
+      console.log('Mis PQRS cargadas:', mineFromApi);
+    } catch (err) {
+      console.error('Error al cargar PQRS:', err);
       setMine([]);
     } finally {
       setLoadingMine(false);
@@ -262,14 +290,26 @@ const PQRS = () => {
   };
 
   useEffect(() => {
-    if (!isUser) return;
-    loadPropietarios();
-    loadMine();
+    if (isUser) {
+      loadPropietarios();
+      loadMine();
+    }
   }, []);
 
   const handleChange = (field) => (e) => {
     const value = e?.target?.value;
     setForm((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleDestinatarioTipoChange = (e) => {
+    const value = e?.target?.value;
+    setDestinatarioTipo(value);
+    // Limpiar campos de propietario al cambiar el tipo
+    setForm((prev) => ({
+      ...prev,
+      propietarioId: '',
+      propietarioNombre: '',
+    }));
   };
 
   const onSelectPropietario = (e) => {
@@ -284,8 +324,13 @@ const PQRS = () => {
 
   const validate = () => {
     if (!form.asunto.trim()) return 'El asunto es obligatorio.';
-    if (!form.descripcion.trim()) return 'La descripcion es obligatoria.';
-    if (!form.propietarioId && !form.propietarioNombre.trim()) return 'Selecciona un propietario o escribe su nombre.';
+    if (!form.descripcion.trim()) return 'La descripción es obligatoria.';
+    
+    if (destinatarioTipo === 'propietario') {
+      if (!form.propietarioId && !form.propietarioNombre.trim()) {
+        return 'Selecciona un propietario o escribe su nombre.';
+      }
+    }
     return '';
   };
 
@@ -298,6 +343,7 @@ const PQRS = () => {
       descripcion: '',
       prioridad: 'media',
     });
+    setDestinatarioTipo('propietario');
   };
 
   const handleSubmit = async () => {
@@ -310,28 +356,67 @@ const PQRS = () => {
     }
 
     setSending(true);
-    const payload = {
-      tipo: form.tipo,
-      asunto: form.asunto.trim(),
-      descripcion: form.descripcion.trim(),
-      prioridad: form.prioridad,
-      estado: 'pendiente',
-      fecha: new Date().toISOString(),
-      propietarioId: form.propietarioId ? Number(form.propietarioId) : null,
-      propietarioNombre: form.propietarioNombre.trim() || null,
-      remitenteUsuario: user?.username || null,
-      remitenteNombre: user?.name || null,
-    };
-
+    
     try {
+      // Datos del destinatario según el tipo seleccionado
+      let propietarioId = null;
+      let propietarioNombre = '';
+      const destinatarioSeleccionado = destinatarioTipo;
+
+      if (destinatarioSeleccionado === 'admin') {
+        propietarioId = null;
+        propietarioNombre = 'Administrador del Condominio';
+      } else {
+        propietarioId = form.propietarioId ? Number(form.propietarioId) : null;
+        propietarioNombre = form.propietarioNombre.trim() || null;
+      }
+
+      // Formatear fecha correctamente en formato YYYY-MM-DD HH:MM:SS
+      const ahora = new Date();
+      const fechaFormateada = ahora.getFullYear() + '-' + 
+                             String(ahora.getMonth() + 1).padStart(2, '0') + '-' + 
+                             String(ahora.getDate()).padStart(2, '0') + ' ' +
+                             String(ahora.getHours()).padStart(2, '0') + ':' +
+                             String(ahora.getMinutes()).padStart(2, '0') + ':' +
+                             String(ahora.getSeconds()).padStart(2, '0');
+
+      const payload = {
+        tipo: form.tipo,
+        asunto: form.asunto.trim(),
+        descripcion: form.descripcion.trim(),
+        prioridad: form.prioridad,
+        estado: 'pendiente',
+        fecha: fechaFormateada,
+        propietarioId: propietarioId,
+        propietarioNombre: propietarioNombre,
+        remitenteUsuario: user?.username || user?.email || user?.id || user?.idResidente,
+        remitenteNombre: user?.name || user?.nombre || 'Residente',
+      };
+
+      console.log('Enviando PQRS con fecha:', fechaFormateada);
+      console.log('Payload completo:', payload);
+
       const res = await requestAPI.create(payload);
       const created = normalizeRequest(res?.data);
+      
+      console.log('Respuesta del servidor:', created);
+      
       setMine((prev) => [created, ...prev]);
       resetForm();
       setTab(1);
-      setInfo('PQRS enviada correctamente.');
-    } catch {
-      setError('No se pudo enviar la PQRS. Intente nuevamente.');
+      setInfo(`PQRS enviada correctamente al ${destinatarioSeleccionado === 'admin' ? 'Administrador' : 'Propietario'}.`);
+    } catch (err) {
+      console.error('Error al enviar PQRS:', err);
+      console.error('Detalles del error:', err.response?.data);
+      
+      if (err.response?.data?.message) {
+        setError(`Error: ${err.response.data.message}`);
+      } else if (err.response?.data?.errors) {
+        const errors = Object.values(err.response.data.errors).flat().join(', ');
+        setError(`Error en los datos: ${errors}`);
+      } else {
+        setError('No se pudo enviar la PQRS. Intente nuevamente.');
+      }
     } finally {
       setSending(false);
     }
@@ -347,11 +432,33 @@ const PQRS = () => {
     setSelectedRequest(null);
   };
 
+  const formatFecha = (fecha) => {
+    if (!fecha) return '-';
+    try {
+      const date = new Date(fecha);
+      if (isNaN(date.getTime())) return '-';
+      return date.toLocaleDateString('es-ES');
+    } catch {
+      return '-';
+    }
+  };
+
+  const formatHora = (fecha) => {
+    if (!fecha) return '';
+    try {
+      const date = new Date(fecha);
+      if (isNaN(date.getTime())) return '';
+      return date.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+    } catch {
+      return '';
+    }
+  };
+
   if (!isUser) {
     return (
       <Paper sx={{ p: 3, borderRadius: 3, border: `1px solid ${colors.border}` }}>
         <Alert severity="info">
-          Este apartado de PQRS esta disponible solo para residentes.
+          Este apartado de PQRS está disponible solo para residentes.
         </Alert>
       </Paper>
     );
@@ -360,12 +467,7 @@ const PQRS = () => {
   return (
     <Box sx={{ backgroundColor: colors.background, minHeight: '100vh', pt: 0 }}>
       <Container 
-        maxWidth={false}
-        sx={{
-          py: 2,
-          px: { md: 7 },
-          ml: { md: '40px' },
-        }}
+         maxWidth="xl"
       >
         {/* Header */}
         <Box sx={{ ...fadeInUp, mb: 3 }}>
@@ -389,14 +491,14 @@ const PQRS = () => {
                         PQRS
                       </Typography>
                       <Typography variant="body2" sx={{ color: alpha('#fff', 0.8) }}>
-                        Envía peticiones, quejas, reclamos o sugerencias al propietario que elijas.
+                        Envía peticiones, quejas, reclamos o sugerencias al Administrador o al Propietario que elijas.
                       </Typography>
                     </Box>
                   </Box>
 
                   <Chip
                     icon={<PersonIcon />}
-                    label={user?.name || user?.username || 'Residente'}
+                    label={user?.name || user?.nombre || user?.username || 'Residente'}
                     sx={{
                       bgcolor: alpha('#fff', 0.2),
                       color: 'white',
@@ -437,8 +539,8 @@ const PQRS = () => {
 
         {(error || info) && (
           <Box sx={{ mb: 3 }}>
-            {error && <Alert severity="error" sx={{ borderRadius: 2 }}>{error}</Alert>}
-            {!error && info && <Alert severity="info" sx={{ borderRadius: 2 }}>{info}</Alert>}
+            {error && <Alert severity="error" sx={{ borderRadius: 2 }} onClose={() => setError('')}>{error}</Alert>}
+            {!error && info && <Alert severity="info" sx={{ borderRadius: 2 }} onClose={() => setInfo('')}>{info}</Alert>}
           </Box>
         )}
 
@@ -446,47 +548,110 @@ const PQRS = () => {
         {tab === 0 && (
           <StyledCard>
             <CardContent sx={{ p: { xs: 3, sm: 4 } }}>
-              {(loadingOwners || sending) && <LinearProgress sx={{ mb: 3, borderRadius: 2 }} />}
+              {(loadingPropietarios || sending) && <LinearProgress sx={{ mb: 3, borderRadius: 2 }} />}
               
-              <Grid container spacing={3}>
-                <Grid item xs={12} md={6}>
-                  <FormControl fullWidth>
-                    <InputLabel>Seleccionar propietario</InputLabel>
-                    <Select
-                      value={form.propietarioId}
-                      onChange={onSelectPropietario}
-                      label="Seleccionar propietario"
-                      disabled={loadingOwners}
-                    >
-                      <MenuItem value="">-- Escribir manualmente --</MenuItem>
-                      {propietarioOptions.map((p) => (
-                        <MenuItem key={p.id} value={p.id}>{p.name}</MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    fullWidth
-                    label="Nombre del propietario"
-                    value={form.propietarioNombre}
-                    onChange={handleChange('propietarioNombre')}
-                    disabled={Boolean(form.propietarioId)}
-                    placeholder="Escribe el nombre del propietario"
+              {/* Selector de destinatario */}
+              <Box sx={{ mb: 3 }}>
+                <Typography variant="subtitle2" sx={{ mb: 1.5, fontWeight: 600, color: colors.text.primary }}>
+                  Enviar a:
+                </Typography>
+                <RadioGroup
+                  row
+                  value={destinatarioTipo}
+                  onChange={handleDestinatarioTipoChange}
+                  sx={{ gap: 2 }}
+                >
+                  <FormControlLabel
+                    value="propietario"
+                    control={<Radio />}
+                    label={
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <HomeIcon sx={{ fontSize: 20, color: colors.accent }} />
+                        <Typography variant="body2">Propietario</Typography>
+                      </Box>
+                    }
                   />
-                </Grid>
+                  <FormControlLabel
+                    value="admin"
+                    control={<Radio />}
+                    label={
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <AdminIcon sx={{ fontSize: 20, color: colors.primary }} />
+                        <Typography variant="body2">Administrador</Typography>
+                      </Box>
+                    }
+                  />
+                </RadioGroup>
+              </Box>
 
-                <Grid item xs={12}>
+              <Grid container spacing={3}>
+                {/* Campos de propietario - solo si es propietario */}
+                {destinatarioTipo === 'propietario' && (
+                  <>
+                    <Grid size={{ xs: 12, md: 6 }}>
+                      <FormControl fullWidth>
+                        <InputLabel>Seleccionar propietario</InputLabel>
+                        <Select
+                          value={form.propietarioId}
+                          onChange={onSelectPropietario}
+                          label="Seleccionar propietario"
+                          disabled={loadingPropietarios}
+                        >
+                          <MenuItem value="">-- Seleccione un propietario --</MenuItem>
+                          {propietarioOptions.map((p) => (
+                            <MenuItem key={p.id} value={p.id}>
+                              {p.name} {p.documento ? `(${p.documento})` : ''}
+                            </MenuItem>
+                          ))}
+                        </Select>
+                        {loadingPropietarios && (
+                          <Box sx={{ display: 'flex', alignItems: 'center', mt: 1 }}>
+                            <CircularProgress size={20} sx={{ mr: 1 }} />
+                            <Typography variant="caption">Cargando propietarios...</Typography>
+                          </Box>
+                        )}
+                        {propietarioOptions.length === 0 && !loadingPropietarios && (
+                          <Typography variant="caption" sx={{ color: colors.warning, mt: 1 }}>
+                            No hay propietarios registrados. Puedes escribir el nombre manualmente.
+                          </Typography>
+                        )}
+                      </FormControl>
+                    </Grid>
+                    <Grid size={{ xs: 12, md: 6 }}>
+                      <TextField
+                        fullWidth
+                        label="Nombre del propietario (opcional)"
+                        value={form.propietarioNombre}
+                        onChange={handleChange('propietarioNombre')}
+                        disabled={Boolean(form.propietarioId)}
+                        placeholder="Escribe el nombre del propietario si no aparece en la lista"
+                        helperText={form.propietarioId ? "Si seleccionaste un propietario, este campo se completa automáticamente" : "Puedes escribir el nombre manualmente"}
+                      />
+                    </Grid>
+                  </>
+                )}
+
+                {/* Si es admin, mostrar información */}
+                {destinatarioTipo === 'admin' && (
+                  <Grid size={{ xs: 12 }}>
+                    <Alert severity="info" sx={{ borderRadius: 2, bgcolor: alpha(colors.info, 0.05) }}>
+                      Tu PQRS será enviada al Administrador del Condominio para su revisión y respuesta.
+                    </Alert>
+                  </Grid>
+                )}
+
+                <Grid size={{ xs: 12 }}>
                   <TextField
                     fullWidth
                     label="Asunto"
                     value={form.asunto}
                     onChange={handleChange('asunto')}
                     placeholder="Breve resumen de tu solicitud"
+                    required
                   />
                 </Grid>
 
-                <Grid item xs={12} md={6}>
+                <Grid size={{ xs: 12, md: 6 }}>
                   <FormControl fullWidth>
                     <InputLabel>Tipo</InputLabel>
                     <Select
@@ -502,7 +667,7 @@ const PQRS = () => {
                   </FormControl>
                 </Grid>
 
-                <Grid item xs={12} md={6}>
+                <Grid size={{ xs: 12, md: 6 }}>
                   <FormControl fullWidth>
                     <InputLabel>Prioridad</InputLabel>
                     <Select
@@ -517,7 +682,7 @@ const PQRS = () => {
                   </FormControl>
                 </Grid>
 
-                <Grid item xs={12}>
+                <Grid size={{ xs: 12 }}>
                   <TextField
                     fullWidth
                     label="Descripción"
@@ -526,10 +691,11 @@ const PQRS = () => {
                     multiline
                     rows={5}
                     placeholder="Describe detalladamente tu petición, queja, reclamo o sugerencia..."
+                    required
                   />
                 </Grid>
 
-                <Grid item xs={12}>
+                <Grid size={{ xs: 12 }}>
                   <Button
                     fullWidth
                     variant="contained"
@@ -545,7 +711,7 @@ const PQRS = () => {
                       textTransform: 'none',
                     }}
                   >
-                    {sending ? 'Enviando...' : 'Enviar PQRS'}
+                    {sending ? 'Enviando...' : `Enviar PQRS al ${destinatarioTipo === 'admin' ? 'Administrador' : 'Propietario'}`}
                   </Button>
                 </Grid>
               </Grid>
@@ -591,7 +757,7 @@ const PQRS = () => {
                     <TableHead>
                       <TableRow sx={{ bgcolor: alpha(colors.primary, 0.04) }}>
                         <TableCell sx={{ fontWeight: 700 }}>Fecha</TableCell>
-                        <TableCell sx={{ fontWeight: 700 }}>Propietario</TableCell>
+                        <TableCell sx={{ fontWeight: 700 }}>Destinatario</TableCell>
                         <TableCell sx={{ fontWeight: 700 }}>Tipo</TableCell>
                         <TableCell sx={{ fontWeight: 700 }}>Asunto</TableCell>
                         <TableCell sx={{ fontWeight: 700 }}>Prioridad</TableCell>
@@ -604,16 +770,25 @@ const PQRS = () => {
                         <TableRow key={String(r.id)} hover>
                           <TableCell>
                             <Typography variant="body2">
-                              {r.fecha ? new Date(r.fecha).toLocaleDateString('es-ES') : '-'}
+                              {formatFecha(r.fecha)}
                             </Typography>
-                            <Typography variant="caption" sx={{ color: colors.text.disabled }}>
-                              {r.fecha ? new Date(r.fecha).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' }) : ''}
-                            </Typography>
+                            {r.fecha && (
+                              <Typography variant="caption" sx={{ color: colors.text.disabled }}>
+                                {formatHora(r.fecha)}
+                              </Typography>
+                            )}
                           </TableCell>
                           <TableCell>
-                            <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                              {r.propietarioNombre || r.propietarioId || '-'}
-                            </Typography>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                              {r.propietarioId === null || r.propietarioNombre === 'Administrador del Condominio' ? (
+                                <AdminIcon sx={{ fontSize: 16, color: colors.primary }} />
+                              ) : (
+                                <HomeIcon sx={{ fontSize: 16, color: colors.accent }} />
+                              )}
+                              <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                                {r.propietarioNombre || (r.propietarioId ? `Propietario ID: ${r.propietarioId}` : 'Administrador')}
+                              </Typography>
+                            </Box>
                           </TableCell>
                           <TableCell>
                             <Chip
@@ -663,7 +838,26 @@ const PQRS = () => {
           <DialogContent sx={{ p: 3 }}>
             {selectedRequest && (
               <Grid container spacing={3}>
-                <Grid item xs={12} sm={6}>
+                <Grid size={{ xs: 12, sm: 6 }}>
+                  <Typography variant="caption" sx={{ color: colors.text.secondary, display: 'block', mb: 0.5 }}>Fecha</Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                    {selectedRequest.fecha ? new Date(selectedRequest.fecha).toLocaleString() : '-'}
+                  </Typography>
+                </Grid>
+                <Grid size={{ xs: 12, sm: 6 }}>
+                  <Typography variant="caption" sx={{ color: colors.text.secondary, display: 'block', mb: 0.5 }}>Destinatario</Typography>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    {selectedRequest.propietarioId === null || selectedRequest.propietarioNombre === 'Administrador del Condominio' ? (
+                      <AdminIcon sx={{ fontSize: 20, color: colors.primary }} />
+                    ) : (
+                      <HomeIcon sx={{ fontSize: 20, color: colors.accent }} />
+                    )}
+                    <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                      {selectedRequest.propietarioNombre || (selectedRequest.propietarioId ? `Propietario ID: ${selectedRequest.propietarioId}` : 'Administrador del Condominio')}
+                    </Typography>
+                  </Box>
+                </Grid>
+                <Grid size={{ xs: 12, sm: 6 }}>
                   <Typography variant="caption" sx={{ color: colors.text.secondary, display: 'block', mb: 0.5 }}>Tipo</Typography>
                   <Chip
                     size="small"
@@ -671,33 +865,21 @@ const PQRS = () => {
                     sx={{ bgcolor: alpha(colors.accent, 0.1), color: colors.accent }}
                   />
                 </Grid>
-                <Grid item xs={12} sm={6}>
+                <Grid size={{ xs: 12, sm: 6 }}>
                   <Typography variant="caption" sx={{ color: colors.text.secondary, display: 'block', mb: 0.5 }}>Prioridad</Typography>
                   <Box>{getPriorityChip(selectedRequest.prioridad)}</Box>
                 </Grid>
-                <Grid item xs={12} sm={6}>
+                <Grid size={{ xs: 12, sm: 6 }}>
                   <Typography variant="caption" sx={{ color: colors.text.secondary, display: 'block', mb: 0.5 }}>Estado</Typography>
                   <Box>{getStatusChip(selectedRequest.estado)}</Box>
                 </Grid>
-                <Grid item xs={12} sm={6}>
-                  <Typography variant="caption" sx={{ color: colors.text.secondary, display: 'block', mb: 0.5 }}>Fecha</Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                    {selectedRequest.fecha ? new Date(selectedRequest.fecha).toLocaleString() : '-'}
-                  </Typography>
-                </Grid>
-                <Grid item xs={12}>
-                  <Typography variant="caption" sx={{ color: colors.text.secondary, display: 'block', mb: 0.5 }}>Propietario</Typography>
-                  <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                    {selectedRequest.propietarioNombre || selectedRequest.propietarioId || '-'}
-                  </Typography>
-                </Grid>
-                <Grid item xs={12}>
+                <Grid size={{ xs: 12 }}>
                   <Typography variant="caption" sx={{ color: colors.text.secondary, display: 'block', mb: 0.5 }}>Asunto</Typography>
                   <Typography variant="body1" sx={{ fontWeight: 600, fontSize: '1rem' }}>
                     {selectedRequest.asunto || '-'}
                   </Typography>
                 </Grid>
-                <Grid item xs={12}>
+                <Grid size={{ xs: 12 }}>
                   <Typography variant="caption" sx={{ color: colors.text.secondary, display: 'block', mb: 1 }}>Descripción</Typography>
                   <Paper variant="outlined" sx={{ p: 2.5, bgcolor: alpha(colors.background, 0.5), borderRadius: 3 }}>
                     <Typography variant="body2" sx={{ lineHeight: 1.6 }}>
@@ -706,14 +888,14 @@ const PQRS = () => {
                   </Paper>
                 </Grid>
                 
-                {/* Respuesta del administrador */}
+                {/* Respuesta */}
                 {selectedRequest.respuesta && (
-                  <Grid item xs={12}>
+                  <Grid size={{ xs: 12 }}>
                     <Divider sx={{ my: 1 }} />
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
                       <ReplyIcon sx={{ color: colors.success, fontSize: 20 }} />
                       <Typography variant="caption" sx={{ color: colors.success, fontWeight: 600 }}>
-                        RESPUESTA DEL ADMINISTRADOR
+                        RESPUESTA
                       </Typography>
                     </Box>
                     <Paper

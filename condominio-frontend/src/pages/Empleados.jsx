@@ -62,8 +62,8 @@ const emptyForm = {
 
 // Colores personalizados
 const colors = {
-  primary: '#1e3a5f',
-  secondary: '#2a4a7a',
+  primary: '#0f2a3a',
+  secondary: '#0d2533',
   success: '#10b981',
   warning: '#f59e0b',
   error: '#ef4444',

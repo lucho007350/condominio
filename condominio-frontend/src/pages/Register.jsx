@@ -760,7 +760,7 @@ const Register = () => {
 
   return (
     <Box sx={{ backgroundColor: colors.background, minHeight: '100vh', py: 4 }}>
-      <Container maxWidth="md">
+      <Container maxWidth="ml">
         {/* Header */}
         <Box sx={{ ...fadeIn, mb: 4 }}>
           <Paper
