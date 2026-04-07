@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Container, Row, Col, Form, Button, Card } from 'react-bootstrap';
+import { Container, Row, Col, Form, Button, Card, OverlayTrigger, Tooltip } from 'react-bootstrap';
 import { Link, useNavigate } from 'react-router-dom';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import { authAPI } from '../services/api.jsx';
@@ -13,6 +13,7 @@ const DEFAULT_AVATARS = {
 
 const Login = () => {
   const navigate = useNavigate();
+  const manualUrl = `${import.meta.env.BASE_URL}MANUAL_DE_USUARIO.html`;
   const primaryColor = '#0f2a3a';
   const secondaryColor = '#1d3e52';
   const accentColor = '#2c5f6e';
@@ -159,9 +160,41 @@ const Login = () => {
               animation: 'float 6s ease-in-out infinite'
             }}
           >
-            <Card.Body className="p-5">
-              {/* Logo o Icono */}
-              <div className="text-center mb-4">
+             <Card.Body className="p-5 position-relative">
+               <div
+                 className="position-absolute"
+                 style={{ top: '18px', right: '18px' }}
+               >
+                 <OverlayTrigger
+                   placement="left"
+                   overlay={<Tooltip id="tooltip-manual">Manual de usuario</Tooltip>}
+                 >
+                   <a
+                     href={manualUrl}
+                     target="_blank"
+                     rel="noopener noreferrer"
+                     aria-label="Manual de usuario"
+                     style={{
+                       display: 'inline-flex',
+                       width: '34px',
+                       height: '34px',
+                       alignItems: 'center',
+                       justifyContent: 'center',
+                       borderRadius: '999px',
+                       background: 'rgba(15, 42, 58, 0.08)',
+                       color: primaryColor,
+                       textDecoration: 'none',
+                       fontWeight: 800,
+                       lineHeight: 1,
+                       border: '1px solid rgba(15, 42, 58, 0.15)',
+                     }}
+                   >
+                     📘
+                   </a>
+                 </OverlayTrigger>
+               </div>
+               {/* Logo o Icono */}
+               <div className="text-center mb-4">
                 <div 
                   className="rounded-circle mx-auto mb-3 d-flex align-items-center justify-content-center"
                   style={{

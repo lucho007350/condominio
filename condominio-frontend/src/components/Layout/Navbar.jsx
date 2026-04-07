@@ -36,6 +36,7 @@ import {
   PersonAdd as PersonAddIcon,
   ChevronLeft as ChevronLeftIcon,
   Notifications as NotificationsIcon,
+  MenuBook as MenuBookIcon,
 } from "@mui/icons-material";
 
 const navbarColors = {
@@ -92,6 +93,11 @@ const MainLayout = ({ children }) => {
 
   const handleRegisterClick = () => {
     navigate('/register');
+  };
+
+  const handleManualClick = () => {
+    const manualUrl = `${import.meta.env.BASE_URL}MANUAL_DE_USUARIO.html`;
+    window.open(manualUrl, '_blank', 'noopener,noreferrer');
   };
 
   const isActive = (path) => location.pathname === path;
@@ -276,6 +282,17 @@ const MainLayout = ({ children }) => {
                   onClick={handleNotificationsClick}
                 >
                   <NotificationsIcon />
+                </IconButton>
+              </Tooltip>
+
+              <Tooltip title="Manual de usuario">
+                <IconButton
+                  size="large"
+                  sx={{ color: '#64748b' }}
+                  onClick={handleManualClick}
+                  aria-label="Manual de usuario"
+                >
+                  <MenuBookIcon />
                 </IconButton>
               </Tooltip>
 
